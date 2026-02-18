@@ -1,121 +1,136 @@
-import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { DashboardLayout } from '@/components/layout'
-import { Header } from '@/components/layout'
-import { KpiCard } from '@/components/ui'
-import { AreaChart } from '@/components/charts'
-import { Table } from '@/components/ui'
-import { Badge } from '@/components/ui'
-
-const sidebarItems = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'portfolio', label: 'Portfolio' },
-  { key: 'transactions', label: 'Transactions' },
-  { key: 'goals', label: 'Goals' },
-  { key: 'ai-insights', label: 'AI Insights' },
-  { key: 'analytics', label: 'Analytics' },
-  { key: 'notifications', label: 'Notifications' },
-  { key: 'settings', label: 'Settings' },
-]
-
-const samplePortfolioData = [
-  { name: 'Jan', value: 1200 },
-  { name: 'Feb', value: 1350 },
-  { name: 'Mar', value: 1280 },
-  { name: 'Apr', value: 1520 },
-  { name: 'May', value: 1680 },
-  { name: 'Jun', value: 1750 },
-  { name: 'Jul', value: 1920 },
-]
-
-const sampleTransactions = [
-  { id: 1, merchant: 'Starbucks', amount: '$4.75', roundup: '$0.25', status: 'completed', date: '2026-02-18' },
-  { id: 2, merchant: 'Amazon', amount: '$23.47', roundup: '$0.53', status: 'completed', date: '2026-02-17' },
-  { id: 3, merchant: 'Uber', amount: '$12.30', roundup: '$0.70', status: 'processing', date: '2026-02-17' },
-  { id: 4, merchant: 'Target', amount: '$45.12', roundup: '$0.88', status: 'completed', date: '2026-02-16' },
-  { id: 5, merchant: 'Netflix', amount: '$15.99', roundup: '$0.01', status: 'completed', date: '2026-02-15' },
-]
-
-const transactionColumns = [
-  { key: 'merchant', header: 'Merchant', sortable: true },
-  { key: 'amount', header: 'Amount', sortable: true },
-  { key: 'roundup', header: 'Round-Up', sortable: true },
-  {
-    key: 'status',
-    header: 'Status',
-    render: (row: Record<string, unknown>) => (
-      <Badge variant={row.status === 'completed' ? 'success' : 'warning'}>
-        {String(row.status)}
-      </Badge>
-    ),
-  },
-  { key: 'date', header: 'Date', sortable: true },
-]
+import { useTheme } from '@/context/ThemeContext'
 
 export default function UserDashboard() {
   const { profile, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState('overview')
+  const { toggleTheme, isLight } = useTheme()
 
   return (
-    <DashboardLayout
-      sidebarItems={sidebarItems}
-      activeKey={activeTab}
-      onSelect={setActiveTab}
-      onSignOut={signOut}
-    >
-      <Header
-        title={`Welcome back, ${profile?.name || 'User'}`}
-        subtitle="Here's your investment overview"
-      />
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+    }}>
+      {/* Sidebar */}
+      <aside style={{
+        width: '260px',
+        background: 'var(--color-surface-sidebar)',
+        backdropFilter: 'blur(16px)',
+        borderRight: '1px solid var(--color-border-subtle)',
+        padding: '24px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        <span style={{
+          fontSize: '22px',
+          fontWeight: 800,
+          background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          marginBottom: '32px',
+          padding: '0 8px',
+        }}>
+          Kamioi
+        </span>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KpiCard
-          label="Portfolio Value"
-          value="$1,920.00"
-          change="+12.4% this month"
-          changeType="positive"
-        />
-        <KpiCard
-          label="Round-Ups This Month"
-          value="$24.37"
-          change="+$8.50 vs last month"
-          changeType="positive"
-        />
-        <KpiCard
-          label="Active Goals"
-          value="3"
-          change="2 on track"
-          changeType="neutral"
-        />
-        <KpiCard
-          label="AI Confidence"
-          value="94%"
-          change="+2% improvement"
-          changeType="positive"
-        />
-      </div>
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {['Overview', 'Portfolio', 'Transactions', 'Goals', 'AI Insights', 'Analytics', 'Settings'].map((item, i) => (
+            <div
+              key={item}
+              style={{
+                padding: '10px 14px',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: i === 0 ? 600 : 400,
+                background: i === 0
+                  ? 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(59,130,246,0.2))'
+                  : 'transparent',
+                color: i === 0 ? '#fff' : 'inherit',
+                opacity: i === 0 ? 1 : 0.6,
+                cursor: 'pointer',
+              }}
+            >
+              {item}
+            </div>
+          ))}
+        </nav>
 
-      {/* Chart */}
-      <div className="mb-8">
-        <AreaChart
-          data={samplePortfolioData}
-          dataKey="value"
-          title="Portfolio Growth"
-          color="#7C3AED"
-          height={280}
-        />
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button
+            onClick={toggleTheme}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--color-border-subtle)',
+              color: 'inherit',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {isLight ? 'Dark Mode' : 'Light Mode'}
+          </button>
+          <button
+            onClick={signOut}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              color: '#EF4444',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Sign Out
+          </button>
+        </div>
+      </aside>
 
-      {/* Recent Transactions */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
-        <Table
-          columns={transactionColumns}
-          data={sampleTransactions}
-          pageSize={5}
-        />
-      </div>
-    </DashboardLayout>
+      {/* Main content */}
+      <main style={{ flex: 1, padding: '32px', overflow: 'auto' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>
+          Welcome back, {profile?.name || 'User'}
+        </h1>
+        <p style={{ opacity: 0.6, fontSize: '14px', marginBottom: '32px' }}>
+          Here's your investment overview
+        </p>
+
+        {/* KPI Cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '16px',
+          marginBottom: '32px',
+        }}>
+          {[
+            { label: 'Portfolio Value', value: '$0.00' },
+            { label: 'Round-Ups This Month', value: '$0.00' },
+            { label: 'Active Goals', value: '0' },
+            { label: 'AI Confidence', value: '--' },
+          ].map(card => (
+            <div key={card.label} style={{
+              background: 'var(--color-surface-card)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid var(--color-border-subtle)',
+              borderRadius: '14px',
+              padding: '20px',
+            }}>
+              <p style={{ fontSize: '13px', opacity: 0.5, marginBottom: '8px' }}>
+                {card.label}
+              </p>
+              <p style={{ fontSize: '28px', fontWeight: 700 }}>
+                {card.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ opacity: 0.4, fontSize: '13px' }}>
+          Dashboard modules will be built in Phase 5.
+        </p>
+      </main>
+    </div>
   )
 }
