@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kamioi -- Swiss Minimal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   SWISS MINIMAL -- Typography-Driven Design
+   ============================================ */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --white: #FFFFFF;
+  --off-white: #FAFAFA;
+  --light-gray: #F4F4F5;
+  --border-gray: #E4E4E7;
+  --medium-gray: #A1A1AA;
+  --text-gray: #71717A;
+  --dark-gray: #3F3F46;
+  --near-black: #09090B;
+  --accent: #2563EB;
+  --green: #16A34A;
+  --amber: #D97706;
+  --shadow-subtle: 0 1px 2px rgba(0,0,0,0.04);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--white);
+  color: var(--near-black);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ---- Top Header ---- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 48px;
+  height: 56px;
+  border-bottom: 1px solid var(--border-gray);
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--near-black);
+  letter-spacing: -0.02em;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0;
+}
+
+.view-toggle button {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-gray);
+  background: none;
+  border: none;
+  padding: 18px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.1s;
+  line-height: 1;
+}
+
+.view-toggle button:hover {
+  color: var(--dark-gray);
+}
+
+.view-toggle button.active {
+  color: var(--near-black);
+  font-weight: 600;
+  border-bottom-color: var(--near-black);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.notification-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.user-name {
+  font-size: 14px;
+  color: var(--text-gray);
+  font-weight: 400;
+}
+
+/* ---- Dashboard Views ---- */
+.dashboard-view {
+  display: none;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 1fr;
+  min-height: calc(100vh - 56px);
+}
+
+.dashboard-view.active {
+  display: grid;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  border-right: 1px solid var(--border-gray);
+  background: var(--white);
+  padding: 32px 0;
+  overflow-y: auto;
+  height: calc(100vh - 56px);
+  position: sticky;
+  top: 56px;
+}
+
+.nav-list {
+  list-style: none;
+}
+
+.nav-item {
+  display: block;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-gray);
+  padding: 0 24px 0 22px;
+  line-height: 40px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: color 0.1s;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  color: var(--dark-gray);
+}
+
+.nav-item.active {
+  color: var(--near-black);
+  font-weight: 600;
+  border-left-color: var(--accent);
+}
+
+/* ---- Main Content ---- */
+.main {
+  padding: 48px 56px 80px;
+  background: var(--white);
+  max-width: 1120px;
+  overflow-x: hidden;
+}
+
+/* ---- Page Title ---- */
+.page-title {
+  margin-bottom: 48px;
+}
+
+.page-title h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--near-black);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.page-title .subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--medium-gray);
+  margin-top: 4px;
+}
+
+/* ---- KPI Row ---- */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin-bottom: 56px;
+}
+
+.kpi-item {
+  padding: 0 32px;
+  border-right: 1px solid var(--border-gray);
+}
+
+.kpi-item:first-child {
+  padding-left: 0;
+}
+
+.kpi-item:last-child {
+  border-right: none;
+}
+
+.kpi-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--near-black);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--medium-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 8px;
+}
+
+.kpi-change {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+/* ---- Section ---- */
+.section {
+  margin-bottom: 56px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--near-black);
+  margin-bottom: 24px;
+  letter-spacing: -0.01em;
+}
+
+/* ---- Chart Area ---- */
+.chart-container {
+  position: relative;
+  height: 200px;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding-top: 16px;
+}
+
+.chart-reference-line {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--light-gray);
+}
+
+.chart-bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.chart-bar {
+  width: 32px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  transition: opacity 0.1s;
+}
+
+.chart-bar:hover {
+  opacity: 0.8;
+}
+
+.chart-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--medium-gray);
+}
+
+/* ---- Table ---- */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--medium-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+thead th.align-right {
+  text-align: right;
+}
+
+tbody td {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--near-black);
+  padding: 14px 0;
+  border-bottom: 1px solid var(--light-gray);
+  vertical-align: middle;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover td {
+  background: var(--off-white);
+}
+
+td.mono {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+  font-size: 13px;
+}
+
+td.align-right {
+  text-align: right;
+}
+
+td.date {
+  color: var(--text-gray);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.status-completed { color: var(--green); font-weight: 500; }
+.status-pending { color: var(--amber); font-weight: 500; }
+.status-processing { color: var(--accent); font-weight: 500; }
+
+/* ---- Goals ---- */
+.goal {
+  margin-bottom: 28px;
+}
+
+.goal:last-child {
+  margin-bottom: 0;
+}
+
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.goal-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--near-black);
+}
+
+.goal-amount {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-gray);
+}
+
+.progress-track {
+  width: 100%;
+  height: 4px;
+  background: var(--light-gray);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.1s;
+}
+
+/* ---- Activity List ---- */
+.activity-list {
+  list-style: none;
+}
+
+.activity-item {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-time {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--medium-gray);
+  white-space: nowrap;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.activity-text {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--near-black);
+  line-height: 1.4;
+}
+
+/* ---- Quick Actions ---- */
+.actions-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.1s;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  opacity: 0.85;
+}
+
+.btn-primary {
+  background: var(--near-black);
+  color: var(--white);
+}
+
+.btn-secondary {
+  background: var(--white);
+  color: var(--near-black);
+  border: 1px solid var(--border-gray);
+}
+
+.btn-secondary:hover {
+  border-color: var(--medium-gray);
+  opacity: 1;
+}
+
+.btn-tertiary {
+  background: none;
+  color: var(--accent);
+  padding: 8px 12px;
+}
+
+.btn-tertiary:hover {
+  opacity: 0.7;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .dashboard-view.active {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main {
+    padding: 32px 24px 64px;
+  }
+
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 0;
+  }
+
+  .kpi-item:nth-child(2) {
+    border-right: none;
+  }
+
+  .kpi-item:nth-child(3) {
+    padding-top: 24px;
+    border-top: 1px solid var(--border-gray);
+  }
+
+  .kpi-item:nth-child(4) {
+    padding-top: 24px;
+    border-top: 1px solid var(--border-gray);
+  }
+
+  .header {
+    padding: 0 24px;
+  }
+
+  .kpi-value {
+    font-size: 26px;
+  }
+
+  .actions-row {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .kpi-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .kpi-item {
+    padding: 0 16px;
+  }
+
+  .kpi-item:first-child {
+    padding-left: 0;
+  }
+
+  .kpi-value {
+    font-size: 22px;
+  }
+
+  .main {
+    padding: 24px 16px 48px;
+  }
+
+  .header {
+    padding: 0 16px;
+  }
+
+  .header-left {
+    gap: 16px;
+  }
+
+  .logo {
+    font-size: 17px;
+  }
+
+  .chart-bar {
+    width: 20px;
+  }
+
+  .activity-item {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .activity-time {
+    min-width: unset;
+  }
+
+  .actions-row {
+    flex-direction: column;
+  }
+
+  .actions-row .btn {
+    text-align: center;
+  }
+}
+
+@media (max-width: 375px) {
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-item {
+    padding: 16px 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border-gray);
+  }
+
+  .kpi-item:first-child {
+    padding-top: 0;
+  }
+
+  .kpi-item:last-child {
+    border-bottom: none;
+  }
+
+  .kpi-item:nth-child(3),
+  .kpi-item:nth-child(4) {
+    border-top: none;
+    padding-top: 16px;
+  }
+
+  .view-toggle button {
+    padding: 18px 10px;
+    font-size: 12px;
+  }
+
+  .user-name {
+    display: none;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-gray);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--medium-gray);
+}
+
+/* Mobile nav toggle */
+.mobile-nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--near-black);
+  padding: 4px;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  .mobile-nav-toggle {
+    display: block;
+  }
+
+  .sidebar.mobile-open {
+    display: block;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 240px;
+    height: calc(100vh - 56px);
+    z-index: 200;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+  }
+
+  .mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    top: 56px;
+    background: rgba(0,0,0,0.15);
+    z-index: 199;
+  }
+
+  .mobile-overlay.visible {
+    display: block;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Header (shared between views) -->
+<header class="header">
+  <div class="header-left">
+    <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Menu">&#9776;</button>
+    <span class="logo">Kamioi</span>
+    <div class="view-toggle">
+      <button id="toggle-user" class="active" onclick="switchView('user')">User</button>
+      <button id="toggle-admin" onclick="switchView('admin')">Admin</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="notification-count">3</span>
+    <span class="user-name">Alex Johnson</span>
+  </div>
+</header>
+
+<!-- Mobile Overlay -->
+<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileNav()"></div>
+
+<!-- ==================== USER VIEW ==================== -->
+<div class="dashboard-view active" id="user-view">
+  <aside class="sidebar" id="user-sidebar">
+    <ul class="nav-list">
+      <li class="nav-item active">Overview</li>
+      <li class="nav-item">Portfolio</li>
+      <li class="nav-item">Transactions</li>
+      <li class="nav-item">Goals</li>
+      <li class="nav-item">AI Insights</li>
+      <li class="nav-item">Notifications</li>
+      <li class="nav-item">Settings</li>
+    </ul>
+  </aside>
+
+  <main class="main">
+    <!-- Page Title -->
+    <div class="page-title">
+      <h1>Overview</h1>
+      <p class="subtitle">February 2026</p>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi-item">
+        <div class="kpi-value">$12,847.50</div>
+        <div class="kpi-label">Portfolio Value</div>
+        <div class="kpi-change">+12.3%</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-value">$124.75</div>
+        <div class="kpi-label">Round-Ups MTD</div>
+        <div class="kpi-change">+8.7%</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-value">3 of 5</div>
+        <div class="kpi-label">Active Goals</div>
+        <div class="kpi-change">60%</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-value">94.2%</div>
+        <div class="kpi-label">AI Confidence</div>
+        <div class="kpi-change">+1.1%</div>
+      </div>
+    </div>
+
+    <!-- Portfolio Chart -->
+    <div class="section">
+      <div class="section-title">Portfolio Performance</div>
+      <div class="chart-container">
+        <div class="chart-reference-line"></div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:55%"></div>
+          <span class="chart-label">Jan</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:62%"></div>
+          <span class="chart-label">Feb</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:48%"></div>
+          <span class="chart-label">Mar</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:72%"></div>
+          <span class="chart-label">Apr</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:85%"></div>
+          <span class="chart-label">May</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:92%"></div>
+          <span class="chart-label">Jun</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="section">
+      <div class="section-title">Recent Transactions</div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Merchant</th>
+              <th class="align-right">Amount</th>
+              <th class="align-right">Round-Up</th>
+              <th>Ticker</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="date">Feb 18</td>
+              <td>Starbucks</td>
+              <td class="mono align-right">$5.75</td>
+              <td class="mono align-right">$0.25</td>
+              <td>SBUX</td>
+              <td class="status-completed">Completed</td>
+            </tr>
+            <tr>
+              <td class="date">Feb 17</td>
+              <td>Amazon</td>
+              <td class="mono align-right">$42.30</td>
+              <td class="mono align-right">$0.70</td>
+              <td>AMZN</td>
+              <td class="status-completed">Completed</td>
+            </tr>
+            <tr>
+              <td class="date">Feb 17</td>
+              <td>Uber</td>
+              <td class="mono align-right">$18.50</td>
+              <td class="mono align-right">$0.50</td>
+              <td>UBER</td>
+              <td class="status-pending">Pending</td>
+            </tr>
+            <tr>
+              <td class="date">Feb 16</td>
+              <td>Nike Store</td>
+              <td class="mono align-right">$89.99</td>
+              <td class="mono align-right">$0.01</td>
+              <td>NKE</td>
+              <td class="status-completed">Completed</td>
+            </tr>
+            <tr>
+              <td class="date">Feb 15</td>
+              <td>Apple Music</td>
+              <td class="mono align-right">$10.99</td>
+              <td class="mono align-right">$0.01</td>
+              <td>AAPL</td>
+              <td class="status-processing">Processing</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Goals -->
+    <div class="section">
+      <div class="section-title">Goals</div>
+      <div class="goal">
+        <div class="goal-header">
+          <span class="goal-name">Emergency Fund</span>
+          <span class="goal-amount">$2,400 of $5,000</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:48%"></div>
+        </div>
+      </div>
+      <div class="goal">
+        <div class="goal-header">
+          <span class="goal-name">Vacation Fund</span>
+          <span class="goal-amount">$800 of $2,000</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:40%"></div>
+        </div>
+      </div>
+      <div class="goal">
+        <div class="goal-header">
+          <span class="goal-name">New Car</span>
+          <span class="goal-amount">$5,200 of $15,000</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:34.7%"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ==================== ADMIN VIEW ==================== -->
+<div class="dashboard-view" id="admin-view">
+  <aside class="sidebar" id="admin-sidebar">
+    <ul class="nav-list">
+      <li class="nav-item active">Overview</li>
+      <li class="nav-item">Users</li>
+      <li class="nav-item">Transactions</li>
+      <li class="nav-item">LLM Center</li>
+      <li class="nav-item">Subscriptions</li>
+      <li class="nav-item">Financial</li>
+      <li class="nav-item">Content</li>
+      <li class="nav-item">Settings</li>
+    </ul>
+  </aside>
+
+  <main class="main">
+    <!-- Page Title -->
+    <div class="page-title">
+      <h1>Admin Overview</h1>
+      <p class="subtitle">February 2026</p>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi-item">
+        <div class="kpi-value">2,847</div>
+        <div class="kpi-label">Total Users</div>
+        <div class="kpi-change">+156</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-value">$14,250</div>
+        <div class="kpi-label">Revenue MTD</div>
+        <div class="kpi-change">+22.3%</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-value">23</div>
+        <div class="kpi-label">Pending Mappings</div>
+        <div class="kpi-change">&mdash;</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-value">99.8%</div>
+        <div class="kpi-label">System Health</div>
+        <div class="kpi-change">&uarr;</div>
+      </div>
+    </div>
+
+    <!-- User Growth Chart -->
+    <div class="section">
+      <div class="section-title">User Growth</div>
+      <div class="chart-container">
+        <div class="chart-reference-line"></div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:38%"></div>
+          <span class="chart-label">Sep</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:49%"></div>
+          <span class="chart-label">Oct</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:58%"></div>
+          <span class="chart-label">Nov</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:65%"></div>
+          <span class="chart-label">Dec</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:78%"></div>
+          <span class="chart-label">Jan</span>
+        </div>
+        <div class="chart-bar-group">
+          <div class="chart-bar" style="height:92%"></div>
+          <span class="chart-label">Feb</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="section">
+      <div class="section-title">Recent Activity</div>
+      <ul class="activity-list">
+        <li class="activity-item">
+          <span class="activity-time">2 min ago</span>
+          <span class="activity-text">New user registered: sarah.j@email.com</span>
+        </li>
+        <li class="activity-item">
+          <span class="activity-time">15 min ago</span>
+          <span class="activity-text">LLM mapping approved: Starbucks &rarr; SBUX</span>
+        </li>
+        <li class="activity-item">
+          <span class="activity-time">1 hour ago</span>
+          <span class="activity-text">Subscription upgraded: Basic &rarr; Pro</span>
+        </li>
+        <li class="activity-item">
+          <span class="activity-time">2 hours ago</span>
+          <span class="activity-text">Transaction processed: $42.30 round-up</span>
+        </li>
+        <li class="activity-item">
+          <span class="activity-time">3 hours ago</span>
+          <span class="activity-text">System backup completed</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section">
+      <div class="section-title">Quick Actions</div>
+      <div class="actions-row">
+        <button class="btn btn-primary">Process Queue</button>
+        <button class="btn btn-secondary">Review Mappings</button>
+        <button class="btn btn-secondary">Send Notification</button>
+        <button class="btn btn-tertiary">Export Data</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+function switchView(view) {
+  var userView = document.getElementById('user-view');
+  var adminView = document.getElementById('admin-view');
+  var toggleUser = document.getElementById('toggle-user');
+  var toggleAdmin = document.getElementById('toggle-admin');
+
+  if (view === 'user') {
+    userView.classList.add('active');
+    adminView.classList.remove('active');
+    toggleUser.classList.add('active');
+    toggleAdmin.classList.remove('active');
+  } else {
+    adminView.classList.add('active');
+    userView.classList.remove('active');
+    toggleAdmin.classList.add('active');
+    toggleUser.classList.remove('active');
+  }
+
+  // Close mobile nav if open
+  closeMobileNav();
+}
+
+// Sidebar nav click handling
+document.querySelectorAll('.nav-list').forEach(function(list) {
+  list.addEventListener('click', function(e) {
+    if (e.target.classList.contains('nav-item')) {
+      list.querySelectorAll('.nav-item').forEach(function(item) {
+        item.classList.remove('active');
+      });
+      e.target.classList.add('active');
+      closeMobileNav();
+    }
+  });
+});
+
+// Mobile nav
+function toggleMobileNav() {
+  var activeView = document.querySelector('.dashboard-view.active');
+  var sidebar = activeView.querySelector('.sidebar');
+  var overlay = document.getElementById('mobile-overlay');
+
+  sidebar.classList.toggle('mobile-open');
+  overlay.classList.toggle('visible');
+}
+
+function closeMobileNav() {
+  document.querySelectorAll('.sidebar').forEach(function(s) {
+    s.classList.remove('mobile-open');
+  });
+  document.getElementById('mobile-overlay').classList.remove('visible');
+}
+</script>
+
+</body>
+</html>

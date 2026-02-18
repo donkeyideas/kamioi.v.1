@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kamioi — Soft Cloud / Claymorphism UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --lavender: #E8E0F0;
+  --lavender-dark: #D5C9E4;
+  --lavender-text: #7B6B8D;
+  --mint: #D4F0E8;
+  --mint-dark: #B8E0D4;
+  --mint-text: #4A7A6A;
+  --peach: #FFE4D6;
+  --peach-dark: #F5CDB8;
+  --peach-text: #8A6A56;
+  --cream: #FFF8F0;
+  --soft-gray: #F5F5F7;
+  --soft-blue: #D6E8F0;
+  --soft-blue-dark: #BDD8E8;
+  --soft-blue-text: #5A7A8A;
+  --white: #FFFFFF;
+  --text-primary: #4A4458;
+  --text-secondary: #8A849A;
+  --text-light: #B0AAC0;
+  --shadow-outer: 8px 8px 16px rgba(0,0,0,0.08);
+  --shadow-inner: inset -4px -4px 12px rgba(255,255,255,0.8);
+  --shadow-card: 8px 8px 16px rgba(0,0,0,0.08), inset -4px -4px 12px rgba(255,255,255,0.8);
+  --shadow-card-hover: 10px 10px 20px rgba(0,0,0,0.10), inset -4px -4px 12px rgba(255,255,255,0.9);
+  --shadow-soft: 4px 4px 10px rgba(0,0,0,0.06);
+  --shadow-pressed: inset 4px 4px 8px rgba(0,0,0,0.06), inset -2px -2px 6px rgba(255,255,255,0.6);
+  --radius-card: 20px;
+  --radius-pill: 50px;
+  --radius-sidebar: 24px;
+  --gap: 24px;
+  --gap-lg: 32px;
+  --sidebar-width: 260px;
+  --header-height: 72px;
+  --toggle-height: 56px;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Nunito', 'Quicksand', -apple-system, sans-serif;
+  background: var(--cream);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   TOGGLE BAR (top of page)
+   ============================================================ */
+.toggle-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--toggle-height);
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+}
+
+.toggle-btn {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 10px 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: var(--soft-gray);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-soft);
+}
+
+.toggle-btn:hover {
+  transform: translateY(-1px);
+}
+
+.toggle-btn:active {
+  transform: scale(0.97);
+}
+
+.toggle-btn.active {
+  background: var(--lavender-dark);
+  color: var(--lavender-text);
+  box-shadow: var(--shadow-pressed);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+  position: fixed;
+  top: var(--toggle-height);
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--gap-lg);
+  z-index: 900;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+}
+
+.logo {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--lavender-text);
+  letter-spacing: -0.5px;
+}
+
+.logo span {
+  color: var(--mint-text);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.theme-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--soft-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.2s ease;
+  border: none;
+  font-family: inherit;
+}
+
+.theme-toggle:hover { transform: translateY(-1px); }
+.theme-toggle:active { transform: scale(0.95); }
+
+.notification-bell {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--soft-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.2s ease;
+}
+
+.notification-bell:hover { transform: translateY(-1px); }
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--peach-dark);
+  color: var(--peach-text);
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lavender), var(--mint));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--white);
+  box-shadow: var(--shadow-soft);
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: -2px;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.sidebar {
+  position: fixed;
+  top: calc(var(--toggle-height) + var(--header-height) + 16px);
+  left: 16px;
+  bottom: 16px;
+  width: var(--sidebar-width);
+  background: var(--white);
+  border-radius: var(--radius-sidebar);
+  box-shadow: var(--shadow-card);
+  padding: 24px 16px;
+  z-index: 800;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-light);
+  padding: 16px 12px 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.nav-item:hover {
+  background: var(--soft-gray);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+
+.nav-item.active {
+  background: var(--lavender);
+  color: var(--lavender-text);
+  box-shadow: var(--shadow-soft);
+}
+
+.nav-icon {
+  font-size: 1.15rem;
+  width: 24px;
+  text-align: center;
+}
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.main-content {
+  margin-left: calc(var(--sidebar-width) + 32px + 16px);
+  margin-top: calc(var(--toggle-height) + var(--header-height) + 16px);
+  padding: var(--gap-lg);
+  padding-bottom: 60px;
+  min-height: calc(100vh - var(--toggle-height) - var(--header-height));
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--gap-lg);
+  font-weight: 500;
+}
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+  margin-bottom: var(--gap-lg);
+}
+
+.kpi-card {
+  padding: 24px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s ease;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.kpi-card.lavender { background: var(--lavender); }
+.kpi-card.mint { background: var(--mint); }
+.kpi-card.peach { background: var(--peach); }
+.kpi-card.soft-blue { background: var(--soft-blue); }
+
+.kpi-icon {
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.kpi-change {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 6px;
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.5);
+}
+
+.kpi-change.positive { color: var(--mint-text); }
+.kpi-change.neutral { color: var(--text-secondary); }
+
+/* ============================================================
+   CONTENT CARDS (shared)
+   ============================================================ */
+.content-card {
+  background: var(--white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--gap-lg);
+  margin-bottom: var(--gap);
+  transition: all 0.3s ease;
+}
+
+.content-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.card-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--soft-gray);
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   CHART — CSS bar chart with smooth rounded bars
+   ============================================================ */
+.chart-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 200px;
+  padding: 0 8px;
+  gap: 12px;
+}
+
+.chart-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+  max-width: 80px;
+}
+
+.chart-bar-wrapper {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.chart-bar {
+  width: 100%;
+  max-width: 48px;
+  border-radius: 14px 14px 8px 8px;
+  position: relative;
+  transition: all 0.4s ease;
+  cursor: pointer;
+}
+
+.chart-bar:hover {
+  transform: translateY(-2px);
+  filter: brightness(0.97);
+}
+
+.chart-bar.lavender-bar {
+  background: linear-gradient(180deg, var(--lavender-dark), var(--lavender));
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.06), inset -2px -2px 6px rgba(255,255,255,0.6);
+}
+.chart-bar.mint-bar {
+  background: linear-gradient(180deg, var(--mint-dark), var(--mint));
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.06), inset -2px -2px 6px rgba(255,255,255,0.6);
+}
+.chart-bar.peach-bar {
+  background: linear-gradient(180deg, var(--peach-dark), var(--peach));
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.06), inset -2px -2px 6px rgba(255,255,255,0.6);
+}
+.chart-bar.blue-bar {
+  background: linear-gradient(180deg, var(--soft-blue-dark), var(--soft-blue));
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.06), inset -2px -2px 6px rgba(255,255,255,0.6);
+}
+
+.chart-bar-value {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chart-bar:hover .chart-bar-value {
+  opacity: 1;
+}
+
+.chart-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   TABLE — soft, rounded, no borders
+   ============================================================ */
+.soft-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.soft-table thead th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-light);
+  padding: 8px 16px;
+}
+
+.soft-table tbody tr {
+  background: var(--soft-gray);
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.soft-table tbody tr:nth-child(odd) {
+  background: var(--cream);
+}
+
+.soft-table tbody tr:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.soft-table td {
+  padding: 14px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.soft-table td:first-child {
+  border-radius: 14px 0 0 14px;
+}
+
+.soft-table td:last-child {
+  border-radius: 0 14px 14px 0;
+}
+
+.merchant-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.merchant-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-completed {
+  background: var(--mint);
+  color: var(--mint-text);
+}
+
+.status-pending {
+  background: var(--peach);
+  color: var(--peach-text);
+}
+
+.status-processing {
+  background: var(--soft-blue);
+  color: var(--soft-blue-text);
+}
+
+.ticker {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--lavender-text);
+  background: var(--lavender);
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  display: inline-block;
+}
+
+/* ============================================================
+   GOALS — progress bars
+   ============================================================ */
+.goal-item {
+  margin-bottom: 20px;
+}
+
+.goal-item:last-child {
+  margin-bottom: 0;
+}
+
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.goal-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.goal-amount {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.goal-percent {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+.progress-track {
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: var(--soft-gray);
+  box-shadow: inset 2px 2px 4px rgba(0,0,0,0.04);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.8s ease;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.08), inset -2px -2px 4px rgba(255,255,255,0.5);
+}
+
+.progress-fill.lavender-fill { background: linear-gradient(90deg, var(--lavender), var(--lavender-dark)); }
+.progress-fill.mint-fill { background: linear-gradient(90deg, var(--mint), var(--mint-dark)); }
+.progress-fill.peach-fill { background: linear-gradient(90deg, var(--peach), var(--peach-dark)); }
+
+/* ============================================================
+   ADMIN — activity feed
+   ============================================================ */
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  position: relative;
+}
+
+.activity-item:not(:last-child) {
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+
+.activity-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-text {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.activity-time {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   ADMIN — quick actions
+   ============================================================ */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.action-btn {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 16px 20px;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-card);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.action-btn:active {
+  transform: scale(0.97);
+  box-shadow: var(--shadow-pressed);
+}
+
+.action-btn.lavender-btn { background: var(--lavender); color: var(--lavender-text); }
+.action-btn.mint-btn { background: var(--mint); color: var(--mint-text); }
+.action-btn.peach-btn { background: var(--peach); color: var(--peach-text); }
+.action-btn.blue-btn { background: var(--soft-blue); color: var(--soft-blue-text); }
+
+/* ============================================================
+   TWO-COLUMN GRID
+   ============================================================ */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+/* ============================================================
+   DASHBOARD CONTAINERS
+   ============================================================ */
+.dashboard {
+  display: none;
+}
+
+.dashboard.active {
+  display: block;
+}
+
+/* ============================================================
+   MOBILE SIDEBAR TOGGLE
+   ============================================================ */
+.mobile-menu-btn {
+  display: none;
+  font-family: inherit;
+  font-size: 1.3rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  padding: 4px;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.15);
+  z-index: 799;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1100px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+  .quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 260px;
+    --gap: 16px;
+    --gap-lg: 20px;
+  }
+
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .sidebar {
+    left: -300px;
+    top: calc(var(--toggle-height) + var(--header-height));
+    bottom: 0;
+    border-radius: 0 var(--radius-sidebar) var(--radius-sidebar) 0;
+    z-index: 900;
+  }
+
+  .sidebar.open {
+    left: 0;
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay.open {
+    display: block;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: var(--gap);
+  }
+
+  .header {
+    padding: 0 16px;
+  }
+
+  .user-name, .user-role {
+    display: none;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .soft-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .toggle-bar {
+    gap: 8px;
+  }
+
+  .toggle-btn {
+    padding: 8px 18px;
+    font-size: 0.82rem;
+  }
+
+  .chart-container {
+    height: 160px;
+    gap: 6px;
+  }
+}
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard.active .kpi-card,
+.dashboard.active .content-card {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+.dashboard.active .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+.dashboard.active .kpi-card:nth-child(2) { animation-delay: 0.10s; }
+.dashboard.active .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+.dashboard.active .kpi-card:nth-child(4) { animation-delay: 0.20s; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOGGLE BAR
+     ============================================================ -->
+<div class="toggle-bar">
+  <button class="toggle-btn active" id="toggleUser" onclick="switchDashboard('user')">User Dashboard</button>
+  <button class="toggle-btn" id="toggleAdmin" onclick="switchDashboard('admin')">Admin Dashboard</button>
+</div>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="header">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">&#9776;</button>
+    <div class="logo">Kamioi<span>.</span></div>
+  </div>
+  <div class="header-right">
+    <button class="theme-toggle" title="Toggle theme">&#9790;</button>
+    <div class="notification-bell">
+      Alerts
+      <div class="notification-badge">3</div>
+    </div>
+    <div class="user-info">
+      <div class="avatar">AJ</div>
+      <div>
+        <div class="user-name" id="headerUserName">Alex Johnson</div>
+        <div class="user-role" id="headerUserRole">Investor</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     SIDEBAR OVERLAY (mobile)
+     ============================================================ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- ============================================================
+     USER SIDEBAR
+     ============================================================ -->
+<nav class="sidebar" id="userSidebar">
+  <div class="sidebar-section-label">Main</div>
+  <div class="nav-item active">
+    <span class="nav-icon">&#9673;</span> Overview
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9632;</span> Portfolio
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#8644;</span> Transactions
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9733;</span> Goals
+  </div>
+  <div class="sidebar-section-label">Intelligence</div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9881;</span> AI Insights
+  </div>
+  <div class="sidebar-section-label">Account</div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9673;</span> Notifications
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9881;</span> Settings
+  </div>
+</nav>
+
+<!-- ============================================================
+     ADMIN SIDEBAR
+     ============================================================ -->
+<nav class="sidebar" id="adminSidebar" style="display:none;">
+  <div class="sidebar-section-label">Management</div>
+  <div class="nav-item active">
+    <span class="nav-icon">&#9673;</span> Overview
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9823;</span> Users
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#8644;</span> Transactions
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9881;</span> LLM Center
+  </div>
+  <div class="sidebar-section-label">Business</div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9733;</span> Subscriptions
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9632;</span> Financial
+  </div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9998;</span> Content
+  </div>
+  <div class="sidebar-section-label">Config</div>
+  <div class="nav-item">
+    <span class="nav-icon">&#9881;</span> System Settings
+  </div>
+</nav>
+
+<!-- ============================================================
+     MAIN — USER DASHBOARD
+     ============================================================ -->
+<main class="main-content">
+
+  <!-- USER DASHBOARD -->
+  <div class="dashboard active" id="userDashboard">
+    <h1 class="page-title">Good afternoon, Alex</h1>
+    <p class="page-subtitle">Here's how your investments are doing today</p>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card lavender">
+        <div class="kpi-label">Total Portfolio</div>
+        <div class="kpi-value">$12,847.50</div>
+        <span class="kpi-change positive">+12.3%</span>
+      </div>
+      <div class="kpi-card mint">
+        <div class="kpi-label">Round-Ups This Month</div>
+        <div class="kpi-value">$124.75</div>
+        <span class="kpi-change positive">+$18.20 vs last</span>
+      </div>
+      <div class="kpi-card peach">
+        <div class="kpi-label">Active Goals</div>
+        <div class="kpi-value">3 / 5</div>
+        <span class="kpi-change neutral">2 remaining</span>
+      </div>
+      <div class="kpi-card soft-blue">
+        <div class="kpi-label">AI Confidence</div>
+        <div class="kpi-value">94.2%</div>
+        <span class="kpi-change positive">High accuracy</span>
+      </div>
+    </div>
+
+    <!-- Chart + Goals -->
+    <div class="two-col">
+      <!-- Portfolio Performance Chart -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-title">Portfolio Performance</div>
+          <span class="card-badge">6 months</span>
+        </div>
+        <div class="chart-container">
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar lavender-bar" style="height:55%;">
+                <span class="chart-bar-value">$8,200</span>
+              </div>
+            </div>
+            <span class="chart-label">Jan</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar mint-bar" style="height:62%;">
+                <span class="chart-bar-value">$9,100</span>
+              </div>
+            </div>
+            <span class="chart-label">Feb</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar peach-bar" style="height:58%;">
+                <span class="chart-bar-value">$8,700</span>
+              </div>
+            </div>
+            <span class="chart-label">Mar</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar blue-bar" style="height:72%;">
+                <span class="chart-bar-value">$10,500</span>
+              </div>
+            </div>
+            <span class="chart-label">Apr</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar lavender-bar" style="height:80%;">
+                <span class="chart-bar-value">$11,800</span>
+              </div>
+            </div>
+            <span class="chart-label">May</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar mint-bar" style="height:90%;">
+                <span class="chart-bar-value">$12,847</span>
+              </div>
+            </div>
+            <span class="chart-label">Jun</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Goals -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-title">Active Goals</div>
+          <span class="card-badge">3 active</span>
+        </div>
+        <div class="goal-item">
+          <div class="goal-header">
+            <span class="goal-name">Emergency Fund</span>
+            <span class="goal-amount">$2,400 / $5,000<span class="goal-percent">48%</span></span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill lavender-fill" style="width:48%;"></div>
+          </div>
+        </div>
+        <div class="goal-item">
+          <div class="goal-header">
+            <span class="goal-name">Vacation Fund</span>
+            <span class="goal-amount">$800 / $2,000<span class="goal-percent">40%</span></span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill mint-fill" style="width:40%;"></div>
+          </div>
+        </div>
+        <div class="goal-item">
+          <div class="goal-header">
+            <span class="goal-name">New Car</span>
+            <span class="goal-amount">$5,200 / $15,000<span class="goal-percent">35%</span></span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill peach-fill" style="width:35%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="content-card">
+      <div class="card-header">
+        <div class="card-title">Recent Transactions</div>
+        <span class="card-badge">Last 5</span>
+      </div>
+      <table class="soft-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Merchant</th>
+            <th>Amount</th>
+            <th>Round-Up</th>
+            <th>Ticker</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Feb 18</td>
+            <td>
+              <div class="merchant-cell">
+                <span class="merchant-dot" style="background:var(--mint-dark);"></span>
+                Starbucks
+              </div>
+            </td>
+            <td>$5.75</td>
+            <td>$0.25</td>
+            <td><span class="ticker">SBUX</span></td>
+            <td><span class="status-badge status-completed">Completed</span></td>
+          </tr>
+          <tr>
+            <td>Feb 17</td>
+            <td>
+              <div class="merchant-cell">
+                <span class="merchant-dot" style="background:var(--soft-blue-dark);"></span>
+                Amazon
+              </div>
+            </td>
+            <td>$42.30</td>
+            <td>$0.70</td>
+            <td><span class="ticker">AMZN</span></td>
+            <td><span class="status-badge status-completed">Completed</span></td>
+          </tr>
+          <tr>
+            <td>Feb 17</td>
+            <td>
+              <div class="merchant-cell">
+                <span class="merchant-dot" style="background:var(--peach-dark);"></span>
+                Uber
+              </div>
+            </td>
+            <td>$18.50</td>
+            <td>$0.50</td>
+            <td><span class="ticker">UBER</span></td>
+            <td><span class="status-badge status-pending">Pending</span></td>
+          </tr>
+          <tr>
+            <td>Feb 16</td>
+            <td>
+              <div class="merchant-cell">
+                <span class="merchant-dot" style="background:var(--lavender-dark);"></span>
+                Nike Store
+              </div>
+            </td>
+            <td>$89.99</td>
+            <td>$0.01</td>
+            <td><span class="ticker">NKE</span></td>
+            <td><span class="status-badge status-completed">Completed</span></td>
+          </tr>
+          <tr>
+            <td>Feb 15</td>
+            <td>
+              <div class="merchant-cell">
+                <span class="merchant-dot" style="background:var(--soft-blue-dark);"></span>
+                Apple Music
+              </div>
+            </td>
+            <td>$10.99</td>
+            <td>$0.01</td>
+            <td><span class="ticker">AAPL</span></td>
+            <td><span class="status-badge status-processing">Processing</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ADMIN DASHBOARD
+       ============================================================ -->
+  <div class="dashboard" id="adminDashboard">
+    <h1 class="page-title">Admin Overview</h1>
+    <p class="page-subtitle">Platform health and activity at a glance</p>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card lavender">
+        <div class="kpi-label">Total Users</div>
+        <div class="kpi-value">2,847</div>
+        <span class="kpi-change positive">+156 this month</span>
+      </div>
+      <div class="kpi-card mint">
+        <div class="kpi-label">Revenue This Month</div>
+        <div class="kpi-value">$14,250.00</div>
+        <span class="kpi-change positive">+8.4%</span>
+      </div>
+      <div class="kpi-card peach">
+        <div class="kpi-label">Pending Mappings</div>
+        <div class="kpi-value">23</div>
+        <span class="kpi-change neutral">Needs review</span>
+      </div>
+      <div class="kpi-card soft-blue">
+        <div class="kpi-label">System Health</div>
+        <div class="kpi-value">99.8%</div>
+        <span class="kpi-change positive">All systems go</span>
+      </div>
+    </div>
+
+    <!-- Chart + Activity Feed -->
+    <div class="two-col">
+      <!-- User Growth Chart -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-title">User Growth</div>
+          <span class="card-badge">6 months</span>
+        </div>
+        <div class="chart-container">
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar lavender-bar" style="height:40%;">
+                <span class="chart-bar-value">1,820</span>
+              </div>
+            </div>
+            <span class="chart-label">Sep</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar mint-bar" style="height:50%;">
+                <span class="chart-bar-value">2,040</span>
+              </div>
+            </div>
+            <span class="chart-label">Oct</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar peach-bar" style="height:58%;">
+                <span class="chart-bar-value">2,250</span>
+              </div>
+            </div>
+            <span class="chart-label">Nov</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar blue-bar" style="height:66%;">
+                <span class="chart-bar-value">2,480</span>
+              </div>
+            </div>
+            <span class="chart-label">Dec</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar lavender-bar" style="height:78%;">
+                <span class="chart-bar-value">2,691</span>
+              </div>
+            </div>
+            <span class="chart-label">Jan</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar mint-bar" style="height:90%;">
+                <span class="chart-bar-value">2,847</span>
+              </div>
+            </div>
+            <span class="chart-label">Feb</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Feed -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-title">Recent Activity</div>
+          <span class="card-badge">Live</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-dot" style="background:var(--mint-dark);"></span>
+          <div class="activity-content">
+            <div class="activity-text">New user registered: sarah.j@email.com</div>
+            <div class="activity-time">2 min ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-dot" style="background:var(--lavender-dark);"></span>
+          <div class="activity-content">
+            <div class="activity-text">LLM mapping approved: Starbucks &#8594; SBUX</div>
+            <div class="activity-time">15 min ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-dot" style="background:var(--peach-dark);"></span>
+          <div class="activity-content">
+            <div class="activity-text">Subscription upgraded: Plan Basic &#8594; Pro</div>
+            <div class="activity-time">1 hour ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-dot" style="background:var(--soft-blue-dark);"></span>
+          <div class="activity-content">
+            <div class="activity-text">Transaction processed: $42.30 round-up</div>
+            <div class="activity-time">2 hours ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-dot" style="background:var(--mint-dark);"></span>
+          <div class="activity-content">
+            <div class="activity-text">System backup completed</div>
+            <div class="activity-time">3 hours ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="content-card">
+      <div class="card-header">
+        <div class="card-title">Quick Actions</div>
+      </div>
+      <div class="quick-actions">
+        <button class="action-btn lavender-btn">Process Pending Transactions</button>
+        <button class="action-btn mint-btn">Review LLM Mappings</button>
+        <button class="action-btn peach-btn">Send Notification</button>
+        <button class="action-btn blue-btn">Generate Report</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+function switchDashboard(view) {
+  const userDashboard = document.getElementById('userDashboard');
+  const adminDashboard = document.getElementById('adminDashboard');
+  const userSidebar = document.getElementById('userSidebar');
+  const adminSidebar = document.getElementById('adminSidebar');
+  const toggleUser = document.getElementById('toggleUser');
+  const toggleAdmin = document.getElementById('toggleAdmin');
+  const headerUserName = document.getElementById('headerUserName');
+  const headerUserRole = document.getElementById('headerUserRole');
+
+  if (view === 'user') {
+    userDashboard.classList.add('active');
+    adminDashboard.classList.remove('active');
+    userSidebar.style.display = '';
+    adminSidebar.style.display = 'none';
+    toggleUser.classList.add('active');
+    toggleAdmin.classList.remove('active');
+    headerUserName.textContent = 'Alex Johnson';
+    headerUserRole.textContent = 'Investor';
+  } else {
+    adminDashboard.classList.add('active');
+    userDashboard.classList.remove('active');
+    adminSidebar.style.display = '';
+    userSidebar.style.display = 'none';
+    toggleAdmin.classList.add('active');
+    toggleUser.classList.remove('active');
+    headerUserName.textContent = 'Admin';
+    headerUserRole.textContent = 'Platform Manager';
+  }
+
+  // Close mobile sidebar on switch
+  closeSidebar();
+}
+
+function toggleSidebar() {
+  const activeSidebar = document.querySelector('.sidebar[style=""], .sidebar:not([style*="display: none"])');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  if (activeSidebar) {
+    activeSidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+  }
+}
+
+function closeSidebar() {
+  document.querySelectorAll('.sidebar').forEach(s => s.classList.remove('open'));
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+// Nav item click — highlight active
+document.addEventListener('click', function(e) {
+  const navItem = e.target.closest('.nav-item');
+  if (navItem) {
+    const sidebar = navItem.closest('.sidebar');
+    sidebar.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    navItem.classList.add('active');
+    closeSidebar();
+  }
+});
+</script>
+
+</body>
+</html>

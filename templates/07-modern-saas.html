@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kamioi — Modern SaaS Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   RESET & BASE
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #111827;
+  background: #F9FAFB;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: inherit;
+}
+
+input {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ============================================
+   VIEW TOGGLE BAR (top-most bar)
+   ============================================ */
+.view-toggle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
+  height: 40px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.view-toggle-btn {
+  position: relative;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6B7280;
+  transition: color 150ms ease;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.view-toggle-btn:hover {
+  color: #374151;
+}
+
+.view-toggle-btn.active {
+  color: #111827;
+  font-weight: 600;
+}
+
+.view-toggle-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #6366F1;
+  border-radius: 2px 2px 0 0;
+}
+
+/* ============================================
+   TOP NAVBAR
+   ============================================ */
+.top-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
+  height: 56px;
+  padding: 0 24px;
+  position: fixed;
+  top: 40px;
+  left: 0;
+  right: 0;
+  z-index: 900;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: #6366F1;
+  white-space: nowrap;
+  letter-spacing: -0.3px;
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: #6B7280;
+  white-space: nowrap;
+}
+
+.breadcrumb span {
+  color: #111827;
+  font-weight: 500;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-input {
+  height: 34px;
+  padding: 0 12px 0 34px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #111827;
+  background: #FFFFFF;
+  width: 200px;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%236B7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 10px center;
+  background-size: 15px;
+}
+
+.search-input::placeholder {
+  color: #9CA3AF;
+}
+
+.search-input:focus {
+  border-color: #6366F1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.notification-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #6B7280;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.notification-btn:hover {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  background: #6366F1;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.user-profile:hover {
+  background: #F3F4F6;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  background: #EEF2FF;
+  color: #6366F1;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.chevron-down {
+  color: #9CA3AF;
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+/* ============================================
+   HAMBURGER (mobile)
+   ============================================ */
+.hamburger-btn {
+  display: none;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #6B7280;
+  font-size: 20px;
+  transition: background 150ms ease;
+}
+
+.hamburger-btn:hover {
+  background: #F3F4F6;
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.sidebar {
+  position: fixed;
+  top: 96px;
+  left: 0;
+  bottom: 0;
+  width: 240px;
+  background: #FFFFFF;
+  border-right: 1px solid #E5E7EB;
+  padding: 16px 12px;
+  overflow-y: auto;
+  z-index: 800;
+  transition: transform 300ms ease;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 799;
+}
+
+.sidebar-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 16px 12px 6px;
+}
+
+.sidebar-section-label:first-child {
+  padding-top: 4px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #6B7280;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  margin-bottom: 2px;
+}
+
+.sidebar-nav-item:hover {
+  background: #F9FAFB;
+  color: #374151;
+}
+
+.sidebar-nav-item.active {
+  background: #EEF2FF;
+  color: #6366F1;
+  font-weight: 600;
+}
+
+.sidebar-nav-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   MAIN CONTENT AREA
+   ============================================ */
+.main-content {
+  margin-left: 240px;
+  margin-top: 96px;
+  padding: 28px 32px 48px;
+  min-height: calc(100vh - 96px);
+  background: #F9FAFB;
+}
+
+/* ============================================
+   PAGE HEADER
+   ============================================ */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: #6366F1;
+  color: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
+}
+
+.btn-primary:hover {
+  background: #4F46E5;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary {
+  background: #FFFFFF;
+  color: #374151;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary:hover {
+  background: #F9FAFB;
+  border-color: #D1D5DB;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.04);
+  transition: box-shadow 150ms ease;
+}
+
+.card:hover {
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.card-subtitle {
+  font-size: 13px;
+  color: #6B7280;
+  margin-top: 2px;
+}
+
+.card-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6366F1;
+  transition: color 150ms ease;
+}
+
+.card-link:hover {
+  color: #4F46E5;
+}
+
+/* ============================================
+   KPI GRID
+   ============================================ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.04);
+  transition: box-shadow 150ms ease;
+}
+
+.kpi-card:hover {
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.kpi-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.badge-green {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.badge-amber {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.badge-blue {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.badge-gray {
+  background: #F3F4F6;
+  color: #6B7280;
+}
+
+.badge-red {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+.kpi-subtext {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+/* ============================================
+   CHART
+   ============================================ */
+.chart-area {
+  margin-bottom: 24px;
+}
+
+.chart-container {
+  position: relative;
+  height: 220px;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding: 20px 0 0;
+}
+
+.chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding-right: 12px;
+  min-width: 44px;
+  text-align: right;
+}
+
+.chart-y-label {
+  font-size: 11px;
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+  height: 100%;
+  gap: 0;
+  position: relative;
+}
+
+.chart-gridlines {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.chart-gridline {
+  border-bottom: 1px solid #F3F4F6;
+  width: 100%;
+}
+
+.chart-gridline:last-child {
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.chart-bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.chart-bar {
+  width: 40px;
+  max-width: 80%;
+  background: #6366F1;
+  border-radius: 6px 6px 0 0;
+  transition: background 150ms ease;
+  min-height: 4px;
+}
+
+.chart-bar:hover {
+  background: #4F46E5;
+}
+
+.chart-bar-label {
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 500;
+  padding-top: 4px;
+}
+
+/* ============================================
+   TABLE
+   ============================================ */
+.table-wrapper {
+  overflow-x: auto;
+  margin: 0 -24px;
+  padding: 0 24px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 16px;
+  background: #F9FAFB;
+  border-bottom: 1px solid #E5E7EB;
+  white-space: nowrap;
+}
+
+thead th:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+thead th:last-child {
+  border-radius: 0 8px 0 0;
+}
+
+tbody td {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #374151;
+  border-bottom: 1px solid #F3F4F6;
+  white-space: nowrap;
+}
+
+tbody tr {
+  transition: background 150ms ease;
+}
+
+tbody tr:hover {
+  background: #F9FAFB;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-completed {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.status-pending {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.status-processing {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+/* ============================================
+   GOALS
+   ============================================ */
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.goal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.goal-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.goal-amount {
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 400;
+}
+
+.goal-amount strong {
+  color: #374151;
+  font-weight: 600;
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #6366F1;
+  border-radius: 9999px;
+  transition: width 500ms ease;
+}
+
+.goal-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.goal-percentage {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366F1;
+}
+
+/* ============================================
+   ACTIVITY LIST (Admin)
+   ============================================ */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.activity-item:first-child {
+  padding-top: 0;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.dot-green { background: #059669; }
+.dot-blue { background: #2563EB; }
+.dot-indigo { background: #6366F1; }
+.dot-amber { background: #D97706; }
+.dot-gray { background: #9CA3AF; }
+
+.activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-text {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #9CA3AF;
+  margin-top: 2px;
+}
+
+/* ============================================
+   QUICK ACTIONS (Admin)
+   ============================================ */
+.quick-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ============================================
+   TWO COLUMN LAYOUT
+   ============================================ */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.full-width {
+  margin-bottom: 24px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+  }
+
+  .sidebar-overlay.show {
+    display: block;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 20px 16px 40px;
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .breadcrumb {
+    display: none;
+  }
+
+  .search-input {
+    width: 140px;
+  }
+
+  .user-name, .chevron-down {
+    display: none;
+  }
+
+  .top-navbar {
+    padding: 0 16px;
+  }
+
+  .chart-bar {
+    width: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-input {
+    display: none;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-actions {
+    width: 100%;
+  }
+
+  .page-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .quick-actions {
+    flex-direction: column;
+  }
+
+  .quick-actions .btn {
+    justify-content: center;
+  }
+
+  .table-wrapper {
+    margin: 0 -24px;
+    padding: 0;
+  }
+}
+
+/* ============================================
+   VIEW PANELS
+   ============================================ */
+.dashboard-view {
+  display: none;
+}
+
+.dashboard-view.active {
+  display: block;
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================
+     VIEW TOGGLE BAR
+     ============================================ -->
+<div class="view-toggle-bar">
+  <button class="view-toggle-btn active" id="toggleUser" onclick="switchView('user')">User Dashboard</button>
+  <button class="view-toggle-btn" id="toggleAdmin" onclick="switchView('admin')">Admin Dashboard</button>
+</div>
+
+<!-- ============================================
+     TOP NAVBAR
+     ============================================ -->
+<nav class="top-navbar">
+  <div class="navbar-left">
+    <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()">&#9776;</button>
+    <div class="logo">Kamioi</div>
+    <div class="breadcrumb" id="breadcrumb">Dashboard <span>&#8250;</span> <span>Overview</span></div>
+  </div>
+  <div class="navbar-right">
+    <input type="text" class="search-input" placeholder="Search...">
+    <button class="notification-btn">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+      </svg>
+      <span class="notification-badge">3</span>
+    </button>
+    <div class="user-profile">
+      <div class="user-avatar">AJ</div>
+      <span class="user-name">Alex Johnson</span>
+      <span class="chevron-down">&#9662;</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================
+     SIDEBAR OVERLAY (mobile)
+     ============================================ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- ============================================
+     USER SIDEBAR
+     ============================================ -->
+<aside class="sidebar" id="userSidebar">
+  <div class="sidebar-section-label">Dashboard</div>
+  <div class="sidebar-nav-item active" data-nav="user">
+    <span class="sidebar-nav-icon">&#9673;</span> Overview
+  </div>
+  <div class="sidebar-nav-item" data-nav="user">
+    <span class="sidebar-nav-icon">&#9670;</span> Portfolio
+  </div>
+  <div class="sidebar-nav-item" data-nav="user">
+    <span class="sidebar-nav-icon">&#8644;</span> Transactions
+  </div>
+  <div class="sidebar-nav-item" data-nav="user">
+    <span class="sidebar-nav-icon">&#9733;</span> Goals
+  </div>
+  <div class="sidebar-nav-item" data-nav="user">
+    <span class="sidebar-nav-icon">&#9672;</span> AI Insights
+  </div>
+  <div class="sidebar-section-label">Account</div>
+  <div class="sidebar-nav-item" data-nav="user">
+    <span class="sidebar-nav-icon">&#9883;</span> Notifications
+  </div>
+  <div class="sidebar-nav-item" data-nav="user">
+    <span class="sidebar-nav-icon">&#9881;</span> Settings
+  </div>
+</aside>
+
+<!-- ============================================
+     ADMIN SIDEBAR
+     ============================================ -->
+<aside class="sidebar" id="adminSidebar" style="display:none;">
+  <div class="sidebar-section-label">Admin</div>
+  <div class="sidebar-nav-item active" data-nav="admin">
+    <span class="sidebar-nav-icon">&#9673;</span> Overview
+  </div>
+  <div class="sidebar-nav-item" data-nav="admin">
+    <span class="sidebar-nav-icon">&#9775;</span> Users
+  </div>
+  <div class="sidebar-nav-item" data-nav="admin">
+    <span class="sidebar-nav-icon">&#8644;</span> Transactions
+  </div>
+  <div class="sidebar-nav-item" data-nav="admin">
+    <span class="sidebar-nav-icon">&#9672;</span> LLM Center
+  </div>
+  <div class="sidebar-section-label">Management</div>
+  <div class="sidebar-nav-item" data-nav="admin">
+    <span class="sidebar-nav-icon">&#9830;</span> Subscriptions
+  </div>
+  <div class="sidebar-nav-item" data-nav="admin">
+    <span class="sidebar-nav-icon">&#9636;</span> Financial
+  </div>
+  <div class="sidebar-nav-item" data-nav="admin">
+    <span class="sidebar-nav-icon">&#9998;</span> Content
+  </div>
+  <div class="sidebar-nav-item" data-nav="admin">
+    <span class="sidebar-nav-icon">&#9881;</span> Settings
+  </div>
+</aside>
+
+<!-- ============================================
+     MAIN CONTENT
+     ============================================ -->
+<main class="main-content">
+
+  <!-- ==========================================
+       USER DASHBOARD VIEW
+       ========================================== -->
+  <div class="dashboard-view active" id="userView">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">Overview</h1>
+      <div class="page-actions">
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Add Transaction
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Portfolio Value</div>
+        <div class="kpi-value">$12,847<span style="font-size:20px;font-weight:600">.50</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-badge badge-green">&#9650; +12.3%</span>
+          <span class="kpi-subtext">Total Portfolio</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">This Month</div>
+        <div class="kpi-value">$124<span style="font-size:20px;font-weight:600">.75</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-badge badge-green">+$18.50 vs last month</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Goals Progress</div>
+        <div class="kpi-value">3<span style="font-size:20px;font-weight:600;color:#6B7280">/5</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-badge badge-gray">60% complete</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg. Confidence</div>
+        <div class="kpi-value">94.2<span style="font-size:20px;font-weight:600">%</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-badge badge-green">&#9650; +1.1%</span>
+          <span class="kpi-subtext">AI Confidence</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portfolio Chart -->
+    <div class="card chart-area full-width">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Portfolio Performance</div>
+          <div class="card-subtitle">Last 6 months</div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-y-axis">
+          <span class="chart-y-label">$15k</span>
+          <span class="chart-y-label">$12k</span>
+          <span class="chart-y-label">$9k</span>
+          <span class="chart-y-label">$6k</span>
+          <span class="chart-y-label">$3k</span>
+          <span class="chart-y-label">$0</span>
+        </div>
+        <div class="chart-bars">
+          <div class="chart-gridlines">
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:53%;" title="$8,200"></div>
+            <span class="chart-bar-label">Jan</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:60%;" title="$9,100"></div>
+            <span class="chart-bar-label">Feb</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:55%;" title="$8,500"></div>
+            <span class="chart-bar-label">Mar</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:72%;" title="$10,800"></div>
+            <span class="chart-bar-label">Apr</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:78%;" title="$11,700"></div>
+            <span class="chart-bar-label">May</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:86%;" title="$12,847"></div>
+            <span class="chart-bar-label">Jun</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two Column: Transactions + Goals -->
+    <div class="two-col">
+
+      <!-- Recent Transactions -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div class="card-title">Recent Transactions</div>
+          <a href="#" class="card-link">View all &#8594;</a>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Merchant</th>
+                <th>Amount</th>
+                <th>Round-Up</th>
+                <th>Ticker</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Feb 18, 2026</td>
+                <td style="font-weight:500;color:#111827;">Starbucks</td>
+                <td>$5.75</td>
+                <td style="color:#059669;font-weight:500;">$0.25</td>
+                <td><span style="font-family:monospace;font-size:12px;background:#F3F4F6;padding:2px 6px;border-radius:4px;">SBUX</span></td>
+                <td><span class="status-pill status-completed">Completed</span></td>
+              </tr>
+              <tr>
+                <td>Feb 17, 2026</td>
+                <td style="font-weight:500;color:#111827;">Amazon</td>
+                <td>$42.30</td>
+                <td style="color:#059669;font-weight:500;">$0.70</td>
+                <td><span style="font-family:monospace;font-size:12px;background:#F3F4F6;padding:2px 6px;border-radius:4px;">AMZN</span></td>
+                <td><span class="status-pill status-completed">Completed</span></td>
+              </tr>
+              <tr>
+                <td>Feb 17, 2026</td>
+                <td style="font-weight:500;color:#111827;">Uber</td>
+                <td>$18.50</td>
+                <td style="color:#059669;font-weight:500;">$0.50</td>
+                <td><span style="font-family:monospace;font-size:12px;background:#F3F4F6;padding:2px 6px;border-radius:4px;">UBER</span></td>
+                <td><span class="status-pill status-pending">Pending</span></td>
+              </tr>
+              <tr>
+                <td>Feb 16, 2026</td>
+                <td style="font-weight:500;color:#111827;">Nike Store</td>
+                <td>$89.99</td>
+                <td style="color:#059669;font-weight:500;">$0.01</td>
+                <td><span style="font-family:monospace;font-size:12px;background:#F3F4F6;padding:2px 6px;border-radius:4px;">NKE</span></td>
+                <td><span class="status-pill status-completed">Completed</span></td>
+              </tr>
+              <tr>
+                <td>Feb 15, 2026</td>
+                <td style="font-weight:500;color:#111827;">Apple Music</td>
+                <td>$10.99</td>
+                <td style="color:#059669;font-weight:500;">$0.01</td>
+                <td><span style="font-family:monospace;font-size:12px;background:#F3F4F6;padding:2px 6px;border-radius:4px;">AAPL</span></td>
+                <td><span class="status-pill status-processing">Processing</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Active Goals -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div class="card-title">Active Goals</div>
+        <a href="#" class="card-link">Manage &#8594;</a>
+      </div>
+      <div class="goals-list">
+        <div class="goal-item">
+          <div class="goal-header">
+            <span class="goal-name">Emergency Fund</span>
+            <span class="goal-amount"><strong>$2,400</strong> of $5,000</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" style="width:48%;"></div>
+          </div>
+          <div class="goal-footer">
+            <span class="goal-percentage">48%</span>
+          </div>
+        </div>
+        <div class="goal-item">
+          <div class="goal-header">
+            <span class="goal-name">Vacation Fund</span>
+            <span class="goal-amount"><strong>$1,800</strong> of $3,000</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" style="width:60%;"></div>
+          </div>
+          <div class="goal-footer">
+            <span class="goal-percentage">60%</span>
+          </div>
+        </div>
+        <div class="goal-item">
+          <div class="goal-header">
+            <span class="goal-name">New Laptop</span>
+            <span class="goal-amount"><strong>$950</strong> of $2,000</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" style="width:47.5%;"></div>
+          </div>
+          <div class="goal-footer">
+            <span class="goal-percentage">47.5%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /userView -->
+
+  <!-- ==========================================
+       ADMIN DASHBOARD VIEW
+       ========================================== -->
+  <div class="dashboard-view" id="adminView">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">Admin Overview</h1>
+      <div class="page-actions">
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          Download Report
+        </button>
+        <button class="btn btn-primary">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Process Queue
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Users</div>
+        <div class="kpi-value">2,847</div>
+        <div class="kpi-meta">
+          <span class="kpi-badge badge-green">+156 this month</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Revenue MTD</div>
+        <div class="kpi-value">$14,250<span style="font-size:20px;font-weight:600">.00</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-badge badge-green">&#9650; +22.3%</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Pending Mappings</div>
+        <div class="kpi-value">23</div>
+        <div class="kpi-meta">
+          <span class="kpi-badge badge-amber">Needs review</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">System Health</div>
+        <div class="kpi-value">99.8<span style="font-size:20px;font-weight:600">%</span></div>
+        <div class="kpi-meta">
+          <span class="kpi-badge badge-green">All systems operational</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Growth Chart -->
+    <div class="card chart-area full-width">
+      <div class="card-header">
+        <div>
+          <div class="card-title">User Growth</div>
+          <div class="card-subtitle">Last 6 months</div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-y-axis">
+          <span class="chart-y-label">3k</span>
+          <span class="chart-y-label">2.4k</span>
+          <span class="chart-y-label">1.8k</span>
+          <span class="chart-y-label">1.2k</span>
+          <span class="chart-y-label">600</span>
+          <span class="chart-y-label">0</span>
+        </div>
+        <div class="chart-bars">
+          <div class="chart-gridlines">
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+            <div class="chart-gridline"></div>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:48%;" title="1,420"></div>
+            <span class="chart-bar-label">Sep</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:56%;" title="1,680"></div>
+            <span class="chart-bar-label">Oct</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:65%;" title="1,950"></div>
+            <span class="chart-bar-label">Nov</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:73%;" title="2,190"></div>
+            <span class="chart-bar-label">Dec</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:82%;" title="2,460"></div>
+            <span class="chart-bar-label">Jan</span>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-bar" style="height:95%;" title="2,847"></div>
+            <span class="chart-bar-label">Feb</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div class="card-title">Recent Activity</div>
+        <a href="#" class="card-link">View all &#8594;</a>
+      </div>
+      <div class="activity-list">
+        <div class="activity-item">
+          <div class="activity-dot dot-green"></div>
+          <div class="activity-content">
+            <div class="activity-text">New user registered: <strong>sarah.j@email.com</strong></div>
+            <div class="activity-time">2 min ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot dot-blue"></div>
+          <div class="activity-content">
+            <div class="activity-text">LLM mapping approved: <strong>Starbucks &#8594; SBUX</strong></div>
+            <div class="activity-time">15 min ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot dot-indigo"></div>
+          <div class="activity-content">
+            <div class="activity-text">Subscription upgraded: <strong>Basic &#8594; Pro</strong></div>
+            <div class="activity-time">1 hour ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot dot-amber"></div>
+          <div class="activity-content">
+            <div class="activity-text">Transaction processed: <strong>$42.30 round-up</strong></div>
+            <div class="activity-time">2 hours ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot dot-gray"></div>
+          <div class="activity-content">
+            <div class="activity-text">System backup completed</div>
+            <div class="activity-time">3 hours ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div class="card-title">Quick Actions</div>
+      </div>
+      <div class="quick-actions">
+        <button class="btn btn-primary">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Process Pending
+        </button>
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          Review Mappings
+        </button>
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          Send Notification
+        </button>
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Generate Report
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /adminView -->
+
+</main>
+
+<!-- ============================================
+     JAVASCRIPT
+     ============================================ -->
+<script>
+  function switchView(view) {
+    var userView = document.getElementById('userView');
+    var adminView = document.getElementById('adminView');
+    var toggleUser = document.getElementById('toggleUser');
+    var toggleAdmin = document.getElementById('toggleAdmin');
+    var userSidebar = document.getElementById('userSidebar');
+    var adminSidebar = document.getElementById('adminSidebar');
+    var breadcrumb = document.getElementById('breadcrumb');
+
+    if (view === 'user') {
+      userView.classList.add('active');
+      adminView.classList.remove('active');
+      toggleUser.classList.add('active');
+      toggleAdmin.classList.remove('active');
+      userSidebar.style.display = '';
+      adminSidebar.style.display = 'none';
+      breadcrumb.innerHTML = 'Dashboard <span>&#8250;</span> <span>Overview</span>';
+    } else {
+      adminView.classList.add('active');
+      userView.classList.remove('active');
+      toggleAdmin.classList.add('active');
+      toggleUser.classList.remove('active');
+      adminSidebar.style.display = '';
+      userSidebar.style.display = 'none';
+      breadcrumb.innerHTML = 'Admin <span>&#8250;</span> <span>Overview</span>';
+    }
+
+    // Close sidebar on mobile when switching views
+    closeSidebar();
+  }
+
+  function toggleSidebar() {
+    var userSidebar = document.getElementById('userSidebar');
+    var adminSidebar = document.getElementById('adminSidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+
+    // Determine which sidebar is visible
+    var activeSidebar = userSidebar.style.display !== 'none' ? userSidebar : adminSidebar;
+
+    if (activeSidebar.classList.contains('open')) {
+      closeSidebar();
+    } else {
+      activeSidebar.classList.add('open');
+      overlay.classList.add('show');
+    }
+  }
+
+  function closeSidebar() {
+    document.getElementById('userSidebar').classList.remove('open');
+    document.getElementById('adminSidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
+
+  // Sidebar nav item click handling
+  document.querySelectorAll('.sidebar-nav-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var navGroup = this.getAttribute('data-nav');
+      // Deactivate siblings
+      document.querySelectorAll('.sidebar-nav-item[data-nav="' + navGroup + '"]').forEach(function(sibling) {
+        sibling.classList.remove('active');
+      });
+      this.classList.add('active');
+      // Close sidebar on mobile
+      if (window.innerWidth <= 768) {
+        closeSidebar();
+      }
+    });
+  });
+
+  // Close sidebar on resize to desktop
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+      closeSidebar();
+    }
+  });
+</script>
+
+</body>
+</html>

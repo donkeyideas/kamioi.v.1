@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KAMIOI — Bloomberg Terminal Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --deep-navy: #0A1628;
+  --dark-charcoal: #1A2332;
+  --midnight: #0D1117;
+  --border: #30363D;
+  --text-primary: #E6EDF3;
+  --text-muted: #8B949E;
+  --orange: #FF6B35;
+  --green: #3FB950;
+  --red: #F85149;
+  --blue: #58A6FF;
+  --row-alt: #161B22;
+  --row-hover: #1C2333;
+  --sidebar-w-collapsed: 48px;
+  --sidebar-w-expanded: 180px;
+  --header-h: 40px;
+  --ticker-h: 28px;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  background: var(--midnight);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ===== VIEW TOGGLE BAR ===== */
+.view-toggle-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #000;
+  border-bottom: 1px solid var(--border);
+  height: 28px;
+  padding: 0 8px;
+}
+
+.view-toggle-bar .toggle-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 8px;
+}
+
+.view-toggle-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 2px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+  border-radius: 0;
+  outline: none;
+}
+
+.view-toggle-btn:first-of-type {
+  border-right: none;
+}
+
+.view-toggle-btn.active {
+  background: var(--orange);
+  color: #000;
+  border-color: var(--orange);
+  font-weight: 600;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background: var(--dark-charcoal);
+  color: var(--text-primary);
+}
+
+/* ===== TOP HEADER ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-h);
+  background: var(--deep-navy);
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
+  gap: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-item {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.header-item .value {
+  color: var(--text-primary);
+}
+
+.header-item .orange {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  margin-right: 4px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.username {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+/* ===== LAYOUT SHELL ===== */
+.app-body {
+  display: flex;
+  height: calc(100vh - 28px - var(--header-h));
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: var(--sidebar-w-collapsed);
+  min-width: var(--sidebar-w-collapsed);
+  background: var(--deep-navy);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.sidebar:hover {
+  width: var(--sidebar-w-expanded);
+  min-width: var(--sidebar-w-expanded);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding-top: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+}
+
+.nav-item:hover {
+  background: var(--dark-charcoal);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  border-left-color: var(--blue);
+  color: var(--text-primary);
+  background: rgba(88, 166, 255, 0.08);
+}
+
+.nav-icon {
+  width: 18px;
+  text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.sidebar:hover .nav-label {
+  opacity: 1;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--midnight);
+}
+
+.main-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: var(--midnight);
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+/* ===== TICKER BAR ===== */
+.ticker-bar {
+  display: flex;
+  align-items: center;
+  height: var(--ticker-h);
+  background: #000;
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
+  gap: 0;
+  overflow: hidden;
+  font-size: 11px;
+}
+
+.ticker-item {
+  white-space: nowrap;
+  padding: 0 12px;
+}
+
+.ticker-item:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.ticker-symbol {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.ticker-price {
+  color: var(--text-muted);
+  margin-right: 6px;
+}
+
+.ticker-up {
+  color: var(--green);
+}
+
+.ticker-down {
+  color: var(--red);
+}
+
+/* ===== SYSTEM STATUS BAR (ADMIN) ===== */
+.system-status-bar {
+  display: flex;
+  align-items: center;
+  height: var(--ticker-h);
+  background: #000;
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
+  gap: 0;
+  font-size: 11px;
+}
+
+.status-item {
+  white-space: nowrap;
+  padding: 0 12px;
+  color: var(--text-muted);
+}
+
+.status-item:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.status-item .label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.status-item .val {
+  color: var(--green);
+  font-weight: 500;
+}
+
+.status-item .val-warn {
+  color: var(--orange);
+  font-weight: 500;
+}
+
+/* ===== CONTENT AREA ===== */
+.content-area {
+  padding: 8px;
+}
+
+/* ===== KPI ROW ===== */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+
+.kpi-panel {
+  background: var(--dark-charcoal);
+  padding: 10px 12px;
+  border-right: 1px solid var(--border);
+}
+
+.kpi-panel:last-child {
+  border-right: none;
+}
+
+.kpi-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.kpi-delta {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.kpi-delta.positive {
+  color: var(--green);
+}
+
+.kpi-delta.negative {
+  color: var(--red);
+}
+
+.kpi-delta.neutral {
+  color: var(--orange);
+}
+
+/* ===== PANEL (generic) ===== */
+.panel {
+  border: 1px solid var(--border);
+  background: var(--dark-charcoal);
+  margin-bottom: 8px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.3);
+}
+
+.panel-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.panel-badge {
+  font-size: 10px;
+  color: var(--orange);
+}
+
+.panel-body {
+  padding: 0;
+}
+
+/* ===== DATA TABLE ===== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.2);
+  white-space: nowrap;
+}
+
+.data-table th.right,
+.data-table td.right {
+  text-align: right;
+}
+
+.data-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+  white-space: nowrap;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: var(--row-alt);
+}
+
+.data-table tbody tr:hover {
+  background: var(--row-hover) !important;
+}
+
+.data-table .positive {
+  color: var(--green);
+}
+
+.data-table .negative {
+  color: var(--red);
+}
+
+.data-table .muted {
+  color: var(--text-muted);
+}
+
+.data-table .blue {
+  color: var(--blue);
+}
+
+/* ===== TWO COLUMN GRID ===== */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.three-col {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* ===== TRANSACTIONS LIST ===== */
+.txn-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-bottom: 1px solid rgba(48,54,61,0.4);
+  font-size: 11px;
+  gap: 8px;
+}
+
+.txn-row:nth-child(even) {
+  background: var(--row-alt);
+}
+
+.txn-row:hover {
+  background: var(--row-hover);
+}
+
+.txn-date {
+  color: var(--text-muted);
+  min-width: 42px;
+}
+
+.txn-merchant {
+  color: var(--text-primary);
+  min-width: 100px;
+  flex: 1;
+}
+
+.txn-amount {
+  color: var(--text-primary);
+  min-width: 55px;
+  text-align: right;
+}
+
+.txn-roundup {
+  color: var(--green);
+  min-width: 60px;
+  text-align: right;
+}
+
+.txn-ticker {
+  color: var(--blue);
+  min-width: 36px;
+  text-align: center;
+}
+
+.txn-status {
+  font-size: 10px;
+  padding: 1px 4px;
+  border: 1px solid;
+  min-width: 44px;
+  text-align: center;
+}
+
+.txn-status.done {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.txn-status.pend {
+  color: var(--orange);
+  border-color: var(--orange);
+}
+
+.txn-status.proc {
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
+/* ===== SPARKLINE / MINI CHART ===== */
+.mini-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 12px;
+  height: 100%;
+  min-height: 120px;
+}
+
+.chart-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.chart-bar {
+  width: 100%;
+  max-width: 28px;
+  background: var(--blue);
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.chart-bar:hover {
+  opacity: 1;
+}
+
+.chart-bar-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.chart-bar-value {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+/* ===== GOALS / PROGRESS ===== */
+.goal-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(48,54,61,0.4);
+  font-size: 11px;
+  gap: 10px;
+}
+
+.goal-row:nth-child(even) {
+  background: var(--row-alt);
+}
+
+.goal-row:hover {
+  background: var(--row-hover);
+}
+
+.goal-name {
+  min-width: 130px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.goal-bar-track {
+  flex: 1;
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  position: relative;
+  min-width: 120px;
+}
+
+.goal-bar-fill {
+  height: 100%;
+  background: var(--blue);
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: width 0.3s;
+}
+
+.goal-pct {
+  min-width: 36px;
+  text-align: right;
+  color: var(--blue);
+  font-weight: 500;
+}
+
+.goal-amounts {
+  min-width: 130px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* ===== ACTIVITY LOG (ADMIN) ===== */
+.log-entry {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 12px;
+  border-bottom: 1px solid rgba(48,54,61,0.3);
+  font-size: 11px;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.log-entry:nth-child(even) {
+  background: var(--row-alt);
+}
+
+.log-entry:hover {
+  background: var(--row-hover);
+}
+
+.log-time {
+  color: var(--text-muted);
+  min-width: 68px;
+  flex-shrink: 0;
+}
+
+.log-type {
+  font-weight: 600;
+  min-width: 72px;
+  flex-shrink: 0;
+}
+
+.log-type.reg { color: var(--blue); }
+.log-type.map { color: var(--green); }
+.log-type.sub { color: var(--orange); }
+.log-type.txn { color: #D2A8FF; }
+.log-type.sys { color: var(--text-muted); }
+
+.log-msg {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* ===== QUICK ACTIONS ===== */
+.quick-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+  border-radius: 0;
+  outline: none;
+}
+
+.action-btn:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: rgba(255, 107, 53, 0.08);
+}
+
+/* ===== HIDE/SHOW VIEWS ===== */
+.view { display: none; }
+.view.active { display: flex; }
+
+.view-content { display: none; }
+.view-content.active { display: block; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .two-col,
+  .three-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+  .ticker-bar {
+    overflow-x: auto;
+  }
+  .header {
+    padding: 0 8px;
+    gap: 8px;
+  }
+  .header-item.hide-mobile {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== VIEW TOGGLE ===== -->
+<div class="view-toggle-bar">
+  <span class="toggle-label">View:</span>
+  <button class="view-toggle-btn active" id="btn-user" onclick="switchView('user')">[ USER ]</button>
+  <button class="view-toggle-btn" id="btn-admin" onclick="switchView('admin')">[ ADMIN ]</button>
+  <span style="flex:1;"></span>
+  <span style="font-size:9px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;">KAMIOI Terminal v2.4.1</span>
+</div>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+  <div class="header-left">
+    <span class="logo">KAMIOI</span>
+    <span class="header-divider"></span>
+    <span class="username" id="header-username">ALEX JOHNSON</span>
+  </div>
+  <div class="header-right">
+    <span class="header-item hide-mobile"><span class="label">MKT:</span> <span class="value" style="color:var(--green);">OPEN</span></span>
+    <span class="header-divider hide-mobile"></span>
+    <span class="header-item"><span id="live-clock" class="value">--:--:--</span></span>
+    <span class="header-divider"></span>
+    <span class="header-item"><span class="orange" id="notif-count">[3]</span></span>
+    <span class="header-divider"></span>
+    <span class="header-item"><span class="status-dot"></span><span class="value">ONLINE</span></span>
+  </div>
+</div>
+
+<!-- ===== USER VIEW ===== -->
+<div class="view active" id="view-user">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar-user">
+    <nav class="sidebar-nav">
+      <div class="nav-item active">
+        <span class="nav-icon">&#9632;</span>
+        <span class="nav-label">Overview</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9670;</span>
+        <span class="nav-label">Portfolio</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#8644;</span>
+        <span class="nav-label">Transactions</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9733;</span>
+        <span class="nav-label">Goals</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9883;</span>
+        <span class="nav-label">AI Insights</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9993;</span>
+        <span class="nav-label">Notifications</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9881;</span>
+        <span class="nav-label">Settings</span>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <!-- Ticker Bar -->
+    <div class="ticker-bar">
+      <div class="ticker-item">
+        <span class="ticker-symbol">SBUX</span>
+        <span class="ticker-price">$98.45</span>
+        <span class="ticker-up">&#9650;+1.2%</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-symbol">AMZN</span>
+        <span class="ticker-price">$178.32</span>
+        <span class="ticker-up">&#9650;+0.8%</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-symbol">AAPL</span>
+        <span class="ticker-price">$189.50</span>
+        <span class="ticker-down">&#9660;-0.3%</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-symbol">NKE</span>
+        <span class="ticker-price">$108.75</span>
+        <span class="ticker-up">&#9650;+2.1%</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-symbol">UBER</span>
+        <span class="ticker-price">$72.30</span>
+        <span class="ticker-up">&#9650;+0.5%</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-symbol">MSFT</span>
+        <span class="ticker-price">$415.60</span>
+        <span class="ticker-up">&#9650;+0.4%</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-symbol">GOOGL</span>
+        <span class="ticker-price">$175.20</span>
+        <span class="ticker-down">&#9660;-0.1%</span>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-area">
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi-panel">
+          <div class="kpi-label">Portfolio Value</div>
+          <div class="kpi-value">$12,847.50</div>
+          <div class="kpi-delta positive">&#9650;+12.3% ALL TIME</div>
+        </div>
+        <div class="kpi-panel">
+          <div class="kpi-label">Round-Ups MTD</div>
+          <div class="kpi-value">$124.75</div>
+          <div class="kpi-delta positive">&#9650;+8.7% vs PREV</div>
+        </div>
+        <div class="kpi-panel">
+          <div class="kpi-label">Active Goals</div>
+          <div class="kpi-value">3/5</div>
+          <div class="kpi-delta neutral">60% UTILIZED</div>
+        </div>
+        <div class="kpi-panel">
+          <div class="kpi-label">AI Confidence</div>
+          <div class="kpi-value">94.2%</div>
+          <div class="kpi-delta positive">&#9650;+1.1% MTD</div>
+        </div>
+      </div>
+
+      <!-- Portfolio Table -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Portfolio Allocation</span>
+          <span class="panel-badge">5 HOLDINGS &middot; LAST UPD 14:32 EST</span>
+        </div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Ticker</th>
+                <th class="right">Shares</th>
+                <th class="right">Avg Price</th>
+                <th class="right">Current</th>
+                <th class="right">Value</th>
+                <th class="right">P&amp;L</th>
+                <th class="right">P&amp;L%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="blue">AAPL</td>
+                <td class="right">12.5</td>
+                <td class="right muted">$165.20</td>
+                <td class="right">$189.50</td>
+                <td class="right">$2,368.75</td>
+                <td class="right positive">+$303.75</td>
+                <td class="right positive">+14.7%</td>
+              </tr>
+              <tr>
+                <td class="blue">AMZN</td>
+                <td class="right">8.3</td>
+                <td class="right muted">$155.00</td>
+                <td class="right">$178.32</td>
+                <td class="right">$1,480.06</td>
+                <td class="right positive">+$193.56</td>
+                <td class="right positive">+15.0%</td>
+              </tr>
+              <tr>
+                <td class="blue">SBUX</td>
+                <td class="right">25.0</td>
+                <td class="right muted">$92.10</td>
+                <td class="right">$98.45</td>
+                <td class="right">$2,461.25</td>
+                <td class="right positive">+$158.75</td>
+                <td class="right positive">+6.9%</td>
+              </tr>
+              <tr>
+                <td class="blue">NKE</td>
+                <td class="right">15.0</td>
+                <td class="right muted">$95.50</td>
+                <td class="right">$108.75</td>
+                <td class="right">$1,631.25</td>
+                <td class="right positive">+$198.75</td>
+                <td class="right positive">+13.9%</td>
+              </tr>
+              <tr>
+                <td class="blue">UBER</td>
+                <td class="right">20.0</td>
+                <td class="right muted">$65.00</td>
+                <td class="right">$72.30</td>
+                <td class="right">$1,446.00</td>
+                <td class="right positive">+$146.00</td>
+                <td class="right positive">+11.2%</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr style="border-top:1px solid var(--border);background:rgba(0,0,0,0.2);">
+                <td style="font-weight:600;">TOTAL</td>
+                <td class="right muted">80.8</td>
+                <td class="right muted">--</td>
+                <td class="right muted">--</td>
+                <td class="right" style="font-weight:600;">$9,387.31</td>
+                <td class="right positive" style="font-weight:600;">+$1,000.81</td>
+                <td class="right positive" style="font-weight:600;">+11.9%</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Transactions + Mini Chart -->
+      <div class="three-col">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Recent Transactions</span>
+            <span class="panel-badge">5 LATEST</span>
+          </div>
+          <div class="panel-body">
+            <div class="txn-row">
+              <span class="txn-date">02/18</span>
+              <span class="txn-merchant">STARBUCKS</span>
+              <span class="txn-amount">$5.75</span>
+              <span class="txn-roundup">RU:$0.25</span>
+              <span class="txn-ticker">SBUX</span>
+              <span class="txn-status done">DONE</span>
+            </div>
+            <div class="txn-row">
+              <span class="txn-date">02/17</span>
+              <span class="txn-merchant">AMAZON</span>
+              <span class="txn-amount">$42.30</span>
+              <span class="txn-roundup">RU:$0.70</span>
+              <span class="txn-ticker">AMZN</span>
+              <span class="txn-status done">DONE</span>
+            </div>
+            <div class="txn-row">
+              <span class="txn-date">02/17</span>
+              <span class="txn-merchant">UBER</span>
+              <span class="txn-amount">$18.50</span>
+              <span class="txn-roundup">RU:$0.50</span>
+              <span class="txn-ticker">UBER</span>
+              <span class="txn-status pend">PEND</span>
+            </div>
+            <div class="txn-row">
+              <span class="txn-date">02/16</span>
+              <span class="txn-merchant">NIKE STORE</span>
+              <span class="txn-amount">$89.99</span>
+              <span class="txn-roundup">RU:$0.01</span>
+              <span class="txn-ticker">NKE</span>
+              <span class="txn-status done">DONE</span>
+            </div>
+            <div class="txn-row">
+              <span class="txn-date">02/15</span>
+              <span class="txn-merchant">APPLE MUSIC</span>
+              <span class="txn-amount">$10.99</span>
+              <span class="txn-roundup">RU:$0.01</span>
+              <span class="txn-ticker">AAPL</span>
+              <span class="txn-status proc">PROC</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Daily Round-Ups (7D)</span>
+            <span class="panel-badge">$8.42 TOTAL</span>
+          </div>
+          <div class="panel-body">
+            <div class="mini-chart">
+              <div class="chart-bar-wrapper">
+                <span class="chart-bar-value">$0.75</span>
+                <div class="chart-bar" style="height:38px;"></div>
+                <span class="chart-bar-label">Wed</span>
+              </div>
+              <div class="chart-bar-wrapper">
+                <span class="chart-bar-value">$1.50</span>
+                <div class="chart-bar" style="height:72px;"></div>
+                <span class="chart-bar-label">Thu</span>
+              </div>
+              <div class="chart-bar-wrapper">
+                <span class="chart-bar-value">$0.42</span>
+                <div class="chart-bar" style="height:22px;"></div>
+                <span class="chart-bar-label">Fri</span>
+              </div>
+              <div class="chart-bar-wrapper">
+                <span class="chart-bar-value">$2.10</span>
+                <div class="chart-bar" style="height:95px;" ></div>
+                <span class="chart-bar-label">Sat</span>
+              </div>
+              <div class="chart-bar-wrapper">
+                <span class="chart-bar-value">$0.90</span>
+                <div class="chart-bar" style="height:44px;"></div>
+                <span class="chart-bar-label">Sun</span>
+              </div>
+              <div class="chart-bar-wrapper">
+                <span class="chart-bar-value">$1.50</span>
+                <div class="chart-bar" style="height:72px;"></div>
+                <span class="chart-bar-label">Mon</span>
+              </div>
+              <div class="chart-bar-wrapper">
+                <span class="chart-bar-value">$1.25</span>
+                <div class="chart-bar" style="height:60px;"></div>
+                <span class="chart-bar-label">Tue</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Goals -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Investment Goals</span>
+          <span class="panel-badge">3 ACTIVE</span>
+        </div>
+        <div class="panel-body">
+          <div class="goal-row">
+            <span class="goal-name">Emergency Fund</span>
+            <div class="goal-bar-track">
+              <div class="goal-bar-fill" style="width:48%;"></div>
+            </div>
+            <span class="goal-pct">48%</span>
+            <span class="goal-amounts">$2,400 / $5,000</span>
+          </div>
+          <div class="goal-row">
+            <span class="goal-name">Vacation Fund</span>
+            <div class="goal-bar-track">
+              <div class="goal-bar-fill" style="width:40%;background:var(--green);"></div>
+            </div>
+            <span class="goal-pct" style="color:var(--green);">40%</span>
+            <span class="goal-amounts">$800 / $2,000</span>
+          </div>
+          <div class="goal-row">
+            <span class="goal-name">New Car</span>
+            <div class="goal-bar-track">
+              <div class="goal-bar-fill" style="width:35%;background:var(--orange);"></div>
+            </div>
+            <span class="goal-pct" style="color:var(--orange);">35%</span>
+            <span class="goal-amounts">$5,250 / $15,000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Insights Mini Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">AI Insights &mdash; Latest</span>
+          <span class="panel-badge">CONFIDENCE 94.2%</span>
+        </div>
+        <div class="panel-body" style="padding:8px 12px; font-size:11px; line-height:1.6;">
+          <div style="margin-bottom:4px;">
+            <span style="color:var(--green);font-weight:600;">&#9650; SBUX</span>
+            <span class="muted"> | </span>
+            <span>Round-up frequency increased 23% this month. Consider increasing allocation weight.</span>
+          </div>
+          <div style="margin-bottom:4px;">
+            <span style="color:var(--blue);font-weight:600;">&#9679; UBER</span>
+            <span class="muted"> | </span>
+            <span>New mapping detected. Ride spending pattern suggests recurring weekly investment opportunity.</span>
+          </div>
+          <div>
+            <span style="color:var(--orange);font-weight:600;">&#9888; GOAL</span>
+            <span class="muted"> | </span>
+            <span>Emergency Fund on track to complete by Aug 2026 at current round-up rate ($48.50/mo avg).</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main-content -->
+</div><!-- /view-user -->
+
+
+<!-- ===== ADMIN VIEW ===== -->
+<div class="view" id="view-admin">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar-admin">
+    <nav class="sidebar-nav">
+      <div class="nav-item active">
+        <span class="nav-icon">&#9632;</span>
+        <span class="nav-label">Overview</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9824;</span>
+        <span class="nav-label">Users</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#8644;</span>
+        <span class="nav-label">Transactions</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9883;</span>
+        <span class="nav-label">LLM Center</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9733;</span>
+        <span class="nav-label">Subscriptions</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9670;</span>
+        <span class="nav-label">Financial</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9998;</span>
+        <span class="nav-label">Content</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">&#9881;</span>
+        <span class="nav-label">System</span>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <!-- System Status Bar -->
+    <div class="system-status-bar">
+      <div class="status-item">
+        <span class="label">SYS: </span><span class="val">ONLINE</span>
+      </div>
+      <div class="status-item">
+        <span class="label">DB: </span><span class="val">HEALTHY</span>
+      </div>
+      <div class="status-item">
+        <span class="label">API: </span><span class="val">142ms</span>
+      </div>
+      <div class="status-item">
+        <span class="label">UPTIME: </span><span class="val">99.8%</span>
+      </div>
+      <div class="status-item">
+        <span class="label">QUEUE: </span><span class="val-warn">23</span>
+      </div>
+      <div class="status-item">
+        <span class="label">ACTIVE: </span><span class="val">847</span>
+      </div>
+      <div class="status-item">
+        <span class="label">CACHE: </span><span class="val">HIT 94%</span>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi-panel">
+          <div class="kpi-label">Total Users</div>
+          <div class="kpi-value">2,847</div>
+          <div class="kpi-delta positive">+156 MTD</div>
+        </div>
+        <div class="kpi-panel">
+          <div class="kpi-label">Revenue MTD</div>
+          <div class="kpi-value">$14,250.00</div>
+          <div class="kpi-delta positive">&#9650;+22.3%</div>
+        </div>
+        <div class="kpi-panel">
+          <div class="kpi-label">Pending Mappings</div>
+          <div class="kpi-value">23</div>
+          <div class="kpi-delta neutral">QUEUE</div>
+        </div>
+        <div class="kpi-panel">
+          <div class="kpi-label">System Health</div>
+          <div class="kpi-value">99.8%</div>
+          <div class="kpi-delta positive">NOMINAL</div>
+        </div>
+      </div>
+
+      <!-- Users Table + Activity Log -->
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Recent Users</span>
+            <span class="panel-badge">2,847 TOTAL</span>
+          </div>
+          <div class="panel-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Email</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th class="right">Portfolio</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="muted">1847</td>
+                  <td class="blue">sarah.j@email.com</td>
+                  <td>Individual</td>
+                  <td class="positive">Active</td>
+                  <td class="muted">02/18</td>
+                  <td class="right">$3,420.50</td>
+                </tr>
+                <tr>
+                  <td class="muted">1846</td>
+                  <td class="blue">mike.b@email.com</td>
+                  <td>Business</td>
+                  <td class="positive">Active</td>
+                  <td class="muted">02/17</td>
+                  <td class="right">$12,750.00</td>
+                </tr>
+                <tr>
+                  <td class="muted">1845</td>
+                  <td class="blue">family.chen@mail.com</td>
+                  <td>Family</td>
+                  <td class="positive">Active</td>
+                  <td class="muted">02/17</td>
+                  <td class="right">$8,200.30</td>
+                </tr>
+                <tr>
+                  <td class="muted">1844</td>
+                  <td class="blue">john.d@email.com</td>
+                  <td>Individual</td>
+                  <td style="color:var(--orange);">Trial</td>
+                  <td class="muted">02/16</td>
+                  <td class="right">$450.00</td>
+                </tr>
+                <tr>
+                  <td class="muted">1843</td>
+                  <td class="blue">corp.invest@biz.com</td>
+                  <td>Business</td>
+                  <td class="positive">Active</td>
+                  <td class="muted">02/15</td>
+                  <td class="right">$25,000.00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Activity Log</span>
+            <span class="panel-badge">LIVE FEED</span>
+          </div>
+          <div class="panel-body">
+            <div class="log-entry">
+              <span class="log-time">[14:32:15]</span>
+              <span class="log-type reg">USR_REG</span>
+              <span class="log-msg">sarah.j@email.com registered (Individual)</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">[14:17:45]</span>
+              <span class="log-type map">LLM_MAP</span>
+              <span class="log-msg">Starbucks &#8594; SBUX (conf: 0.96) APPROVED</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">[13:30:22]</span>
+              <span class="log-type sub">SUB_UPG</span>
+              <span class="log-msg">user:1840 Basic &#8594; Pro ($9/mo &#8594; $19/mo)</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">[12:45:10]</span>
+              <span class="log-type txn">TXN_PROC</span>
+              <span class="log-msg">$42.30 round-up processed (user:1838)</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">[11:00:00]</span>
+              <span class="log-type sys">SYS_BKP</span>
+              <span class="log-msg">Automated backup completed (2.3GB)</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">[10:22:08]</span>
+              <span class="log-type map">LLM_MAP</span>
+              <span class="log-msg">Nike Factory &#8594; NKE (conf: 0.91) APPROVED</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">[09:15:33]</span>
+              <span class="log-type reg">USR_REG</span>
+              <span class="log-msg">corp.invest@biz.com registered (Business)</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">[08:00:00]</span>
+              <span class="log-type sys">SYS_HLT</span>
+              <span class="log-msg">Health check passed &mdash; all services nominal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Revenue + LLM Stats -->
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Revenue Breakdown (MTD)</span>
+            <span class="panel-badge">$14,250.00</span>
+          </div>
+          <div class="panel-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th class="right">Amount</th>
+                  <th class="right">% Share</th>
+                  <th class="right">vs Prev</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Pro Subscriptions</td>
+                  <td class="right">$8,550.00</td>
+                  <td class="right muted">60.0%</td>
+                  <td class="right positive">+18.2%</td>
+                </tr>
+                <tr>
+                  <td>Basic Subscriptions</td>
+                  <td class="right">$3,420.00</td>
+                  <td class="right muted">24.0%</td>
+                  <td class="right positive">+12.5%</td>
+                </tr>
+                <tr>
+                  <td>Family Plans</td>
+                  <td class="right">$1,425.00</td>
+                  <td class="right muted">10.0%</td>
+                  <td class="right positive">+45.0%</td>
+                </tr>
+                <tr>
+                  <td>Business Plans</td>
+                  <td class="right">$855.00</td>
+                  <td class="right muted">6.0%</td>
+                  <td class="right positive">+31.8%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">LLM Mapping Stats</span>
+            <span class="panel-badge">TODAY</span>
+          </div>
+          <div class="panel-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th class="right">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Total Mappings Today</td>
+                  <td class="right">142</td>
+                </tr>
+                <tr>
+                  <td>Auto-Approved (&gt;0.90)</td>
+                  <td class="right positive">119</td>
+                </tr>
+                <tr>
+                  <td>Pending Review</td>
+                  <td class="right" style="color:var(--orange);">23</td>
+                </tr>
+                <tr>
+                  <td>Avg Confidence</td>
+                  <td class="right">0.934</td>
+                </tr>
+                <tr>
+                  <td>Avg Latency</td>
+                  <td class="right">245ms</td>
+                </tr>
+                <tr>
+                  <td>Token Usage (MTD)</td>
+                  <td class="right muted">1.2M</td>
+                </tr>
+                <tr>
+                  <td>LLM Cost (MTD)</td>
+                  <td class="right muted">$18.40</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Quick Actions</span>
+          <span class="panel-badge">ADMIN CONTROLS</span>
+        </div>
+        <div class="panel-body">
+          <div class="quick-actions">
+            <button class="action-btn" onclick="flashBtn(this,'Processing queue...')">[ PROCESS QUEUE ]</button>
+            <button class="action-btn" onclick="flashBtn(this,'Opening review...')">[ REVIEW MAPPINGS ]</button>
+            <button class="action-btn" onclick="flashBtn(this,'Broadcast ready')">[ BROADCAST ]</button>
+            <button class="action-btn" onclick="flashBtn(this,'Exporting CSV...')">[ EXPORT ]</button>
+            <button class="action-btn" onclick="flashBtn(this,'Running backup...')">[ FORCE BACKUP ]</button>
+            <button class="action-btn" onclick="flashBtn(this,'Cache cleared')">[ CLEAR CACHE ]</button>
+            <button class="action-btn" onclick="flashBtn(this,'Generating report...')">[ GEN REPORT ]</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subscription Breakdown + System Metrics -->
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Subscription Distribution</span>
+            <span class="panel-badge">2,847 USERS</span>
+          </div>
+          <div class="panel-body">
+            <div class="goal-row">
+              <span class="goal-name">FREE / TRIAL</span>
+              <div class="goal-bar-track">
+                <div class="goal-bar-fill" style="width:35%;background:var(--text-muted);"></div>
+              </div>
+              <span class="goal-pct" style="color:var(--text-muted);">35%</span>
+              <span class="goal-amounts">997 users</span>
+            </div>
+            <div class="goal-row">
+              <span class="goal-name">BASIC ($9/MO)</span>
+              <div class="goal-bar-track">
+                <div class="goal-bar-fill" style="width:38%;background:var(--blue);"></div>
+              </div>
+              <span class="goal-pct">38%</span>
+              <span class="goal-amounts">1,082 users</span>
+            </div>
+            <div class="goal-row">
+              <span class="goal-name">PRO ($19/MO)</span>
+              <div class="goal-bar-track">
+                <div class="goal-bar-fill" style="width:20%;background:var(--green);"></div>
+              </div>
+              <span class="goal-pct" style="color:var(--green);">20%</span>
+              <span class="goal-amounts">569 users</span>
+            </div>
+            <div class="goal-row">
+              <span class="goal-name">FAMILY ($29/MO)</span>
+              <div class="goal-bar-track">
+                <div class="goal-bar-fill" style="width:5%;background:var(--orange);"></div>
+              </div>
+              <span class="goal-pct" style="color:var(--orange);">5%</span>
+              <span class="goal-amounts">142 users</span>
+            </div>
+            <div class="goal-row">
+              <span class="goal-name">BUSINESS ($49/MO)</span>
+              <div class="goal-bar-track">
+                <div class="goal-bar-fill" style="width:2%;background:#D2A8FF;"></div>
+              </div>
+              <span class="goal-pct" style="color:#D2A8FF;">2%</span>
+              <span class="goal-amounts">57 users</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">System Metrics (24H)</span>
+            <span class="panel-badge">ALL NOMINAL</span>
+          </div>
+          <div class="panel-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th class="right">Current</th>
+                  <th class="right">Avg</th>
+                  <th class="right">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>API Response</td>
+                  <td class="right">142ms</td>
+                  <td class="right muted">158ms</td>
+                  <td class="right positive">OK</td>
+                </tr>
+                <tr>
+                  <td>DB Queries/s</td>
+                  <td class="right">234</td>
+                  <td class="right muted">198</td>
+                  <td class="right positive">OK</td>
+                </tr>
+                <tr>
+                  <td>Memory Usage</td>
+                  <td class="right">67%</td>
+                  <td class="right muted">62%</td>
+                  <td class="right positive">OK</td>
+                </tr>
+                <tr>
+                  <td>CPU Load</td>
+                  <td class="right">34%</td>
+                  <td class="right muted">28%</td>
+                  <td class="right positive">OK</td>
+                </tr>
+                <tr>
+                  <td>Error Rate</td>
+                  <td class="right">0.02%</td>
+                  <td class="right muted">0.04%</td>
+                  <td class="right positive">OK</td>
+                </tr>
+                <tr>
+                  <td>Disk I/O</td>
+                  <td class="right">12MB/s</td>
+                  <td class="right muted">9MB/s</td>
+                  <td class="right positive">OK</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main-content -->
+</div><!-- /view-admin -->
+
+
+<script>
+// ===== VIEW TOGGLE =====
+function switchView(view) {
+  const userView = document.getElementById('view-user');
+  const adminView = document.getElementById('view-admin');
+  const btnUser = document.getElementById('btn-user');
+  const btnAdmin = document.getElementById('btn-admin');
+  const username = document.getElementById('header-username');
+  const notif = document.getElementById('notif-count');
+
+  if (view === 'user') {
+    userView.classList.add('active');
+    adminView.classList.remove('active');
+    btnUser.classList.add('active');
+    btnAdmin.classList.remove('active');
+    username.textContent = 'ALEX JOHNSON';
+    notif.textContent = '[3]';
+  } else {
+    adminView.classList.add('active');
+    userView.classList.remove('active');
+    btnAdmin.classList.add('active');
+    btnUser.classList.remove('active');
+    username.textContent = 'ADMIN';
+    notif.textContent = '[23]';
+  }
+}
+
+// ===== LIVE CLOCK =====
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('live-clock').textContent = h + ':' + m + ':' + s;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== QUICK ACTION BUTTON FLASH =====
+function flashBtn(btn, msg) {
+  const original = btn.textContent;
+  btn.textContent = msg;
+  btn.style.borderColor = 'var(--green)';
+  btn.style.color = 'var(--green)';
+  setTimeout(function() {
+    btn.textContent = original;
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }, 1500);
+}
+</script>
+
+</body>
+</html>
