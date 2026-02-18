@@ -1,151 +1,92 @@
+import { useState, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { useTheme } from '@/context/ThemeContext'
+import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
+
+const adminNavSections: NavSection[] = [
+  {
+    items: [
+      { id: 'overview', label: 'Platform Overview', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
+      { id: 'transactions', label: 'Transactions', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
+      { id: 'subscriptions', label: 'Subscriptions & Demos', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
+      { id: 'investments', label: 'Investments', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
+      { id: 'ai-center', label: 'AI Center', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="10" y1="22" x2="14" y2="22"/></svg> },
+      { id: 'database', label: 'Database Management', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> },
+      { id: 'users', label: 'User Management', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+      { id: 'financial', label: 'Financial Analytics', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+      { id: 'notifications', label: 'Notifications & Messaging', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
+      { id: 'content', label: 'Content & Marketing', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+      { id: 'seo', label: 'SEO & GEO', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> },
+      { id: 'system', label: 'System & Operations', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
+      { id: 'monitoring', label: 'Monitoring', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
+    ],
+  },
+]
+
+const titleMap: Record<string, string> = {
+  overview: 'Platform Overview',
+  transactions: 'Transactions',
+  subscriptions: 'Subscriptions & Demos',
+  investments: 'Investments',
+  'ai-center': 'AI Center',
+  database: 'Database Management',
+  users: 'User Management',
+  financial: 'Financial Analytics',
+  notifications: 'Notifications & Messaging',
+  content: 'Content & Marketing',
+  seo: 'SEO & GEO',
+  system: 'System & Operations',
+  monitoring: 'Monitoring',
+}
+
+const subtitleMap: Record<string, string> = {
+  overview: 'Platform metrics and system health at a glance',
+  transactions: 'View and manage all platform transactions',
+  subscriptions: 'Manage subscriptions and demo requests',
+  investments: 'Investment summary and processing queue',
+  'ai-center': 'LLM mappings, ML dashboard, and data management',
+  database: 'Database tables, backups, and maintenance',
+  users: 'Manage user accounts and permissions',
+  financial: 'Revenue, fees, and financial reporting',
+  notifications: 'Platform notifications and messaging',
+  content: 'Blog, advertisements, and badge management',
+  seo: 'Search engine optimization and GEO analytics',
+  system: 'System settings, employees, and SOPs',
+  monitoring: 'Loading reports, API tracking, and error logs',
+}
 
 export default function AdminDashboard() {
-  const { profile, signOut } = useAuth()
-  const { toggleTheme, isLight } = useTheme()
+  const { profile } = useAuth()
+  const [activeTab, setActiveTab] = useState('overview')
+
+  const handleNavigate = useCallback((item: NavItem) => {
+    setActiveTab(item.id)
+  }, [])
+
+  const userName = profile?.name || 'Admin'
+  const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-    }}>
-      {/* Sidebar */}
-      <aside style={{
-        width: '260px',
-        background: 'var(--color-surface-sidebar)',
-        backdropFilter: 'blur(16px)',
-        borderRight: '1px solid var(--color-border-subtle)',
-        padding: '24px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        <span style={{
-          fontSize: '22px',
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          marginBottom: '4px',
-          padding: '0 8px',
-        }}>
-          Kamioi
-        </span>
-        <span style={{
-          fontSize: '11px',
-          fontWeight: 600,
-          color: '#7C3AED',
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          padding: '0 8px',
-          marginBottom: '32px',
-        }}>
-          Admin
-        </span>
+    <DashboardLayout
+      navSections={adminNavSections}
+      activeNavId={activeTab}
+      onNavigate={handleNavigate}
+      sidebarUser={{ name: userName, role: 'Super Administrator', initials }}
+      greeting={`Welcome back, <strong>${userName}</strong>`}
+      userInitials={initials}
+    >
+      <h1 className="aurora-page-title">
+        {titleMap[activeTab] || 'Admin Dashboard'}
+      </h1>
+      <p className="aurora-page-subtitle">
+        {subtitleMap[activeTab] || 'Platform management and monitoring'}
+      </p>
 
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {[
-            'Overview', 'Users', 'Transactions', 'LLM Center',
-            'Subscriptions', 'Financial', 'Content', 'SEO/GEO',
-            'Database', 'Settings',
-          ].map((item, i) => (
-            <div
-              key={item}
-              style={{
-                padding: '10px 14px',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: i === 0 ? 600 : 400,
-                background: i === 0
-                  ? 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(59,130,246,0.2))'
-                  : 'transparent',
-                color: i === 0 ? '#fff' : 'inherit',
-                opacity: i === 0 ? 1 : 0.6,
-                cursor: 'pointer',
-              }}
-            >
-              {item}
-            </div>
-          ))}
-        </nav>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button
-            onClick={toggleTheme}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '10px',
-              fontSize: '13px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--color-border-subtle)',
-              color: 'inherit',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            {isLight ? 'Dark Mode' : 'Light Mode'}
-          </button>
-          <button
-            onClick={signOut}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '10px',
-              fontSize: '13px',
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              color: '#EF4444',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            Sign Out
-          </button>
+      {/* Content will be built in Phase 7 */}
+      <div className="aurora-empty" style={{ minHeight: '300px' }}>
+        <div className="aurora-empty__text">
+          Connect Supabase to see your data here
         </div>
-      </aside>
-
-      {/* Main content */}
-      <main style={{ flex: 1, padding: '32px', overflow: 'auto' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>
-          Admin Dashboard
-        </h1>
-        <p style={{ opacity: 0.6, fontSize: '14px', marginBottom: '32px' }}>
-          Platform management and monitoring
-        </p>
-
-        {/* KPI Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '16px',
-          marginBottom: '32px',
-        }}>
-          {[
-            { label: 'Total Users', value: '0' },
-            { label: 'Revenue This Month', value: '$0.00' },
-            { label: 'Pending Mappings', value: '0' },
-            { label: 'System Health', value: 'OK' },
-          ].map(card => (
-            <div key={card.label} style={{
-              background: 'var(--color-surface-card)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid var(--color-border-subtle)',
-              borderRadius: '14px',
-              padding: '20px',
-            }}>
-              <p style={{ fontSize: '13px', opacity: 0.5, marginBottom: '8px' }}>
-                {card.label}
-              </p>
-              <p style={{ fontSize: '28px', fontWeight: 700 }}>
-                {card.value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <p style={{ opacity: 0.4, fontSize: '13px' }}>
-          Admin modules will be built in Phase 7.
-        </p>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   )
 }
