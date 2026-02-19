@@ -1,0 +1,8 @@
+export { OverviewTab } from './OverviewTab'
+export { PortfolioTab } from './PortfolioTab'
+export { TransactionsTab } from './TransactionsTab'
+export { GoalsTab } from './GoalsTab'
+export { AiInsightsTab } from './AiInsightsTab'
+export { AnalyticsTab } from './AnalyticsTab'
+export { NotificationsTab } from './NotificationsTab'
+export { SettingsTab } from './SettingsTab'

@@ -1,6 +1,16 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
+import {
+  OverviewTab,
+  PortfolioTab,
+  TransactionsTab,
+  GoalsTab,
+  AiInsightsTab,
+  AnalyticsTab,
+  NotificationsTab,
+  SettingsTab,
+} from '@/components/user'
 
 const userNavSections: NavSection[] = [
   {
@@ -16,6 +26,40 @@ const userNavSections: NavSection[] = [
     ],
   },
 ]
+
+const subtitleMap: Record<string, string> = {
+  overview: 'Your investment overview and activity',
+  portfolio: 'Your holdings and portfolio performance',
+  transactions: 'View and manage your transactions',
+  goals: 'Track your savings goals',
+  'ai-insights': 'AI-powered insights and recommendations',
+  analytics: 'Spending and investment analytics',
+  notifications: 'Your notifications and alerts',
+  settings: 'Manage your account settings',
+}
+
+function renderContent(activeTab: string) {
+  switch (activeTab) {
+    case 'overview':
+      return <OverviewTab />
+    case 'portfolio':
+      return <PortfolioTab />
+    case 'transactions':
+      return <TransactionsTab />
+    case 'goals':
+      return <GoalsTab />
+    case 'ai-insights':
+      return <AiInsightsTab />
+    case 'analytics':
+      return <AnalyticsTab />
+    case 'notifications':
+      return <NotificationsTab />
+    case 'settings':
+      return <SettingsTab />
+    default:
+      return <OverviewTab />
+  }
+}
 
 export default function UserDashboard() {
   const { profile } = useAuth()
@@ -41,15 +85,10 @@ export default function UserDashboard() {
         {activeTab === 'overview' ? 'Dashboard Overview' : userNavSections[0].items.find(i => i.id === activeTab)?.label || 'Dashboard'}
       </h1>
       <p className="aurora-page-subtitle">
-        Your investment overview and activity
+        {subtitleMap[activeTab] || 'Your investment overview and activity'}
       </p>
 
-      {/* Content will be built in Phase 5 */}
-      <div className="aurora-empty" style={{ minHeight: '300px' }}>
-        <div className="aurora-empty__text">
-          Connect Supabase to see your data here
-        </div>
-      </div>
+      {renderContent(activeTab)}
     </DashboardLayout>
   )
 }
