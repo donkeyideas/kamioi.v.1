@@ -204,7 +204,7 @@ export function TransactionsTab() {
 
   useEffect(() => {
     async function fetchTransactions() {
-      if (!profile?.id) return;
+      if (!profile?.id) { setLoading(false); return; }
       const { data } = await supabase
         .from('transactions')
         .select('*')

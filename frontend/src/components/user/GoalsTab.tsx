@@ -171,7 +171,7 @@ export function GoalsTab() {
   const [goalType, setGoalType] = useState<GoalType>('savings');
 
   const fetchGoals = useCallback(async () => {
-    if (!profile?.id) return;
+    if (!profile?.id) { setLoading(false); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase

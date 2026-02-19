@@ -72,7 +72,7 @@ export function AnalyticsTab() {
   const [loading, setLoading] = useState(true);
 
   const fetchTransactions = useCallback(async () => {
-    if (!profile?.id) return;
+    if (!profile?.id) { setLoading(false); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase

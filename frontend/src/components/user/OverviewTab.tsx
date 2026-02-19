@@ -158,7 +158,7 @@ export function OverviewTab() {
 
   useEffect(() => {
     async function fetchAll() {
-      if (!profile?.id) return
+      if (!profile?.id) { setLoading(false); return }
 
       const [txRes, pfRes, glRes] = await Promise.all([
         supabase

@@ -104,7 +104,7 @@ export function SettingsTab() {
   /* ---- Load profile data from Supabase ---- */
 
   useEffect(() => {
-    if (!profile) return
+    if (!profile) { setProfileLoading(false); return }
     const load = async () => {
       setProfileLoading(true)
       try {

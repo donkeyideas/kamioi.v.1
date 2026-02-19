@@ -85,7 +85,7 @@ export function PortfolioTab() {
 
   useEffect(() => {
     async function fetchPortfolios() {
-      if (!profile?.id) return
+      if (!profile?.id) { setLoading(false); return }
       const { data: rows } = await supabase
         .from('portfolios')
         .select('*')
