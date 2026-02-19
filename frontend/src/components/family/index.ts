@@ -1,0 +1,8 @@
+export { FamilyOverviewTab } from './FamilyOverviewTab'
+export { FamilyTransactionsTab } from './FamilyTransactionsTab'
+export { FamilyMembersTab } from './FamilyMembersTab'
+export { FamilyPortfolioTab } from './FamilyPortfolioTab'
+export { FamilyGoalsTab } from './FamilyGoalsTab'
+export { FamilyAiInsightsTab } from './FamilyAiInsightsTab'
+export { FamilyNotificationsTab } from './FamilyNotificationsTab'
+export { FamilySettingsTab } from './FamilySettingsTab'

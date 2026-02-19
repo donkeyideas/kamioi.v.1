@@ -16,6 +16,8 @@ const Contact = lazy(() => import('@/pages/Contact'))
 const Blog = lazy(() => import('@/pages/Blog'))
 const BlogPost = lazy(() => import('@/pages/BlogPost'))
 const UserDashboard = lazy(() => import('@/pages/UserDashboard'))
+const FamilyDashboard = lazy(() => import('@/pages/FamilyDashboard'))
+const BusinessDashboard = lazy(() => import('@/pages/BusinessDashboard'))
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
 
 function LoadingScreen() {
@@ -61,6 +63,12 @@ function AppRedirect() {
   if (profile?.account_type === 'admin') {
     return <Navigate to={`/admin/${profile.id}`} replace />
   }
+  if (profile?.account_type === 'family') {
+    return <Navigate to={`/family/${profile.id}`} replace />
+  }
+  if (profile?.account_type === 'business') {
+    return <Navigate to={`/business/${profile.id}`} replace />
+  }
 
   return <Navigate to={`/dashboard/${profile?.id || ''}`} replace />
 }
@@ -93,6 +101,16 @@ export default function App() {
             <ProtectedRoute><UserDashboard /></ProtectedRoute>
           } />
 
+          {/* Family dashboard */}
+          <Route path="/family/:userId/*" element={
+            <ProtectedRoute><FamilyDashboard /></ProtectedRoute>
+          } />
+
+          {/* Business dashboard */}
+          <Route path="/business/:userId/*" element={
+            <ProtectedRoute><BusinessDashboard /></ProtectedRoute>
+          } />
+
           {/* Admin dashboard */}
           <Route path="/admin/:userId/*" element={
             <AdminRoute><AdminDashboard /></AdminRoute>
@@ -100,6 +118,8 @@ export default function App() {
 
           {/* Preview routes (no auth required — remove after Supabase setup) */}
           <Route path="/preview/dashboard" element={<UserDashboard />} />
+          <Route path="/preview/family" element={<FamilyDashboard />} />
+          <Route path="/preview/business" element={<BusinessDashboard />} />
           <Route path="/preview/admin" element={<AdminDashboard />} />
 
           {/* Catch all */}
