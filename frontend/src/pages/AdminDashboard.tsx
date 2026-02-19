@@ -71,7 +71,7 @@ export default function AdminDashboard() {
       activeNavId={activeTab}
       onNavigate={handleNavigate}
       sidebarUser={{ name: userName, role: 'Super Administrator', initials }}
-      greeting={`Welcome back, <strong>${userName}</strong>`}
+      greeting={`Welcome back, ${userName}`}
       userInitials={initials}
     >
       <h1 className="aurora-page-title">
