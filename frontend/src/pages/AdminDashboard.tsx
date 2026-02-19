@@ -1,6 +1,21 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
+import {
+  PlatformOverviewTab,
+  TransactionsAdminTab,
+  SubscriptionsTab,
+  InvestmentsTab,
+  AiCenterTab,
+  DatabaseManagementTab,
+  UserManagementTab,
+  FinancialAnalyticsTab,
+  NotificationsAdminTab,
+  ContentMarketingTab,
+  SeoGeoTab,
+  SystemOperationsTab,
+  MonitoringTab,
+} from '@/components/admin'
 
 const adminNavSections: NavSection[] = [
   {
@@ -22,22 +37,6 @@ const adminNavSections: NavSection[] = [
   },
 ]
 
-const titleMap: Record<string, string> = {
-  overview: 'Platform Overview',
-  transactions: 'Transactions',
-  subscriptions: 'Subscriptions & Demos',
-  investments: 'Investments',
-  'ai-center': 'AI Center',
-  database: 'Database Management',
-  users: 'User Management',
-  financial: 'Financial Analytics',
-  notifications: 'Notifications & Messaging',
-  content: 'Content & Marketing',
-  seo: 'SEO & GEO',
-  system: 'System & Operations',
-  monitoring: 'Monitoring',
-}
-
 const subtitleMap: Record<string, string> = {
   overview: 'Platform metrics and system health at a glance',
   transactions: 'View and manage all platform transactions',
@@ -52,6 +51,39 @@ const subtitleMap: Record<string, string> = {
   seo: 'Search engine optimization and GEO analytics',
   system: 'System settings, employees, and SOPs',
   monitoring: 'Loading reports, API tracking, and error logs',
+}
+
+function renderContent(activeTab: string) {
+  switch (activeTab) {
+    case 'overview':
+      return <PlatformOverviewTab />
+    case 'transactions':
+      return <TransactionsAdminTab />
+    case 'subscriptions':
+      return <SubscriptionsTab />
+    case 'investments':
+      return <InvestmentsTab />
+    case 'ai-center':
+      return <AiCenterTab />
+    case 'database':
+      return <DatabaseManagementTab />
+    case 'users':
+      return <UserManagementTab />
+    case 'financial':
+      return <FinancialAnalyticsTab />
+    case 'notifications':
+      return <NotificationsAdminTab />
+    case 'content':
+      return <ContentMarketingTab />
+    case 'seo':
+      return <SeoGeoTab />
+    case 'system':
+      return <SystemOperationsTab />
+    case 'monitoring':
+      return <MonitoringTab />
+    default:
+      return <PlatformOverviewTab />
+  }
 }
 
 export default function AdminDashboard() {
@@ -75,18 +107,13 @@ export default function AdminDashboard() {
       userInitials={initials}
     >
       <h1 className="aurora-page-title">
-        {titleMap[activeTab] || 'Admin Dashboard'}
+        {activeTab === 'overview' ? 'Platform Overview' : adminNavSections[0].items.find(i => i.id === activeTab)?.label || 'Admin Dashboard'}
       </h1>
       <p className="aurora-page-subtitle">
         {subtitleMap[activeTab] || 'Platform management and monitoring'}
       </p>
 
-      {/* Content will be built in Phase 7 */}
-      <div className="aurora-empty" style={{ minHeight: '300px' }}>
-        <div className="aurora-empty__text">
-          Connect Supabase to see your data here
-        </div>
-      </div>
+      {renderContent(activeTab)}
     </DashboardLayout>
   )
 }
