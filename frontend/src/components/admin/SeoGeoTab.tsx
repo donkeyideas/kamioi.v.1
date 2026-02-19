@@ -184,6 +184,52 @@ function OverviewContent() {
           ))}
         </div>
       </GlassCard>
+
+      <GlassCard accent="teal" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          SEO Recommendations
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '16px' }}>
+          Automated recommendations require the SEO audit Edge Function. Below are general best practices.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {[
+            {
+              title: 'Optimize page load speed',
+              desc: 'Aim for LCP under 2.5 seconds. Use lazy loading for images and code splitting.',
+            },
+            {
+              title: 'Add structured data to all pages',
+              desc: 'Implement JSON-LD schema markup for Organization, WebSite, and BlogPosting.',
+            },
+            {
+              title: 'Improve internal linking',
+              desc: 'Add contextual links between blog posts and feature pages.',
+            },
+            {
+              title: 'Create more long-form content',
+              desc: 'Publish 1500+ word articles targeting investment and savings keywords.',
+            },
+            {
+              title: 'Monitor Core Web Vitals',
+              desc: 'Set up Lighthouse CI to track performance metrics automatically.',
+            },
+            {
+              title: 'Expand keyword targeting',
+              desc: 'Research and target long-tail keywords in the micro-investing niche.',
+            },
+          ].map((rec, idx) => (
+            <GlassCard key={idx} padding="24px">
+              <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+                {idx + 1}. {rec.title}
+              </p>
+              <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+                {rec.desc}
+              </p>
+            </GlassCard>
+          ))}
+        </div>
+      </GlassCard>
     </div>
   );
 }
@@ -279,10 +325,26 @@ function RankingsTrafficContent() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tab 3: Technical Audit                                             */
+/*  Tab 3: Technical SEO (merged: Technical Audit + Structured Data)   */
 /* ------------------------------------------------------------------ */
 
-function TechnicalAuditContent() {
+function TechnicalSeoContent() {
+  const [blogExists, setBlogExists] = useState(true);
+
+  useEffect(() => {
+    async function checkBlog() {
+      try {
+        const { error } = await supabase
+          .from('blog_posts')
+          .select('id', { count: 'exact', head: true });
+        if (error) setBlogExists(false);
+      } catch {
+        setBlogExists(false);
+      }
+    }
+    checkBlog();
+  }, []);
+
   const webVitals = [
     { label: 'LCP (Largest Contentful Paint)', status: 'Requires Lighthouse' as const },
     { label: 'FID (First Input Delay)', status: 'Requires Lighthouse' as const },
@@ -301,6 +363,18 @@ function TechnicalAuditContent() {
     { label: 'HTTPS enabled', variant: 'success', text: 'Enabled' },
     { label: 'Content Security Policy', variant: 'warning', text: 'Review' },
     { label: 'CORS configuration', variant: 'warning', text: 'Review' },
+  ];
+
+  const schemas: Array<{ name: string; variant: 'success' | 'warning' | 'info'; text: string; note?: string }> = [
+    { name: 'Organization schema', variant: 'success', text: 'Implemented' },
+    { name: 'WebSite schema', variant: 'success', text: 'Implemented' },
+    {
+      name: 'BlogPosting schema',
+      variant: blogExists ? 'success' : 'warning',
+      text: blogExists ? 'Implemented' : 'Pending',
+    },
+    { name: 'BreadcrumbList schema', variant: 'info', text: 'Optional' },
+    { name: 'FAQ schema', variant: 'success', text: 'Implemented', note: 'Learn page' },
   ];
 
   return (
@@ -345,6 +419,59 @@ function TechnicalAuditContent() {
               <Badge variant={item.variant}>{item.text}</Badge>
             </div>
           ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Structured Data (Schema.org)
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+          Structured data (Schema.org markup) helps search engines understand your content.
+        </p>
+      </GlassCard>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {schemas.map((schema) => (
+          <GlassCard key={schema.name} padding="20px">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>
+                  {schema.name}
+                </span>
+                {schema.note && (
+                  <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>
+                    -- {schema.note}
+                  </span>
+                )}
+              </div>
+              <Badge variant={schema.variant}>{schema.text}</Badge>
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+
+      <GlassCard accent="purple" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+          Rich Snippet Preview
+        </p>
+        <div
+          style={{
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '8px',
+            padding: '16px',
+            background: 'rgba(255,255,255,0.03)',
+          }}
+        >
+          <p style={{ fontSize: '18px', color: '#3B82F6', marginBottom: '4px', fontWeight: 500 }}>
+            Kamioi - AI-Powered Micro-Investing Platform
+          </p>
+          <p style={{ fontSize: '13px', color: '#34D399', marginBottom: '6px' }}>
+            https://kamioi.com
+          </p>
+          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.5 }}>
+            Kamioi uses artificial intelligence to help you invest your spare change automatically. Start micro-investing today with round-up investing and AI portfolio management.
+          </p>
         </div>
       </GlassCard>
     </div>
@@ -502,102 +629,12 @@ function ContentSeoContent() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Tab 5: Structured Data                                             */
-/* ------------------------------------------------------------------ */
-
-function StructuredDataContent() {
-  const [blogExists, setBlogExists] = useState(true);
-
-  useEffect(() => {
-    async function checkBlog() {
-      try {
-        const { error } = await supabase
-          .from('blog_posts')
-          .select('id', { count: 'exact', head: true });
-        if (error) setBlogExists(false);
-      } catch {
-        setBlogExists(false);
-      }
-    }
-    checkBlog();
-  }, []);
-
-  const schemas: Array<{ name: string; variant: 'success' | 'warning' | 'info'; text: string; note?: string }> = [
-    { name: 'Organization schema', variant: 'success', text: 'Implemented' },
-    { name: 'WebSite schema', variant: 'success', text: 'Implemented' },
-    {
-      name: 'BlogPosting schema',
-      variant: blogExists ? 'success' : 'warning',
-      text: blogExists ? 'Implemented' : 'Pending',
-    },
-    { name: 'BreadcrumbList schema', variant: 'info', text: 'Optional' },
-    { name: 'FAQ schema', variant: 'success', text: 'Implemented', note: 'Learn page' },
-  ];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
-          Structured Data (Schema.org)
-        </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
-          Structured data (Schema.org markup) helps search engines understand your content.
-        </p>
-      </GlassCard>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {schemas.map((schema) => (
-          <GlassCard key={schema.name} padding="20px">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>
-                  {schema.name}
-                </span>
-                {schema.note && (
-                  <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>
-                    -- {schema.note}
-                  </span>
-                )}
-              </div>
-              <Badge variant={schema.variant}>{schema.text}</Badge>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
-
-      <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
-          Rich Snippet Preview
-        </p>
-        <div
-          style={{
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            padding: '16px',
-            background: 'rgba(255,255,255,0.03)',
-          }}
-        >
-          <p style={{ fontSize: '18px', color: '#3B82F6', marginBottom: '4px', fontWeight: 500 }}>
-            Kamioi - AI-Powered Micro-Investing Platform
-          </p>
-          <p style={{ fontSize: '13px', color: '#34D399', marginBottom: '6px' }}>
-            https://kamioi.com
-          </p>
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.5 }}>
-            Kamioi uses artificial intelligence to help you invest your spare change automatically. Start micro-investing today with round-up investing and AI portfolio management.
-          </p>
-        </div>
-      </GlassCard>
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
-/*  Tab 6: GEO / AI Search                                            */
+/*  Tab 5: GEO & AEO (merged: GEO/AI Search + AEO)                    */
 /* ------------------------------------------------------------------ */
 
-function GeoAiSearchContent() {
+function GeoAeoContent() {
   const strategies = [
     {
       title: 'Authoritative Content',
@@ -652,57 +689,6 @@ function GeoAiSearchContent() {
     },
   ];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
-          Generative Engine Optimization (GEO)
-        </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
-          GEO optimizes your content for AI-powered search engines like Google SGE, Bing Chat, and Perplexity.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {strategies.map((strategy, idx) => (
-            <GlassCard key={idx} padding="20px">
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '6px' }}>
-                {idx + 1}. {strategy.title}
-              </p>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
-                {strategy.desc}
-              </p>
-            </GlassCard>
-          ))}
-        </div>
-      </GlassCard>
-
-      <GlassCard accent="teal" padding="0">
-        <div style={{ padding: '20px 20px 0 20px' }}>
-          <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
-            AI Crawler Configuration
-          </p>
-          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', marginBottom: '16px' }}>
-            Access status configured in robots.txt
-          </p>
-        </div>
-        <Table<CrawlerEntry>
-          columns={crawlerColumns}
-          data={crawlers}
-          loading={false}
-          emptyMessage="No crawlers configured"
-          pageSize={10}
-          rowKey={(row) => row.name}
-        />
-      </GlassCard>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Tab 7: AEO (Answer Engine Optimization)                            */
-/* ------------------------------------------------------------------ */
-
-function AeoContent() {
   const answerEngines = [
     {
       name: 'ChatGPT / OpenAI',
@@ -822,7 +808,49 @@ function AeoContent() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* What is AEO */}
+      {/* GEO Section */}
+      <GlassCard accent="purple" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Generative Engine Optimization (GEO)
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          GEO optimizes your content for AI-powered search engines like Google SGE, Bing Chat, and Perplexity.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {strategies.map((strategy, idx) => (
+            <GlassCard key={idx} padding="20px">
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '6px' }}>
+                {idx + 1}. {strategy.title}
+              </p>
+              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
+                {strategy.desc}
+              </p>
+            </GlassCard>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard accent="teal" padding="0">
+        <div style={{ padding: '20px 20px 0 20px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
+            AI Crawler Configuration
+          </p>
+          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', marginBottom: '16px' }}>
+            Access status configured in robots.txt
+          </p>
+        </div>
+        <Table<CrawlerEntry>
+          columns={crawlerColumns}
+          data={crawlers}
+          loading={false}
+          emptyMessage="No crawlers configured"
+          pageSize={10}
+          rowKey={(row) => row.name}
+        />
+      </GlassCard>
+
+      {/* AEO Section */}
       <GlassCard accent="purple" padding="28px">
         <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
           Answer Engine Optimization (AEO)
@@ -1343,64 +1371,6 @@ function CroContent() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Tab 9: Recommendations                                            */
-/* ------------------------------------------------------------------ */
-
-function RecommendationsContent() {
-  const recommendations = [
-    {
-      title: 'Optimize page load speed',
-      desc: 'Aim for LCP under 2.5 seconds. Use lazy loading for images and code splitting.',
-    },
-    {
-      title: 'Add structured data to all pages',
-      desc: 'Implement JSON-LD schema markup for Organization, WebSite, and BlogPosting.',
-    },
-    {
-      title: 'Improve internal linking',
-      desc: 'Add contextual links between blog posts and feature pages.',
-    },
-    {
-      title: 'Create more long-form content',
-      desc: 'Publish 1500+ word articles targeting investment and savings keywords.',
-    },
-    {
-      title: 'Monitor Core Web Vitals',
-      desc: 'Set up Lighthouse CI to track performance metrics automatically.',
-    },
-    {
-      title: 'Expand keyword targeting',
-      desc: 'Research and target long-tail keywords in the micro-investing niche.',
-    },
-  ];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
-          AI-Generated SEO Recommendations
-        </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
-          Automated recommendations require the SEO audit Edge Function. Below are general best practices.
-        </p>
-      </GlassCard>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {recommendations.map((rec, idx) => (
-          <GlassCard key={idx} padding="24px">
-            <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
-              {idx + 1}. {rec.title}
-            </p>
-            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
-              {rec.desc}
-            </p>
-          </GlassCard>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Tab 10: GA4 Analytics                                              */
@@ -1571,13 +1541,10 @@ export function SeoGeoTab() {
     () => [
       { key: 'overview', label: 'Overview', content: <OverviewContent /> },
       { key: 'rankings-traffic', label: 'Rankings & Traffic', content: <RankingsTrafficContent /> },
-      { key: 'technical-audit', label: 'Technical Audit', content: <TechnicalAuditContent /> },
+      { key: 'technical-seo', label: 'Technical SEO', content: <TechnicalSeoContent /> },
       { key: 'content-seo', label: 'Content SEO', content: <ContentSeoContent /> },
-      { key: 'structured-data', label: 'Structured Data', content: <StructuredDataContent /> },
-      { key: 'geo-ai-search', label: 'GEO / AI Search', content: <GeoAiSearchContent /> },
-      { key: 'aeo', label: 'AEO', content: <AeoContent /> },
+      { key: 'geo-aeo', label: 'GEO & AEO', content: <GeoAeoContent /> },
       { key: 'cro', label: 'CRO', content: <CroContent /> },
-      { key: 'recommendations', label: 'Recommendations', content: <RecommendationsContent /> },
       { key: 'ga4-analytics', label: 'GA4 Analytics', content: <Ga4AnalyticsContent /> },
     ],
     [],
@@ -1586,7 +1553,7 @@ export function SeoGeoTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>
-        SEO, GEO, AEO & CRO Analytics
+        SEO & Growth Analytics
       </p>
       <Tabs tabs={tabs} defaultTab="overview" />
     </div>

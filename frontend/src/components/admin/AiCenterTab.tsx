@@ -1672,6 +1672,114 @@ function FlowContent() {
     return <LoadingSpinner message="Loading pipeline flow..." />;
   }
 
+  const leftStages = stages.slice(0, 2);
+  const rightStages = stages.slice(2, 5);
+
+  const renderStageCard = (stage: PipelineStage) => (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '16px',
+        padding: '20px',
+        background: 'rgba(255,255,255,0.04)',
+        border: `1px solid ${statusColor(stage.status)}33`,
+        borderRadius: '12px',
+        position: 'relative',
+      }}
+    >
+      {/* Step number circle */}
+      <div
+        style={{
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          background: `${statusColor(stage.status)}22`,
+          border: `2px solid ${statusColor(stage.status)}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            fontSize: '16px',
+            fontWeight: 700,
+            color: statusColor(stage.status),
+          }}
+        >
+          {stage.step}
+        </span>
+      </div>
+
+      {/* Text */}
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC' }}>
+            {stage.title}
+          </p>
+          <Badge
+            variant={
+              stage.status === 'healthy'
+                ? 'success'
+                : stage.status === 'warning'
+                  ? 'warning'
+                  : stage.status === 'error'
+                    ? 'error'
+                    : 'default'
+            }
+          >
+            {statusLabel(stage.status)}
+          </Badge>
+        </div>
+        <p
+          style={{
+            fontSize: '13px',
+            color: 'rgba(248,250,252,0.5)',
+            marginTop: '6px',
+            lineHeight: '1.5',
+          }}
+        >
+          {stage.description}
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderVerticalConnector = () => (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '4px 0',
+      }}
+    >
+      <div
+        style={{
+          width: '2px',
+          height: '24px',
+          background: 'linear-gradient(to bottom, rgba(124,58,237,0.4), rgba(59,130,246,0.4))',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '-4px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '0',
+            height: '0',
+            borderLeft: '5px solid transparent',
+            borderRight: '5px solid transparent',
+            borderTop: '6px solid rgba(59,130,246,0.5)',
+          }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* KPI Cards */}
@@ -1682,125 +1790,134 @@ function FlowContent() {
         <KpiCard label="Auto-Approval Rate" value={formatPercent(autoApprovalRate)} accent="pink" />
       </KpiGrid>
 
-      {/* Pipeline Flow Visualization */}
+      {/* Pipeline Flow Visualization - 2 Column Layout */}
       <GlassCard accent="purple">
         <SectionTitle>Transaction Processing Pipeline</SectionTitle>
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'column',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
             gap: '0',
             marginTop: '20px',
+            alignItems: 'stretch',
           }}
         >
-          {stages.map((stage, idx) => (
-            <div key={stage.step}>
-              {/* Stage Card */}
+          {/* Left Column: Data Ingestion */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Column Header */}
+            <div
+              style={{
+                padding: '16px 20px',
+                background: 'rgba(124,58,237,0.08)',
+                border: '1px solid rgba(124,58,237,0.2)',
+                borderRadius: '12px 12px 0 0',
+                marginBottom: '16px',
+              }}
+            >
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#C4B5FD' }}>
+                Data Ingestion
+              </p>
+              <p style={{ fontSize: '12px', color: 'rgba(196,181,253,0.5)', marginTop: '4px' }}>
+                Transaction capture and event detection
+              </p>
+            </div>
+
+            {/* Left Column Stages */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: 1 }}>
+              {leftStages.map((stage, idx) => (
+                <div key={stage.step}>
+                  {renderStageCard(stage)}
+                  {idx < leftStages.length - 1 && renderVerticalConnector()}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Center: Horizontal Flow Connector */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 12px',
+              minWidth: '80px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '16px',
-                  padding: '20px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${statusColor(stage.status)}33`,
-                  borderRadius: '12px',
+                  height: '2px',
+                  width: '56px',
+                  background: 'linear-gradient(to right, rgba(124,58,237,0.5), rgba(59,130,246,0.5))',
                   position: 'relative',
                 }}
               >
-                {/* Step number circle */}
                 <div
                   style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: `${statusColor(stage.status)}22`,
-                    border: `2px solid ${statusColor(stage.status)}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
+                    position: 'absolute',
+                    right: '-5px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '0',
+                    height: '0',
+                    borderTop: '6px solid transparent',
+                    borderBottom: '6px solid transparent',
+                    borderLeft: '8px solid rgba(59,130,246,0.5)',
                   }}
-                >
-                  <span
-                    style={{
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: statusColor(stage.status),
-                    }}
-                  >
-                    {stage.step}
-                  </span>
-                </div>
-
-                {/* Text */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC' }}>
-                      {stage.title}
-                    </p>
-                    <Badge
-                      variant={
-                        stage.status === 'healthy'
-                          ? 'success'
-                          : stage.status === 'warning'
-                            ? 'warning'
-                            : stage.status === 'error'
-                              ? 'error'
-                              : 'default'
-                      }
-                    >
-                      {statusLabel(stage.status)}
-                    </Badge>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: '13px',
-                      color: 'rgba(248,250,252,0.5)',
-                      marginTop: '6px',
-                      lineHeight: '1.5',
-                    }}
-                  >
-                    {stage.description}
-                  </p>
-                </div>
+                />
               </div>
-
-              {/* Arrow connector between stages */}
-              {idx < stages.length - 1 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    padding: '4px 0',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '2px',
-                      height: '24px',
-                      background: 'linear-gradient(to bottom, rgba(124,58,237,0.4), rgba(59,130,246,0.4))',
-                      position: 'relative',
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: '-4px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '0',
-                        height: '0',
-                        borderLeft: '5px solid transparent',
-                        borderRight: '5px solid transparent',
-                        borderTop: '6px solid rgba(59,130,246,0.5)',
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  color: 'rgba(148,163,184,0.6)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Flow
+              </span>
             </div>
-          ))}
+          </div>
+
+          {/* Right Column: AI Processing & Execution */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Column Header */}
+            <div
+              style={{
+                padding: '16px 20px',
+                background: 'rgba(59,130,246,0.08)',
+                border: '1px solid rgba(59,130,246,0.2)',
+                borderRadius: '12px 12px 0 0',
+                marginBottom: '16px',
+              }}
+            >
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#93C5FD' }}>
+                AI Processing & Execution
+              </p>
+              <p style={{ fontSize: '12px', color: 'rgba(147,197,253,0.5)', marginTop: '4px' }}>
+                LLM analysis, ticker mapping, and investment routing
+              </p>
+            </div>
+
+            {/* Right Column Stages */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: 1 }}>
+              {rightStages.map((stage, idx) => (
+                <div key={stage.step}>
+                  {renderStageCard(stage)}
+                  {idx < rightStages.length - 1 && renderVerticalConnector()}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </GlassCard>
     </div>
