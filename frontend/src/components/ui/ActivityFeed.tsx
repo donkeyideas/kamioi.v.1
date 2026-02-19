@@ -32,7 +32,7 @@ const dotGlows: Record<DotColor, string> = {
 const emptyStyle: React.CSSProperties = {
   textAlign: 'center',
   padding: '32px 16px',
-  color: 'rgba(248,250,252,0.3)',
+  color: 'var(--text-muted)',
   fontSize: '13px',
 };
 
@@ -63,7 +63,7 @@ export function ActivityFeed({
             padding: '12px 0',
             borderBottom:
               i < items.length - 1
-                ? '1px solid rgba(255,255,255,0.04)'
+                ? '1px solid var(--border-divider)'
                 : 'none',
           }}
         >
@@ -85,7 +85,7 @@ export function ActivityFeed({
             <div
               style={{
                 fontSize: '13px',
-                color: '#F8FAFC',
+                color: 'var(--text-primary)',
                 lineHeight: 1.5,
               }}
             >
@@ -94,7 +94,7 @@ export function ActivityFeed({
             <div
               style={{
                 fontSize: '12px',
-                color: 'rgba(248,250,252,0.35)',
+                color: 'var(--text-muted)',
                 marginTop: '2px',
               }}
             >

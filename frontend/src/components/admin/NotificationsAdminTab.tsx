@@ -172,9 +172,9 @@ const pillBase: React.CSSProperties = {
   fontWeight: 500,
   padding: '6px 16px',
   borderRadius: '20px',
-  border: '1px solid rgba(255,255,255,0.08)',
-  background: 'rgba(255,255,255,0.04)',
-  color: 'rgba(248,250,252,0.5)',
+  border: '1px solid var(--border-subtle)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   transition: 'all 200ms ease',
 };
@@ -182,7 +182,7 @@ const pillBase: React.CSSProperties = {
 const pillActive: React.CSSProperties = {
   background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(59,130,246,0.2))',
   borderColor: 'rgba(124,58,237,0.4)',
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   fontWeight: 600,
 };
 
@@ -251,7 +251,7 @@ function NotificationsListTab() {
         key: 'message',
         header: 'Message',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {truncate(row.message, 60)}
           </span>
         ),
@@ -396,7 +396,7 @@ function MessagingTab() {
         <GlassCard padding="16px">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Badge variant="success">Sent</Badge>
-            <span style={{ color: '#F8FAFC', fontSize: '14px' }}>{toast}</span>
+            <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>{toast}</span>
           </div>
         </GlassCard>
       )}
@@ -500,7 +500,7 @@ function ContactInboxTab() {
         key: 'message',
         header: 'Message',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.message ? truncate(row.message, 60) : '--'}
           </span>
         ),
@@ -560,29 +560,29 @@ function ContactInboxTab() {
         {selectedMessage && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>From</span>
-              <p style={{ color: '#F8FAFC', fontWeight: 600, margin: '4px 0 0' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>From</span>
+              <p style={{ color: 'var(--text-primary)', fontWeight: 600, margin: '4px 0 0' }}>
                 {selectedMessage.name} ({selectedMessage.email})
               </p>
             </div>
             <div>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>Subject</span>
-              <p style={{ color: '#F8FAFC', margin: '4px 0 0' }}>{selectedMessage.subject ?? '--'}</p>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Subject</span>
+              <p style={{ color: 'var(--text-primary)', margin: '4px 0 0' }}>{selectedMessage.subject ?? '--'}</p>
             </div>
             <div>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>Message</span>
-              <p style={{ color: 'rgba(248,250,252,0.8)', margin: '4px 0 0', lineHeight: 1.6 }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Message</span>
+              <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.6 }}>
                 {selectedMessage.message ?? '--'}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>Status:</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Status:</span>
               <Badge variant={contactStatusVariant(selectedMessage.status)}>
                 {selectedMessage.status}
               </Badge>
             </div>
             <div>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                 Received: {formatDateShort(selectedMessage.created_at)}
               </span>
             </div>
@@ -643,10 +643,10 @@ function TemplatesTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Message Templates
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Message templates for common notifications. Create reusable templates for quick sending.
         </p>
       </GlassCard>
@@ -655,7 +655,7 @@ function TemplatesTab() {
         <GlassCard padding="16px">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Badge variant="success">Sent</Badge>
-            <span style={{ color: '#F8FAFC', fontSize: '14px' }}>{toast}</span>
+            <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>{toast}</span>
           </div>
         </GlassCard>
       )}
@@ -665,10 +665,10 @@ function TemplatesTab() {
           <GlassCard key={template.name} padding="20px">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC' }}>{template.name}</p>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{template.name}</p>
                 <Badge variant={typeBadgeVariant(template.type)}>{template.type}</Badge>
               </div>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {template.message}
               </p>
               <Button size="sm" variant="secondary" onClick={() => useTemplate(template)}>

@@ -43,25 +43,25 @@ const thStyle: React.CSSProperties = {
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: 'rgba(248,250,252,0.4)',
-  background: 'rgba(255,255,255,0.03)',
+  color: 'var(--text-muted)',
+  background: 'var(--surface-row-hover)',
   textAlign: 'left',
   whiteSpace: 'nowrap',
   userSelect: 'none',
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  borderBottom: '1px solid var(--border-divider)',
 };
 
 const tdStyle: React.CSSProperties = {
   padding: '12px 16px',
   fontSize: '14px',
-  color: '#F8FAFC',
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  color: 'var(--text-primary)',
+  borderBottom: '1px solid var(--border-divider)',
 };
 
 const emptyStyle: React.CSSProperties = {
   textAlign: 'center',
   padding: '80px 20px',
-  color: 'rgba(248,250,252,0.4)',
+  color: 'var(--text-muted)',
   fontSize: '14px',
 };
 
@@ -71,7 +71,7 @@ const paginationStyle: React.CSSProperties = {
   alignItems: 'center',
   padding: '12px 16px',
   fontSize: '13px',
-  color: 'rgba(248,250,252,0.4)',
+  color: 'var(--text-muted)',
 };
 
 const paginationBtnStyle: React.CSSProperties = {
@@ -80,9 +80,9 @@ const paginationBtnStyle: React.CSSProperties = {
   fontWeight: 500,
   padding: '6px 14px',
   borderRadius: '6px',
-  border: '1px solid rgba(255,255,255,0.08)',
-  background: 'rgba(255,255,255,0.06)',
-  color: 'rgba(248,250,252,0.6)',
+  border: '1px solid var(--border-subtle)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-secondary)',
   cursor: 'pointer',
   transition: 'all 200ms ease',
 };
@@ -204,7 +204,7 @@ export function Table<T>({
                   }}
                   onClick={() => onRowClick?.(row, globalIndex)}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                    e.currentTarget.style.background = 'var(--surface-row-hover)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent';

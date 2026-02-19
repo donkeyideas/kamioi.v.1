@@ -18,7 +18,7 @@ function LoadingSpinner() {
         style={{
           width: '36px',
           height: '36px',
-          border: '3px solid rgba(255,255,255,0.1)',
+          border: '3px solid var(--border-subtle)',
           borderTopColor: '#7C3AED',
           borderRadius: '50%',
           animation: 'analytics-spin 700ms linear infinite',
@@ -186,7 +186,7 @@ export function AnalyticsTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+      <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
         Analytics
       </h2>
 
@@ -234,19 +234,19 @@ export function AnalyticsTab() {
 
       {/* Top Merchants */}
       <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', margin: '0 0 6px 0' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>
           Top Merchants
         </h3>
         <div
           style={{
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+            background: 'linear-gradient(90deg, transparent, var(--highlight-line), transparent)',
             marginBottom: '16px',
           }}
         />
 
         {topMerchants.length === 0 ? (
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', margin: 0, textAlign: 'center', padding: '32px 0' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, textAlign: 'center', padding: '32px 0' }}>
             No transaction data available.
           </p>
         ) : (
@@ -266,12 +266,12 @@ export function AnalyticsTab() {
                             ? 'rgba(124,58,237,0.2)'
                             : idx === 1
                               ? 'rgba(59,130,246,0.15)'
-                              : 'rgba(255,255,255,0.06)',
+                              : 'var(--surface-input)',
                           color: idx === 0
                             ? '#7C3AED'
                             : idx === 1
                               ? '#3B82F6'
-                              : 'rgba(248,250,252,0.5)',
+                              : 'var(--text-muted)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -282,11 +282,11 @@ export function AnalyticsTab() {
                       >
                         {idx + 1}
                       </span>
-                      <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
                         {m.merchant}
                       </span>
                     </div>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', flexShrink: 0 }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', flexShrink: 0 }}>
                       {formatCurrency(m.total)}
                     </span>
                   </div>
@@ -296,7 +296,7 @@ export function AnalyticsTab() {
                       width: '100%',
                       height: '6px',
                       borderRadius: '3px',
-                      background: 'rgba(255,255,255,0.06)',
+                      background: 'var(--surface-input)',
                       overflow: 'hidden',
                     }}
                   >
@@ -310,7 +310,7 @@ export function AnalyticsTab() {
                             ? 'linear-gradient(90deg, #7C3AED, #3B82F6)'
                             : idx === 1
                               ? 'linear-gradient(90deg, #3B82F6, #06B6D4)'
-                              : 'rgba(248,250,252,0.2)',
+                              : 'var(--text-muted)',
                         transition: 'width 500ms ease',
                       }}
                     />

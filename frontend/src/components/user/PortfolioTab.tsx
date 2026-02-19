@@ -71,7 +71,7 @@ const kpiGridStyle: React.CSSProperties = {
 const sectionTitleStyle: React.CSSProperties = {
   fontSize: '16px',
   fontWeight: 600,
-  color: 'var(--text-primary, #F8FAFC)',
+  color: 'var(--text-primary)',
   marginBottom: '16px',
 }
 
@@ -141,7 +141,7 @@ export function PortfolioTab() {
         sortable: true,
         align: 'right' as const,
         render: (row) => (
-          <span style={{ color: '#F8FAFC', fontSize: '14px' }}>
+          <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
             {formatNumber(row.shares)}
           </span>
         ),
@@ -152,7 +152,7 @@ export function PortfolioTab() {
         sortable: true,
         align: 'right' as const,
         render: (row) => (
-          <span style={{ color: 'rgba(248,250,252,0.7)', fontSize: '14px' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
             {formatCurrency(row.average_price)}
           </span>
         ),
@@ -163,7 +163,7 @@ export function PortfolioTab() {
         sortable: true,
         align: 'right' as const,
         render: (row) => (
-          <span style={{ color: '#F8FAFC', fontSize: '14px' }}>
+          <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
             {formatCurrency(row.current_price)}
           </span>
         ),
@@ -174,7 +174,7 @@ export function PortfolioTab() {
         sortable: true,
         align: 'right' as const,
         render: (row) => (
-          <span style={{ color: '#F8FAFC', fontWeight: 600, fontSize: '14px' }}>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '14px' }}>
             {formatCurrency(row.total_value)}
           </span>
         ),
@@ -224,7 +224,7 @@ export function PortfolioTab() {
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '400px',
-          color: 'rgba(248,250,252,0.4)',
+          color: 'var(--text-muted)',
           fontSize: '14px',
         }}
       >
@@ -263,7 +263,7 @@ export function PortfolioTab() {
         <div
           style={{
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+            background: 'linear-gradient(90deg, transparent, var(--highlight-line), transparent)',
             marginBottom: '12px',
           }}
         />

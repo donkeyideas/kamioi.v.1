@@ -117,7 +117,7 @@ export function EmployeeManagementTab() {
         sortable: true,
         width: '200px',
         render: (row) => (
-          <span style={{ fontWeight: 500, color: '#F8FAFC' }}>{row.name}</span>
+          <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{row.name}</span>
         ),
       },
       {
@@ -125,7 +125,7 @@ export function EmployeeManagementTab() {
         header: 'Email',
         sortable: true,
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>{row.email}</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{row.email}</span>
         ),
       },
       {
@@ -175,10 +175,10 @@ export function EmployeeManagementTab() {
 
       {/* Permission Matrix */}
       <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Permission Matrix
         </h3>
-        <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginBottom: '20px', fontStyle: 'italic' }}>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px', fontStyle: 'italic' }}>
           Granular permissions require the employees table migration. Currently all admin users have full access.
         </p>
 
@@ -191,16 +191,16 @@ export function EmployeeManagementTab() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '12px 16px',
-                background: 'rgba(255,255,255,0.03)',
+                background: 'var(--surface-row-hover)',
                 borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid var(--border-divider)',
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC', marginBottom: '2px' }}>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '2px' }}>
                   {perm.label}
                 </p>
-                <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                   {perm.description}
                 </p>
               </div>
@@ -259,7 +259,7 @@ export function EmployeeManagementTab() {
 
           {infoMessage && (
             <GlassCard padding="14px" accent="blue">
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.7)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {infoMessage}
               </p>
             </GlassCard>

@@ -62,9 +62,9 @@ const pillBaseStyle: React.CSSProperties = {
   fontWeight: 500,
   padding: '6px 14px',
   borderRadius: '20px',
-  border: '1px solid rgba(255,255,255,0.08)',
-  background: 'rgba(255,255,255,0.04)',
-  color: 'rgba(248,250,252,0.5)',
+  border: '1px solid var(--border-subtle)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   transition: 'all 200ms ease',
   whiteSpace: 'nowrap',
@@ -91,9 +91,9 @@ const sortToggleStyle: React.CSSProperties = {
   fontWeight: 500,
   padding: '6px 14px',
   borderRadius: '8px',
-  border: '1px solid rgba(255,255,255,0.08)',
-  background: 'rgba(255,255,255,0.04)',
-  color: 'rgba(248,250,252,0.5)',
+  border: '1px solid var(--border-subtle)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   transition: 'all 200ms ease',
   whiteSpace: 'nowrap',
@@ -108,7 +108,7 @@ const columns: Column<Transaction>[] = [
     header: 'Date',
     width: '130px',
     render: (row) => (
-      <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.7)' }}>
+      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
         {row.date ? formatDate(row.date) : '--'}
       </span>
     ),
@@ -117,7 +117,7 @@ const columns: Column<Transaction>[] = [
     key: 'merchant',
     header: 'Merchant',
     render: (row) => (
-      <span style={{ fontWeight: 600, color: '#F8FAFC' }}>
+      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
         {row.merchant ?? '--'}
       </span>
     ),
@@ -127,7 +127,7 @@ const columns: Column<Transaction>[] = [
     header: 'Category',
     render: (row) =>
       row.category ? (
-        <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>
+        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
           {row.category}
         </span>
       ) : null,
@@ -154,7 +154,7 @@ const columns: Column<Transaction>[] = [
           {formatCurrency(row.round_up)}
         </span>
       ) : (
-        <span style={{ color: 'rgba(248,250,252,0.25)' }}>--</span>
+        <span style={{ color: 'var(--text-muted)' }}>--</span>
       ),
   },
   {

@@ -113,7 +113,7 @@ export default function Login() {
               style={{
                 width: '100%',
                 padding: '12px 14px',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--surface-input)',
                 border: '1px solid var(--color-border-subtle)',
                 borderRadius: '10px',
                 color: 'inherit',
@@ -144,7 +144,7 @@ export default function Login() {
               style={{
                 width: '100%',
                 padding: '12px 14px',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--surface-input)',
                 border: '1px solid var(--color-border-subtle)',
                 borderRadius: '10px',
                 color: 'inherit',

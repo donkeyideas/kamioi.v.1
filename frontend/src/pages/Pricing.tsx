@@ -100,7 +100,7 @@ const h1Style: React.CSSProperties = {
 
 const subtitleStyle: React.CSSProperties = {
   fontSize: 18,
-  color: 'var(--text-secondary, rgba(248,250,252,0.6))',
+  color: 'var(--text-secondary)',
   maxWidth: 520,
   margin: '0 auto',
   lineHeight: 1.6,
@@ -117,7 +117,7 @@ const footerNoteStyle: React.CSSProperties = {
   textAlign: 'center',
   marginTop: 48,
   fontSize: 14,
-  color: 'var(--text-muted, rgba(248,250,252,0.4))',
+  color: 'var(--text-muted)',
 }
 
 /* ------------------------------------------------------------------ */
@@ -134,7 +134,7 @@ function BillingToggle({
   const labelStyle = (active: boolean): React.CSSProperties => ({
     fontSize: 14,
     fontWeight: 600,
-    color: active ? '#F8FAFC' : 'rgba(248,250,252,0.4)',
+    color: active ? 'var(--text-primary)' : 'var(--text-muted)',
     cursor: 'pointer',
     transition: 'color 200ms ease',
   })
@@ -159,10 +159,10 @@ function BillingToggle({
           width: 52,
           height: 28,
           borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.12)',
+          border: '1px solid var(--border-subtle)',
           background: isYearly
             ? 'linear-gradient(135deg, #7C3AED, #3B82F6)'
-            : 'rgba(255,255,255,0.1)',
+            : 'var(--surface-input)',
           cursor: 'pointer',
           transition: 'background 300ms ease',
           padding: 0,
@@ -176,7 +176,7 @@ function BillingToggle({
             width: 20,
             height: 20,
             borderRadius: '50%',
-            background: '#F8FAFC',
+            background: 'var(--text-primary)',
             transition: 'left 300ms ease',
           }}
         />
@@ -246,7 +246,7 @@ function PricingCard({
         style={{
           fontSize: 20,
           fontWeight: 700,
-          color: '#F8FAFC',
+          color: 'var(--text-primary)',
           marginBottom: 8,
           marginTop: tier.popular ? 0 : 0,
         }}
@@ -260,7 +260,7 @@ function PricingCard({
           style={{
             fontSize: 40,
             fontWeight: 800,
-            color: '#F8FAFC',
+            color: 'var(--text-primary)',
             lineHeight: 1,
           }}
         >
@@ -269,7 +269,7 @@ function PricingCard({
         <span
           style={{
             fontSize: 14,
-            color: 'rgba(248,250,252,0.5)',
+            color: 'var(--text-muted)',
             marginLeft: 4,
           }}
         >
@@ -294,7 +294,7 @@ function PricingCard({
               alignItems: 'center',
               gap: 10,
               fontSize: 14,
-              color: 'rgba(248,250,252,0.7)',
+              color: 'var(--text-secondary)',
               padding: '6px 0',
             }}
           >

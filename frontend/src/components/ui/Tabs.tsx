@@ -17,7 +17,7 @@ interface TabsProps {
 const tabBarStyle: React.CSSProperties = {
   display: 'flex',
   gap: '6px',
-  borderBottom: '1px solid rgba(255,255,255,0.08)',
+  borderBottom: '1px solid var(--border-subtle)',
   marginBottom: '24px',
   overflowX: 'auto',
 };
@@ -29,7 +29,7 @@ const tabBtnBase: React.CSSProperties = {
   background: 'transparent',
   border: 'none',
   borderBottom: '2px solid transparent',
-  color: 'rgba(248,250,252,0.4)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   transition: 'all 200ms ease',
   whiteSpace: 'nowrap',
@@ -37,7 +37,7 @@ const tabBtnBase: React.CSSProperties = {
 };
 
 const tabBtnActive: React.CSSProperties = {
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   fontWeight: 600,
   borderBottomColor: '#7C3AED',
   borderImage: 'linear-gradient(90deg, #7C3AED, #3B82F6) 1',
@@ -73,12 +73,12 @@ export function Tabs({ tabs, defaultTab, className, onChange }: TabsProps) {
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.color = 'rgba(248,250,252,0.7)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.color = 'rgba(248,250,252,0.4)';
+                  e.currentTarget.style.color = 'var(--text-muted)';
                 }
               }}
               onClick={() => handleTabClick(tab.key)}

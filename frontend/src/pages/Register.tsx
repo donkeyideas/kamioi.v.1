@@ -121,7 +121,7 @@ export default function Register() {
               style={{
                 width: '100%',
                 padding: '12px 14px',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--surface-input)',
                 border: '1px solid var(--color-border-subtle)',
                 borderRadius: '10px',
                 color: 'inherit',
@@ -152,7 +152,7 @@ export default function Register() {
               style={{
                 width: '100%',
                 padding: '12px 14px',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--surface-input)',
                 border: '1px solid var(--color-border-subtle)',
                 borderRadius: '10px',
                 color: 'inherit',
@@ -184,7 +184,7 @@ export default function Register() {
               style={{
                 width: '100%',
                 padding: '12px 14px',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--surface-input)',
                 border: '1px solid var(--color-border-subtle)',
                 borderRadius: '10px',
                 color: 'inherit',
@@ -218,7 +218,7 @@ export default function Register() {
                     padding: '10px',
                     background: accountType === type.value
                       ? 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(59,130,246,0.3))'
-                      : 'rgba(255,255,255,0.05)',
+                      : 'var(--surface-input)',
                     border: accountType === type.value
                       ? '1px solid rgba(124,58,237,0.5)'
                       : '1px solid var(--color-border-subtle)',

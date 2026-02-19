@@ -89,7 +89,7 @@ function Toggle({
         borderRadius: '12px',
         background: active
           ? 'linear-gradient(135deg, #7C3AED, #3B82F6)'
-          : 'rgba(255,255,255,0.1)',
+          : 'var(--surface-hover)',
         transition: 'background 200ms ease',
         position: 'relative',
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -232,7 +232,7 @@ function SettingsContent() {
   if (loading) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           Loading settings...
         </p>
       </GlassCard>
@@ -242,7 +242,7 @@ function SettingsContent() {
   if (settings.length === 0) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           No system settings configured. Add settings via Supabase dashboard.
         </p>
       </GlassCard>
@@ -258,7 +258,7 @@ function SettingsContent() {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Toggle active={isOn} onToggle={() => toggleBooleanDraft(draft.id)} />
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
             {isOn ? 'Enabled' : 'Disabled'}
           </span>
         </div>
@@ -322,13 +322,13 @@ function SettingsContent() {
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
                 padding: '14px 0',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderBottom: '1px solid var(--border-divider)',
                 gap: '16px',
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {draft.setting_key}
                   </p>
                   <Badge variant={settingTypeBadgeVariant(draft.setting_type)}>
@@ -336,7 +336,7 @@ function SettingsContent() {
                   </Badge>
                 </div>
                 {draft.description && (
-                  <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginTop: '2px' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {draft.description}
                   </p>
                 )}
@@ -421,7 +421,7 @@ function BusinessInfoContent() {
   if (loading) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           Loading business info...
         </p>
       </GlassCard>
@@ -431,7 +431,7 @@ function BusinessInfoContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '20px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '20px' }}>
           Business Information
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -565,7 +565,7 @@ function AccessControlsContent() {
   if (loading) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           Loading access controls...
         </p>
       </GlassCard>
@@ -575,14 +575,14 @@ function AccessControlsContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '20px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '20px' }}>
           Authentication Controls
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>Sign-In Enabled</p>
-              <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>Allow users to sign in to the platform</p>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>Sign-In Enabled</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Allow users to sign in to the platform</p>
             </div>
             <Toggle
               active={signinEnabled}
@@ -591,12 +591,12 @@ function AccessControlsContent() {
             />
           </div>
 
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          <div style={{ borderTop: '1px solid var(--border-divider)' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>Sign-Up Enabled</p>
-              <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>Allow new user registrations</p>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>Sign-Up Enabled</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Allow new user registrations</p>
             </div>
             <Toggle
               active={signupEnabled}
@@ -605,12 +605,12 @@ function AccessControlsContent() {
             />
           </div>
 
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          <div style={{ borderTop: '1px solid var(--border-divider)' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>Demo Mode</p>
-              <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>Enable demo mode with sample data</p>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>Demo Mode</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Enable demo mode with sample data</p>
             </div>
             <Toggle
               active={demoMode}
@@ -622,7 +622,7 @@ function AccessControlsContent() {
       </GlassCard>
 
       <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Allowed Account Types
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -644,7 +644,7 @@ function AccessControlsContent() {
                     borderRadius: '4px',
                     border: isChecked
                       ? '2px solid #7C3AED'
-                      : '2px solid rgba(255,255,255,0.15)',
+                      : '2px solid var(--highlight-line)',
                     background: isChecked ? 'rgba(124,58,237,0.2)' : 'transparent',
                     transition: 'all 200ms ease',
                     cursor: 'pointer',
@@ -656,7 +656,7 @@ function AccessControlsContent() {
                     </span>
                   )}
                 </span>
-                <span style={{ fontSize: '14px', color: '#F8FAFC' }}>{type}</span>
+                <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{type}</span>
               </label>
             );
           })}
@@ -718,7 +718,7 @@ function TwoFAManagementContent() {
   if (loading) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           Loading 2FA settings...
         </p>
       </GlassCard>
@@ -728,16 +728,16 @@ function TwoFAManagementContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="24px" accent="purple">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
           Two-Factor Authentication
         </h3>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
           Two-Factor Authentication adds an extra layer of security for admin accounts.
         </p>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
-            <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>2FA Status</p>
+            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>2FA Status</p>
             <Badge variant={is2FAEnabled ? 'success' : 'warning'}>
               {is2FAEnabled ? 'Enabled' : 'Disabled'}
             </Badge>
@@ -754,23 +754,23 @@ function TwoFAManagementContent() {
         </div>
 
         {is2FAEnabled && (
-          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '8px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '8px' }}>
             2FA is managed through Supabase Auth. Admin users can set up TOTP via their account settings.
           </p>
         )}
 
         {!twoFaSetting && (
-          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', fontStyle: 'italic' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
             The "2fa_enabled" setting key was not found. Add it via Supabase dashboard to manage 2FA.
           </p>
         )}
       </GlassCard>
 
       <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
           TOTP Verification (Test)
         </h3>
-        <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '16px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
           Enter a 6-digit TOTP code to validate the format. Actual verification needs an Edge Function.
         </p>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
@@ -900,7 +900,7 @@ function SystemEventsContent() {
         key: 'data',
         header: 'Data',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {truncate(row.data, 80)}
           </span>
         ),
@@ -910,7 +910,7 @@ function SystemEventsContent() {
         header: 'Correlation ID',
         width: '140px',
         render: (row) => (
-          <span style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
             {truncate(row.correlation_id, 20)}
           </span>
         ),
@@ -1020,13 +1020,13 @@ function SopsContent() {
                 userSelect: 'none',
               }}
             >
-              <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {section.title}
               </h3>
               <span
                 style={{
                   fontSize: '16px',
-                  color: 'rgba(248,250,252,0.4)',
+                  color: 'var(--text-muted)',
                   transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 200ms ease',
                 }}
@@ -1039,7 +1039,7 @@ function SopsContent() {
               <div
                 style={{
                   padding: '0 24px 20px',
-                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                  borderTop: '1px solid var(--border-divider)',
                 }}
               >
                 <ol
@@ -1056,11 +1056,11 @@ function SopsContent() {
                       key={pIdx}
                       style={{
                         fontSize: '14px',
-                        color: 'rgba(248,250,252,0.7)',
+                        color: 'var(--text-secondary)',
                         lineHeight: 1.6,
                       }}
                     >
-                      <span style={{ fontWeight: 600, color: '#F8FAFC' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                         {proc.name}
                       </span>
                       {' -- '}
@@ -1123,15 +1123,15 @@ function ApiBalanceContent() {
       </div>
 
       <GlassCard padding="28px" accent="blue">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
           API Balance Info
         </h3>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           API balance is used for LLM processing costs. Monitor usage in the Monitoring tab.
           Top up balance via Supabase dashboard or payment integration.
         </p>
         {balanceRow && (
-          <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginTop: '8px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
             Last updated: {formatDate(balanceRow.updated_at)}
           </p>
         )}

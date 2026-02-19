@@ -23,16 +23,16 @@ interface AreaChartProps<T extends Record<string, unknown>> {
   legend?: LegendItem[];
 }
 
-const AXIS_STROKE = 'rgba(255,255,255,0.3)';
-const TICK_FILL = 'rgba(255,255,255,0.5)';
-const GRID_STROKE = 'rgba(255,255,255,0.06)';
+const AXIS_STROKE = 'var(--text-muted)';
+const TICK_FILL = 'var(--text-muted)';
+const GRID_STROKE = 'var(--border-divider)';
 
 const tooltipStyle: React.CSSProperties = {
-  background: 'rgba(15,11,26,0.95)',
-  border: '1px solid rgba(255,255,255,0.1)',
+  background: 'var(--dark-card)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '10px',
   fontSize: '13px',
-  color: '#fff',
+  color: 'var(--text-primary)',
 };
 
 function EmptyState({ height }: { height: number }) {
@@ -41,7 +41,7 @@ function EmptyState({ height }: { height: number }) {
       style={{ height }}
       className="flex items-center justify-center"
     >
-      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px' }}>
+      <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
         No data available
       </span>
     </div>
@@ -76,7 +76,7 @@ export default function AreaChart<T extends Record<string, unknown>>({
             }}
           >
             {title && (
-              <span style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>
+              <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {title}
               </span>
             )}
@@ -96,7 +96,7 @@ export default function AreaChart<T extends Record<string, unknown>>({
                         display: 'inline-block',
                       }}
                     />
-                    <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                       {item.label}
                     </span>
                   </div>
@@ -108,7 +108,7 @@ export default function AreaChart<T extends Record<string, unknown>>({
           <div
             style={{
               height: '1px',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+              background: 'linear-gradient(90deg, transparent, var(--border-subtle), transparent)',
               marginBottom: '16px',
             }}
           />
@@ -147,7 +147,7 @@ export default function AreaChart<T extends Record<string, unknown>>({
             />
             <Tooltip
               contentStyle={tooltipStyle}
-              cursor={{ stroke: 'rgba(255,255,255,0.1)' }}
+              cursor={{ stroke: 'var(--border-subtle)' }}
             />
             <Area
               type="monotone"

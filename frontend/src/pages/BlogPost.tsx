@@ -43,7 +43,7 @@ const titleStyle: React.CSSProperties = {
   fontSize: 'clamp(28px, 5vw, 42px)',
   fontWeight: 800,
   lineHeight: 1.2,
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   marginBottom: 16,
 }
 
@@ -52,20 +52,20 @@ const metaStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: 12,
   fontSize: 14,
-  color: 'rgba(248,250,252,0.5)',
+  color: 'var(--text-muted)',
   marginBottom: 40,
 }
 
 const contentStyle: React.CSSProperties = {
   fontSize: 16,
   lineHeight: 1.75,
-  color: 'rgba(248,250,252,0.8)',
+  color: 'var(--text-secondary)',
 }
 
 const centerStyle: React.CSSProperties = {
   textAlign: 'center',
   padding: '60px 20px',
-  color: 'rgba(248,250,252,0.5)',
+  color: 'var(--text-muted)',
   fontSize: 16,
 }
 
@@ -160,7 +160,7 @@ export default function BlogPost() {
                 style={{
                   fontSize: 22,
                   fontWeight: 700,
-                  color: '#F8FAFC',
+                  color: 'var(--text-primary)',
                   marginBottom: 12,
                 }}
               >
@@ -169,7 +169,7 @@ export default function BlogPost() {
               <p
                 style={{
                   fontSize: 14,
-                  color: 'rgba(248,250,252,0.6)',
+                  color: 'var(--text-secondary)',
                   marginBottom: 20,
                 }}
               >

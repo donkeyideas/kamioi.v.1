@@ -33,7 +33,7 @@ const btnStyle: React.CSSProperties = {
 const emptyStyle: React.CSSProperties = {
   textAlign: 'center',
   padding: '24px 16px',
-  color: 'rgba(248,250,252,0.3)',
+  color: 'var(--text-muted)',
   fontSize: '13px',
 };
 

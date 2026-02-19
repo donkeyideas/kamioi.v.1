@@ -92,7 +92,7 @@ const twoColStyle: React.CSSProperties = {
 const sectionTitleStyle: React.CSSProperties = {
   fontSize: '16px',
   fontWeight: 600,
-  color: 'var(--text-primary, #F8FAFC)',
+  color: 'var(--text-primary)',
   marginBottom: '16px',
 }
 
@@ -100,7 +100,7 @@ const progressBarBgStyle: React.CSSProperties = {
   width: '100%',
   height: '8px',
   borderRadius: '4px',
-  background: 'rgba(255,255,255,0.08)',
+  background: 'var(--surface-input)',
   overflow: 'hidden',
 }
 
@@ -112,7 +112,7 @@ const recentTxColumns: Column<Transaction>[] = [
     header: 'Date',
     width: '80px',
     render: (row) => (
-      <span style={{ color: 'rgba(248,250,252,0.6)', fontSize: '13px' }}>
+      <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
         {formatDate(row.date)}
       </span>
     ),
@@ -121,7 +121,7 @@ const recentTxColumns: Column<Transaction>[] = [
     key: 'merchant',
     header: 'Merchant',
     render: (row) => (
-      <span style={{ color: '#F8FAFC', fontSize: '13px' }}>{row.merchant}</span>
+      <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>{row.merchant}</span>
     ),
   },
   {
@@ -129,7 +129,7 @@ const recentTxColumns: Column<Transaction>[] = [
     header: 'Amount',
     align: 'right' as const,
     render: (row) => (
-      <span style={{ color: '#F8FAFC', fontSize: '13px' }}>
+      <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
         {formatCurrency(row.amount)}
       </span>
     ),
@@ -240,7 +240,7 @@ export function OverviewTab() {
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '400px',
-          color: 'rgba(248,250,252,0.4)',
+          color: 'var(--text-muted)',
           fontSize: '14px',
         }}
       >
@@ -297,7 +297,7 @@ export function OverviewTab() {
           <div
             style={{
               height: '1px',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+              background: 'linear-gradient(90deg, transparent, var(--highlight-line), transparent)',
               marginBottom: '12px',
             }}
           />
@@ -318,7 +318,7 @@ export function OverviewTab() {
           <div
             style={{
               height: '1px',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+              background: 'linear-gradient(90deg, transparent, var(--highlight-line), transparent)',
               marginBottom: '16px',
             }}
           />
@@ -328,7 +328,7 @@ export function OverviewTab() {
               style={{
                 textAlign: 'center',
                 padding: '40px 20px',
-                color: 'rgba(248,250,252,0.4)',
+                color: 'var(--text-muted)',
                 fontSize: '14px',
               }}
             >
@@ -355,7 +355,7 @@ export function OverviewTab() {
                           style={{
                             fontSize: '14px',
                             fontWeight: 600,
-                            color: 'var(--text-primary, #F8FAFC)',
+                            color: 'var(--text-primary)',
                           }}
                         >
                           {goal.title}
@@ -363,7 +363,7 @@ export function OverviewTab() {
                         <span
                           style={{
                             fontSize: '12px',
-                            color: 'var(--text-muted, rgba(248,250,252,0.5))',
+                            color: 'var(--text-muted)',
                             marginLeft: '8px',
                           }}
                         >
@@ -373,7 +373,7 @@ export function OverviewTab() {
                       <div
                         style={{
                           fontSize: '13px',
-                          color: 'var(--text-muted, rgba(248,250,252,0.6))',
+                          color: 'var(--text-muted)',
                         }}
                       >
                         {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}

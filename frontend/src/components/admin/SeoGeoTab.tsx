@@ -112,7 +112,7 @@ function OverviewContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading overview...
       </div>
     );
@@ -152,10 +152,10 @@ function OverviewContent() {
       </div>
 
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
           SEO Health Score
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', marginBottom: '16px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.6 }}>
           SEO audit requires Edge Function. Current coverage:
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -164,7 +164,7 @@ function OverviewContent() {
               <span style={{ color: item.configured ? '#34D399' : '#EF4444', fontSize: '16px' }}>
                 {item.configured ? '\u2713' : '\u2717'}
               </span>
-              <span style={{ fontSize: '14px', color: '#F8FAFC' }}>{item.label}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{item.label}</span>
               <Badge variant="success">Configured</Badge>
             </div>
           ))}
@@ -172,13 +172,13 @@ function OverviewContent() {
       </GlassCard>
 
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
           AI Search Readiness
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
           {aiCrawlers.map((crawler) => (
             <div key={crawler.name} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', color: '#F8FAFC', fontWeight: 500 }}>{crawler.name}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500 }}>{crawler.name}</span>
               <Badge variant="success">Allowed</Badge>
             </div>
           ))}
@@ -186,10 +186,10 @@ function OverviewContent() {
       </GlassCard>
 
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           SEO Recommendations
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '16px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '16px' }}>
           Automated recommendations require the SEO audit Edge Function. Below are general best practices.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -220,10 +220,10 @@ function OverviewContent() {
             },
           ].map((rec, idx) => (
             <GlassCard key={idx} padding="24px">
-              <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                 {idx + 1}. {rec.title}
               </p>
-              <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
                 {rec.desc}
               </p>
             </GlassCard>
@@ -277,7 +277,7 @@ function RankingsTrafficContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading traffic data...
       </div>
     );
@@ -286,28 +286,28 @@ function RankingsTrafficContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Google Search Console Required
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Google Search Console integration required for live ranking data. Configure GSC API credentials in System Settings.
         </p>
       </GlassCard>
 
       <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Keyword Rankings
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Connect Google Search Console to track keyword positions, impressions, clicks, and CTR.
         </p>
       </GlassCard>
 
       <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Traffic Sources
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Connect Google Analytics to view traffic sources, user demographics, and behavior analytics.
         </p>
       </GlassCard>
@@ -380,13 +380,13 @@ function TechnicalSeoContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Core Web Vitals
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {webVitals.map((item) => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#F8FAFC', minWidth: '280px' }}>{item.label}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)', minWidth: '280px' }}>{item.label}</span>
               <Badge variant="info">{item.status}</Badge>
             </div>
           ))}
@@ -394,14 +394,14 @@ function TechnicalSeoContent() {
       </GlassCard>
 
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Crawlability
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {crawlabilityItems.map((item) => (
             <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ color: '#34D399', fontSize: '16px' }}>{'\u2713'}</span>
-              <span style={{ fontSize: '14px', color: '#F8FAFC' }}>{item}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{item}</span>
               <Badge variant="success">Configured</Badge>
             </div>
           ))}
@@ -409,13 +409,13 @@ function TechnicalSeoContent() {
       </GlassCard>
 
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Security
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {securityItems.map((item) => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#F8FAFC', minWidth: '220px' }}>{item.label}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)', minWidth: '220px' }}>{item.label}</span>
               <Badge variant={item.variant}>{item.text}</Badge>
             </div>
           ))}
@@ -423,10 +423,10 @@ function TechnicalSeoContent() {
       </GlassCard>
 
       <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Structured Data (Schema.org)
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Structured data (Schema.org markup) helps search engines understand your content.
         </p>
       </GlassCard>
@@ -436,11 +436,11 @@ function TechnicalSeoContent() {
           <GlassCard key={schema.name} padding="20px">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
                   {schema.name}
                 </span>
                 {schema.note && (
-                  <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     -- {schema.note}
                   </span>
                 )}
@@ -452,15 +452,15 @@ function TechnicalSeoContent() {
       </div>
 
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
           Rich Snippet Preview
         </p>
         <div
           style={{
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '8px',
             padding: '16px',
-            background: 'rgba(255,255,255,0.03)',
+            background: 'var(--surface-row-hover)',
           }}
         >
           <p style={{ fontSize: '18px', color: '#3B82F6', marginBottom: '4px', fontWeight: 500 }}>
@@ -469,7 +469,7 @@ function TechnicalSeoContent() {
           <p style={{ fontSize: '13px', color: '#34D399', marginBottom: '6px' }}>
             https://kamioi.com
           </p>
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Kamioi uses artificial intelligence to help you invest your spare change automatically. Start micro-investing today with round-up investing and AI portfolio management.
           </p>
         </div>
@@ -517,7 +517,7 @@ function ContentSeoContent() {
         header: 'Title',
         sortable: true,
         render: (row) => (
-          <span style={{ fontWeight: 500, color: '#F8FAFC' }}>
+          <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
             {row.title ?? '--'}
           </span>
         ),
@@ -539,7 +539,7 @@ function ContentSeoContent() {
         width: '110px',
         align: 'right',
         render: () => (
-          <span style={{ color: 'rgba(248,250,252,0.4)' }}>N/A</span>
+          <span style={{ color: 'var(--text-muted)' }}>N/A</span>
         ),
       },
       {
@@ -564,7 +564,7 @@ function ContentSeoContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading content data...
       </div>
     );
@@ -573,10 +573,10 @@ function ContentSeoContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Content SEO Analysis
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Content SEO analysis reviews your blog posts and public pages for SEO optimization.
         </p>
       </GlassCard>
@@ -584,10 +584,10 @@ function ContentSeoContent() {
       {blogExists ? (
         <GlassCard padding="0">
           <div style={{ padding: '20px 20px 0 20px' }}>
-            <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
+            <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
               Blog Posts
             </p>
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', marginBottom: '16px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
               {blogPosts.length} posts found
             </p>
           </div>
@@ -602,23 +602,23 @@ function ContentSeoContent() {
         </GlassCard>
       ) : (
         <GlassCard padding="28px">
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
             Blog posts table not configured.
           </p>
         </GlassCard>
       )}
 
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           SEO Checklist for Content
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {seoChecklist.map((item, idx) => (
             <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-              <span style={{ color: 'rgba(248,250,252,0.4)', fontSize: '14px', fontWeight: 600, minWidth: '20px' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600, minWidth: '20px' }}>
                 {idx + 1}.
               </span>
-              <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.7)', lineHeight: 1.5 }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {item}
               </span>
             </div>
@@ -672,7 +672,7 @@ function GeoAeoContent() {
       key: 'name',
       header: 'Crawler',
       render: (row) => (
-        <span style={{ fontWeight: 500, color: '#F8FAFC', fontFamily: 'monospace', fontSize: '13px' }}>
+        <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '13px' }}>
           {row.name}
         </span>
       ),
@@ -810,20 +810,20 @@ function GeoAeoContent() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* GEO Section */}
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Generative Engine Optimization (GEO)
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           GEO optimizes your content for AI-powered search engines like Google SGE, Bing Chat, and Perplexity.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {strategies.map((strategy, idx) => (
             <GlassCard key={idx} padding="20px">
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '6px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
                 {idx + 1}. {strategy.title}
               </p>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                 {strategy.desc}
               </p>
             </GlassCard>
@@ -833,10 +833,10 @@ function GeoAeoContent() {
 
       <GlassCard accent="teal" padding="0">
         <div style={{ padding: '20px 20px 0 20px' }}>
-          <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
             AI Crawler Configuration
           </p>
-          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
             Access status configured in robots.txt
           </p>
         </div>
@@ -852,10 +852,10 @@ function GeoAeoContent() {
 
       {/* AEO Section */}
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Answer Engine Optimization (AEO)
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           AEO is the practice of optimizing content so that answer engines -- AI-powered platforms such as
           ChatGPT, Perplexity, Google AI Overview, and Bing Copilot -- can accurately retrieve, cite, and
           present your information in their generated responses. Unlike traditional SEO which focuses on
@@ -867,8 +867,8 @@ function GeoAeoContent() {
             <div key={engine.name} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
               <span style={{ color: '#A78BFA', fontSize: '14px', marginTop: '2px' }}>{'\u2022'}</span>
               <div>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>{engine.name}</span>
-                <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginLeft: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{engine.name}</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '8px' }}>
                   {engine.desc}
                 </span>
               </div>
@@ -879,19 +879,19 @@ function GeoAeoContent() {
 
       {/* Q&A Format Optimization */}
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Question-Answer Format Optimization
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Structure your content in question-and-answer format to increase the likelihood of extraction by answer engines.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {qaStrategies.map((strategy, idx) => (
             <GlassCard key={idx} padding="20px">
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '6px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
                 {idx + 1}. {strategy.title}
               </p>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                 {strategy.desc}
               </p>
             </GlassCard>
@@ -901,10 +901,10 @@ function GeoAeoContent() {
 
       {/* Voice Search Readiness */}
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Voice Search Readiness Checklist
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Voice search queries are typically conversational and question-based. Ensure your content is optimized
           for voice assistants (Google Assistant, Siri, Alexa) that rely on answer engines.
         </p>
@@ -912,10 +912,10 @@ function GeoAeoContent() {
           {voiceSearchChecklist.map((entry) => (
             <div key={entry.item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ color: entry.status === 'ready' ? '#34D399' : entry.status === 'needs-review' ? '#FBBF24' : 'rgba(248,250,252,0.4)', fontSize: '16px' }}>
+                <span style={{ color: entry.status === 'ready' ? '#34D399' : entry.status === 'needs-review' ? '#FBBF24' : 'var(--text-muted)', fontSize: '16px' }}>
                   {entry.status === 'ready' ? '\u2713' : entry.status === 'needs-review' ? '\u25CB' : '\u2717'}
                 </span>
-                <span style={{ fontSize: '14px', color: '#F8FAFC' }}>{entry.item}</span>
+                <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{entry.item}</span>
               </div>
               <Badge variant={statusVariant(entry.status)}>{statusLabel(entry.status)}</Badge>
             </div>
@@ -925,20 +925,20 @@ function GeoAeoContent() {
 
       {/* Featured Snippet Optimization */}
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Featured Snippet Optimization Guide
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Featured snippets are the primary source for AI answer engines. Optimize your content to win snippet
           positions across all four snippet types.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {snippetGuide.map((guide, idx) => (
             <GlassCard key={idx} padding="20px">
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '6px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
                 {guide.title}
               </p>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                 {guide.desc}
               </p>
             </GlassCard>
@@ -948,10 +948,10 @@ function GeoAeoContent() {
 
       {/* FAQ Schema Implementation Status */}
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           FAQ Schema Implementation Status
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           FAQ schema (FAQPage structured data) enables rich results in search and improves content extraction
           by answer engines.
         </p>
@@ -959,11 +959,11 @@ function GeoAeoContent() {
           {faqSchemaStatus.map((entry) => (
             <div key={entry.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC', minWidth: '160px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', minWidth: '160px' }}>
                   {entry.page}
                 </span>
                 {entry.status === 'implemented' && entry.count > 0 && (
-                  <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {entry.count} questions
                   </span>
                 )}
@@ -976,17 +976,17 @@ function GeoAeoContent() {
 
       {/* Knowledge Panel Readiness */}
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Knowledge Panel Readiness
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Knowledge panels are used by Google and AI engines to display authoritative entity information.
           Establishing a verified knowledge panel increases your content authority in answer engine results.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {knowledgePanelItems.map((item) => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '14px', color: '#F8FAFC' }}>{item.label}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{item.label}</span>
               <Badge variant={item.variant}>{item.text}</Badge>
             </div>
           ))}
@@ -995,10 +995,10 @@ function GeoAeoContent() {
 
       {/* Key Metrics to Track */}
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Key Metrics to Track
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Monitor these AEO-specific metrics to measure your answer engine visibility. Metric collection
           requires Google Search Console and third-party AEO tracking integrations.
         </p>
@@ -1006,12 +1006,12 @@ function GeoAeoContent() {
           {metricsToTrack.map((entry) => (
             <GlassCard key={entry.metric} padding="20px">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {entry.metric}
                 </p>
                 <Badge variant="info">Not Connected</Badge>
               </div>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                 {entry.desc}
               </p>
             </GlassCard>
@@ -1098,10 +1098,10 @@ function CroContent() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Conversion Funnel */}
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Conversion Funnel
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '24px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '24px' }}>
           Visualize the user journey from first visit to active investor. Funnel data will populate
           when GA4 conversion tracking is configured.
         </p>
@@ -1122,8 +1122,8 @@ function CroContent() {
                 }}
               >
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>{stage.stage}</p>
-                  <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '2px' }}>{stage.desc}</p>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{stage.stage}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{stage.desc}</p>
                 </div>
                 <span style={{ fontSize: '20px', fontWeight: 700, color: stage.color }}>--</span>
               </div>
@@ -1134,10 +1134,10 @@ function CroContent() {
 
       {/* A/B Test Tracking */}
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           A/B Test Tracking
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Track and manage A/B tests across landing pages, CTAs, and user flows. Connect an A/B testing
           platform (e.g., Google Optimize, VWO, Optimizely) to populate test data.
         </p>
@@ -1154,7 +1154,7 @@ function CroContent() {
           ))}
         </div>
         <GlassCard padding="20px">
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
             No active A/B tests. Create tests by defining variants for your landing pages, headlines,
             CTAs, or signup flows. Each test should run until it reaches statistical significance
             (typically 95% confidence level with a minimum sample of 1,000 visitors per variant).
@@ -1164,23 +1164,23 @@ function CroContent() {
 
       {/* Landing Page Performance */}
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Landing Page Performance
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Monitor conversion rates and engagement metrics for each landing page. Data requires GA4 event tracking.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {landingPageMetrics.map((entry) => (
             <div key={entry.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC', minWidth: '180px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', minWidth: '180px' }}>
                   {entry.page}
                 </span>
-                <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>{entry.metric}</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{entry.metric}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(248,250,252,0.4)' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>
                   {entry.value}
                 </span>
                 <Badge variant="info">{entry.note}</Badge>
@@ -1192,10 +1192,10 @@ function CroContent() {
 
       {/* CTA Effectiveness */}
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           CTA Effectiveness Tracking
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Measure how effectively each call-to-action drives user engagement and conversions. Requires
           GA4 event tracking on CTA elements.
         </p>
@@ -1203,17 +1203,17 @@ function CroContent() {
           {ctaItems.map((cta) => (
             <GlassCard key={cta.cta} padding="20px">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>{cta.cta}</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{cta.cta}</p>
                 <div style={{ display: 'flex', gap: '16px' }}>
-                  <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                     Clicks: {cta.clicks}
                   </span>
-                  <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                     Conversions: {cta.conversions}
                   </span>
                 </div>
               </div>
-              <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>{cta.placement}</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{cta.placement}</p>
             </GlassCard>
           ))}
         </div>
@@ -1221,10 +1221,10 @@ function CroContent() {
 
       {/* User Journey Analysis */}
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           User Journey Analysis
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Map the complete user journey from awareness to retention. Identify drop-off points and optimize
           each stage of the conversion path.
         </p>
@@ -1243,15 +1243,15 @@ function CroContent() {
                     justifyContent: 'center',
                     fontSize: '13px',
                     fontWeight: 700,
-                    color: '#F8FAFC',
+                    color: 'var(--text-primary)',
                     flexShrink: 0,
                   }}
                 >
                   {idx + 1}
                 </span>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>{stage.title}</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{stage.title}</p>
               </div>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5, marginLeft: '40px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginLeft: '40px' }}>
                 {stage.desc}
               </p>
             </GlassCard>
@@ -1261,10 +1261,10 @@ function CroContent() {
 
       {/* Bounce Rate & Exit Page Analysis */}
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Bounce Rate and Exit Page Analysis
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Identify pages where users leave without converting. High bounce and exit rates indicate opportunities
           for content or UX improvement. Data requires GA4 integration.
         </p>
@@ -1275,16 +1275,16 @@ function CroContent() {
               gridTemplateColumns: '1fr 120px 120px',
               gap: '12px',
               paddingBottom: '10px',
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              borderBottom: '1px solid var(--border-subtle)',
             }}
           >
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Page
             </span>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>
               Bounce Rate
             </span>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>
               Exit Rate
             </span>
           </div>
@@ -1296,19 +1296,19 @@ function CroContent() {
                 gridTemplateColumns: '1fr 120px 120px',
                 gap: '12px',
                 padding: '8px 0',
-                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                borderBottom: '1px solid var(--border-divider)',
               }}
             >
               <div>
-                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>{entry.label}</span>
-                <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginLeft: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{entry.label}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '8px' }}>
                   {entry.page}
                 </span>
               </div>
-              <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', textAlign: 'right' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'right' }}>
                 {entry.bounceRate}
               </span>
-              <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', textAlign: 'right' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'right' }}>
                 {entry.exitRate}
               </span>
             </div>
@@ -1318,17 +1318,17 @@ function CroContent() {
 
       {/* Form Analytics */}
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Form Analytics
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
           Track form performance across signup, contact, and demo request forms. Identify where users
           abandon forms and optimize for completion. Requires GA4 form interaction event tracking.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {formAnalytics.map((form) => (
             <GlassCard key={form.form} padding="20px">
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
                 {form.form}
               </p>
               <div
@@ -1339,28 +1339,28 @@ function CroContent() {
                 }}
               >
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
                     Views
                   </p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(248,250,252,0.4)' }}>{form.views}</p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-muted)' }}>{form.views}</p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
                     Starts
                   </p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(248,250,252,0.4)' }}>{form.starts}</p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-muted)' }}>{form.starts}</p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
                     Completions
                   </p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(248,250,252,0.4)' }}>{form.completions}</p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-muted)' }}>{form.completions}</p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
                     Drop-off
                   </p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(248,250,252,0.4)' }}>{form.dropOff}</p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-muted)' }}>{form.dropOff}</p>
                 </div>
               </div>
             </GlassCard>
@@ -1462,7 +1462,7 @@ function Ga4AnalyticsContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading GA4 configuration...
       </div>
     );
@@ -1471,10 +1471,10 @@ function Ga4AnalyticsContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Google Analytics 4 Integration
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Google Analytics 4 integration provides detailed user behavior analytics.
         </p>
         <div style={{ marginTop: '12px' }}>
@@ -1487,7 +1487,7 @@ function Ga4AnalyticsContent() {
       </GlassCard>
 
       <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Connect GA4
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px' }}>
@@ -1516,14 +1516,14 @@ function Ga4AnalyticsContent() {
       </GlassCard>
 
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           GA4 Features
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {ga4Features.map((feature) => (
             <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ color: '#3B82F6', fontSize: '14px' }}>{'\u2022'}</span>
-              <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.7)' }}>{feature}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{feature}</span>
             </div>
           ))}
         </div>
@@ -1552,7 +1552,7 @@ export function SeoGeoTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>
+      <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
         SEO & Growth Analytics
       </p>
       <Tabs tabs={tabs} defaultTab="overview" />

@@ -346,7 +346,7 @@ function BlogPostsContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading blog posts...
       </div>
     );
@@ -356,10 +356,10 @@ function BlogPostsContent() {
     return (
       <GlassCard accent="pink" padding="40px">
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
             Blog posts table not configured yet.
           </p>
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
             The blog_posts table does not exist or is not accessible. Create the table in your Supabase dashboard to enable blog management.
           </p>
         </div>
@@ -587,7 +587,7 @@ function AdvertisementsContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading advertisements...
       </div>
     );
@@ -639,7 +639,7 @@ function AdvertisementsContent() {
             onChange={(e) => setForm({ ...form, target_dashboards: e.target.value })}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: 'rgba(248,250,252,0.6)' }}>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>
               Active
             </label>
             <button
@@ -652,7 +652,7 @@ function AdvertisementsContent() {
                 cursor: 'pointer',
                 background: form.is_active
                   ? 'linear-gradient(135deg, #7C3AED, #3B82F6)'
-                  : 'rgba(255,255,255,0.1)',
+                  : 'var(--surface-hover)',
                 position: 'relative',
                 transition: 'background 200ms ease',
               }}
@@ -751,7 +751,7 @@ function FrontendContentTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading frontend content...
       </div>
     );
@@ -760,10 +760,10 @@ function FrontendContentTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Frontend Content Management
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Frontend content management allows editing of public page sections.
         </p>
       </GlassCard>
@@ -772,13 +772,13 @@ function FrontendContentTab() {
         <GlassCard padding="16px">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Badge variant="success">Saved</Badge>
-            <span style={{ color: '#F8FAFC', fontSize: '14px' }}>{toast}</span>
+            <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>{toast}</span>
           </div>
         </GlassCard>
       )}
 
       <GlassCard padding="24px">
-        <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Homepage Hero
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -806,7 +806,7 @@ function FrontendContentTab() {
       </GlassCard>
 
       <GlassCard padding="24px">
-        <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Features Section
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -829,7 +829,7 @@ function FrontendContentTab() {
       </GlassCard>
 
       <GlassCard padding="24px">
-        <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Footer
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -858,7 +858,7 @@ function FrontendContentTab() {
       </div>
 
       <GlassCard padding="16px">
-        <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', fontStyle: 'italic' }}>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
           Note: Changes require frontend rebuild to take effect.
         </p>
       </GlassCard>
@@ -934,7 +934,7 @@ function SeoSettingsContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading SEO settings...
       </div>
     );
@@ -946,13 +946,13 @@ function SeoSettingsContent() {
         <GlassCard padding="16px">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Badge variant="success">Saved</Badge>
-            <span style={{ color: '#F8FAFC', fontSize: '14px' }}>{toast}</span>
+            <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>{toast}</span>
           </div>
         </GlassCard>
       )}
 
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           SEO Settings
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1055,7 +1055,7 @@ function ContactMessagesContent() {
         sortable: true,
         width: '220px',
         render: (row) => (
-          <span style={{ color: 'rgba(248,250,252,0.7)', fontSize: '13px' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
             {row.email}
           </span>
         ),
@@ -1065,7 +1065,7 @@ function ContactMessagesContent() {
         key: 'message',
         header: 'Message',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.message ? truncate(row.message, 60) : '--'}
           </span>
         ),
@@ -1097,7 +1097,7 @@ function ContactMessagesContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading contact messages...
       </div>
     );

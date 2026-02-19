@@ -138,7 +138,7 @@ function SectionHeading({ children }: { children: string }) {
       style={{
         fontSize: '16px',
         fontWeight: 600,
-        color: '#F8FAFC',
+        color: 'var(--text-primary)',
         margin: 0,
       }}
     >
@@ -895,9 +895,9 @@ function MarketQueueTab() {
     fontWeight: 500,
     padding: '6px 16px',
     borderRadius: '20px',
-    border: '1px solid rgba(255,255,255,0.08)',
-    background: 'rgba(255,255,255,0.04)',
-    color: 'rgba(248,250,252,0.5)',
+    border: '1px solid var(--border-subtle)',
+    background: 'var(--surface-input)',
+    color: 'var(--text-muted)',
     cursor: 'pointer',
     transition: 'all 200ms ease',
   };
@@ -905,7 +905,7 @@ function MarketQueueTab() {
   const pillActive: React.CSSProperties = {
     background: 'rgba(124,58,237,0.2)',
     borderColor: 'rgba(124,58,237,0.5)',
-    color: '#F8FAFC',
+    color: 'var(--text-primary)',
     fontWeight: 600,
   };
 

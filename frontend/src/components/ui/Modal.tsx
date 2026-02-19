@@ -34,10 +34,10 @@ const backdropStyle: React.CSSProperties = {
 const panelStyle: React.CSSProperties = {
   position: 'relative',
   width: '100%',
-  background: 'rgba(15,11,26,0.9)',
+  background: 'var(--surface-modal)',
   backdropFilter: 'blur(20px)',
   WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '16px',
   padding: '24px',
   boxShadow: '0 8px 32px rgba(124,58,237,0.2)',
@@ -54,10 +54,10 @@ const closeBtnStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--surface-input)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '8px',
-  color: 'rgba(248,250,252,0.6)',
+  color: 'var(--text-secondary)',
   cursor: 'pointer',
   fontFamily: 'inherit',
   fontSize: '16px',
@@ -69,7 +69,7 @@ const closeBtnStyle: React.CSSProperties = {
 const titleStyle: React.CSSProperties = {
   fontSize: '18px',
   fontWeight: 700,
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   marginBottom: '16px',
   paddingRight: '40px',
 };
@@ -127,7 +127,7 @@ export function Modal({
             right: 0,
             height: '1px',
             background:
-              'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
+              'linear-gradient(90deg, transparent, var(--highlight-line), transparent)',
             pointerEvents: 'none',
             borderRadius: '16px 16px 0 0',
           }}
@@ -139,12 +139,12 @@ export function Modal({
           onClick={onClose}
           aria-label="Close modal"
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-            e.currentTarget.style.color = '#F8FAFC';
+            e.currentTarget.style.background = 'var(--surface-hover)';
+            e.currentTarget.style.color = 'var(--text-primary)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-            e.currentTarget.style.color = 'rgba(248,250,252,0.6)';
+            e.currentTarget.style.background = 'var(--surface-input)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
           }}
         >
           &#x2715;

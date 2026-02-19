@@ -199,18 +199,18 @@ function TablesContent() {
         {tables.map((table) => (
           <GlassCard key={table.name} padding="20px">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC' }}>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {table.name}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {table.loading ? (
-                  <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                     Counting...
                   </span>
                 ) : table.error ? (
                   <Badge variant="warning">N/A</Badge>
                 ) : (
-                  <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                     {(table.count ?? 0).toLocaleString()} rows
                   </span>
                 )}
@@ -246,7 +246,7 @@ function SchemaBrowserContent() {
         header: 'Column Name',
         sortable: true,
         render: (row) => (
-          <span style={{ fontFamily: 'monospace', fontSize: '13px', color: '#F8FAFC', fontWeight: 500 }}>
+          <span style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>
             {row.name}
           </span>
         ),
@@ -274,7 +274,7 @@ function SchemaBrowserContent() {
         key: 'description',
         header: 'Description',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.description}
           </span>
         ),
@@ -288,10 +288,10 @@ function SchemaBrowserContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Schema Browser
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '16px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '16px' }}>
           Schema browser shows table structure and column definitions.
         </p>
         <div style={{ maxWidth: '300px' }}>
@@ -308,10 +308,10 @@ function SchemaBrowserContent() {
       {selectedTable && currentSchema.length > 0 && (
         <GlassCard padding="0">
           <div style={{ padding: '20px 20px 0 20px' }}>
-            <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
+            <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
               {selectedTable}
             </p>
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', marginBottom: '16px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
               {currentSchema.length} columns
             </p>
           </div>
@@ -328,7 +328,7 @@ function SchemaBrowserContent() {
 
       {selectedTable && currentSchema.length === 0 && (
         <GlassCard padding="28px">
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
             Schema information not available for this table. Check database.ts type definitions.
           </p>
         </GlassCard>
@@ -389,7 +389,7 @@ function DataQualityContent() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <Button onClick={runChecks}>Run Checks</Button>
         {!hasRun && (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
             Click "Run Checks" to analyze data quality
           </span>
         )}
@@ -398,14 +398,14 @@ function DataQualityContent() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
         {checks.map((check) => (
           <GlassCard key={check.name} padding="24px">
-            <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '10px' }}>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>
               {check.name}
             </p>
             {check.loading ? (
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>Checking...</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Checking...</span>
             ) : check.count !== null ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '24px', fontWeight: 700, color: '#F8FAFC' }}>
+                <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {check.count.toLocaleString()}
                 </span>
                 <Badge variant={check.count === 0 ? 'success' : 'warning'}>
@@ -413,7 +413,7 @@ function DataQualityContent() {
                 </Badge>
               </div>
             ) : (
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                 Not checked yet
               </span>
             )}
@@ -434,54 +434,54 @@ function BackupsContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard accent="blue" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
           Supabase Point-in-Time Recovery
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Database backups are managed by Supabase Point-in-Time Recovery (PITR).
         </p>
       </GlassCard>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
         <GlassCard padding="24px">
-          <p style={{ fontSize: '14px', fontWeight: 500, color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>
+          <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>
             Backup Type
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC' }}>Continuous (PITR)</span>
+            <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Continuous (PITR)</span>
             <Badge variant="success">Active</Badge>
           </div>
         </GlassCard>
 
         <GlassCard padding="24px">
-          <p style={{ fontSize: '14px', fontWeight: 500, color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>
+          <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>
             Retention
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC' }}>7 days (Free) / 30 days (Pro)</span>
+            <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>7 days (Free) / 30 days (Pro)</span>
             <Badge variant="info">Tier Dependent</Badge>
           </div>
         </GlassCard>
 
         <GlassCard padding="24px">
-          <p style={{ fontSize: '14px', fontWeight: 500, color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>
+          <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>
             Recovery
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC' }}>Point-in-time to any second</span>
+            <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Point-in-time to any second</span>
             <Badge variant="success">Available</Badge>
           </div>
         </GlassCard>
       </div>
 
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           To restore a backup, visit your Supabase dashboard &gt; Database &gt; Backups.
         </p>
       </GlassCard>
 
       <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
           Manual Export
         </p>
         <Button variant="secondary" onClick={() => setShowDumpInfo(true)}>
@@ -492,15 +492,15 @@ function BackupsContent() {
             style={{
               marginTop: '12px',
               padding: '12px 16px',
-              background: 'rgba(255,255,255,0.04)',
+              background: 'var(--surface-input)',
               borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border-subtle)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontFamily: 'monospace' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
               supabase db dump --project-ref your-project-ref &gt; backup.sql
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginTop: '8px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
               This requires the Supabase CLI to be installed locally.
             </p>
           </div>
@@ -575,13 +575,13 @@ function MaintenanceContent() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Admin Settings */}
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Admin Settings
         </p>
         {loadingSettings ? (
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.4)' }}>Loading settings...</p>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Loading settings...</p>
         ) : settings.length === 0 ? (
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.4)' }}>No admin settings configured yet.</p>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No admin settings configured yet.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {settings.map((setting) => (
@@ -592,20 +592,20 @@ function MaintenanceContent() {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '12px 0',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: '1px solid var(--border-divider)',
                 }}
               >
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>
+                  <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
                     {setting.setting_key}
                   </p>
                   {setting.description && (
-                    <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginTop: '2px' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                       {setting.description}
                     </p>
                   )}
                 </div>
-                <p style={{ fontSize: '14px', fontWeight: 500, color: 'rgba(248,250,252,0.7)' }}>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>
                   {setting.setting_value}
                 </p>
               </div>
@@ -616,34 +616,34 @@ function MaintenanceContent() {
 
       {/* Database Health */}
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Database Health
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', minWidth: '140px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', minWidth: '140px' }}>
               Connection Status
             </span>
             <Badge variant="success">Connected</Badge>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', minWidth: '140px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', minWidth: '140px' }}>
               Provider
             </span>
-            <span style={{ fontSize: '14px', color: '#F8FAFC' }}>Supabase PostgreSQL</span>
+            <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>Supabase PostgreSQL</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', minWidth: '140px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', minWidth: '140px' }}>
               Region
             </span>
-            <span style={{ fontSize: '14px', color: '#F8FAFC' }}>Check Supabase dashboard</span>
+            <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>Check Supabase dashboard</span>
           </div>
         </div>
       </GlassCard>
 
       {/* Maintenance Tasks */}
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Maintenance Tasks
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -652,11 +652,11 @@ function MaintenanceContent() {
               Vacuum Analyze
             </Button>
             {vacuumInfo && (
-              <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontFamily: 'monospace' }}>
+              <div style={{ marginTop: '8px', padding: '10px 14px', background: 'var(--surface-input)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
                   VACUUM ANALYZE;
                 </p>
-                <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginTop: '4px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                   Run via Supabase SQL Editor
                 </p>
               </div>
@@ -668,11 +668,11 @@ function MaintenanceContent() {
               Reindex
             </Button>
             {reindexInfo && (
-              <div style={{ marginTop: '8px', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontFamily: 'monospace' }}>
+              <div style={{ marginTop: '8px', padding: '10px 14px', background: 'var(--surface-input)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
                   REINDEX DATABASE;
                 </p>
-                <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginTop: '4px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                   Run via Supabase SQL Editor
                 </p>
               </div>
@@ -702,7 +702,7 @@ function MaintenanceContent() {
         title="Confirm Clear Old Events"
         size="sm"
       >
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', marginBottom: '20px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.6 }}>
           This will permanently delete all system events older than 90 days. This action cannot be undone.
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -763,7 +763,7 @@ function SecurityContent() {
         sortable: true,
         width: '120px',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.source ?? '--'}
           </span>
         ),
@@ -774,7 +774,7 @@ function SecurityContent() {
         render: (row) => {
           const text = row.data ? JSON.stringify(row.data) : '--';
           return (
-            <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', fontFamily: 'monospace' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
               {text.length > 80 ? `${text.substring(0, 80)}...` : text}
             </span>
           );
@@ -785,7 +785,7 @@ function SecurityContent() {
         header: 'Correlation ID',
         width: '140px',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
             {row.correlation_id ? row.correlation_id.substring(0, 12) : '--'}
           </span>
         ),
@@ -804,13 +804,13 @@ function SecurityContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Row Level Security (RLS)
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {rlsTables.map((table) => (
             <div key={table} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#F8FAFC', minWidth: '180px', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)', minWidth: '180px', fontFamily: 'monospace' }}>
                 {table}
               </span>
               <Badge variant="success">Enabled</Badge>
@@ -820,24 +820,24 @@ function SecurityContent() {
       </GlassCard>
 
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Access Control
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', minWidth: '120px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', minWidth: '120px' }}>
               Service Role
             </span>
             <Badge variant="warning">Restricted -- server-side only</Badge>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', minWidth: '120px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', minWidth: '120px' }}>
               Anon Key
             </span>
             <Badge variant="info">Public -- RLS enforced</Badge>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', minWidth: '120px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', minWidth: '120px' }}>
               Auth
             </span>
             <Badge variant="success">Supabase Auth</Badge>
@@ -847,10 +847,10 @@ function SecurityContent() {
 
       <GlassCard accent="blue" padding="0">
         <div style={{ padding: '20px 20px 0 20px' }}>
-          <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Audit Log
           </p>
-          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
             Recent system events (last 20)
           </p>
         </div>

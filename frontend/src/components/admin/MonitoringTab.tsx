@@ -172,7 +172,7 @@ function ApiUsageContent() {
         sortable: true,
         width: '160px',
         render: (row) => (
-          <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'rgba(248,250,252,0.8)' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-primary)' }}>
             {row.endpoint ?? '--'}
           </span>
         ),
@@ -234,7 +234,7 @@ function ApiUsageContent() {
         header: 'User ID',
         width: '80px',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {row.user_id ?? '--'}
           </span>
         ),
@@ -244,7 +244,7 @@ function ApiUsageContent() {
         header: 'Page Tab',
         width: '100px',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {row.page_tab ?? '--'}
           </span>
         ),
@@ -281,10 +281,10 @@ function ApiUsageContent() {
 
       <GlassCard padding="0">
         <div style={{ padding: '20px 20px 0 20px' }}>
-          <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
             API Usage Log
           </p>
-          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
             Most recent API calls
           </p>
         </div>
@@ -362,7 +362,7 @@ function ErrorLogContent() {
         sortable: true,
         width: '180px',
         render: (row) => (
-          <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'rgba(248,250,252,0.8)' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-primary)' }}>
             {row.endpoint ?? '--'}
           </span>
         ),
@@ -371,7 +371,7 @@ function ErrorLogContent() {
         key: 'error_message',
         header: 'Error Message',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
             {row.error_message
               ? row.error_message.length > 60
                 ? `${row.error_message.substring(0, 60)}...`
@@ -392,7 +392,7 @@ function ErrorLogContent() {
         header: 'User ID',
         width: '80px',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {row.user_id ?? '--'}
           </span>
         ),
@@ -402,7 +402,7 @@ function ErrorLogContent() {
         header: 'Page Tab',
         width: '100px',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {row.page_tab ?? '--'}
           </span>
         ),
@@ -429,10 +429,10 @@ function ErrorLogContent() {
   if (!loading && errors.length === 0) {
     return (
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           No Errors
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           No API errors recorded. System is running smoothly.
         </p>
       </GlassCard>
@@ -449,10 +449,10 @@ function ErrorLogContent() {
 
       <GlassCard padding="0">
         <div style={{ padding: '20px 20px 0 20px' }}>
-          <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Error Log
           </p>
-          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
             Click a row to view full error details
           </p>
         </div>
@@ -476,15 +476,15 @@ function ErrorLogContent() {
         {selectedError && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', marginBottom: '4px', textTransform: 'uppercase' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Endpoint
               </p>
-              <p style={{ fontSize: '14px', color: '#F8FAFC', fontFamily: 'monospace' }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                 {selectedError.endpoint ?? '--'}
               </p>
             </div>
             <div>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', marginBottom: '4px', textTransform: 'uppercase' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Error Message
               </p>
               <p style={{ fontSize: '14px', color: '#EF4444', lineHeight: 1.6 }}>
@@ -492,14 +492,14 @@ function ErrorLogContent() {
               </p>
             </div>
             <div>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', marginBottom: '4px', textTransform: 'uppercase' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Request Data
               </p>
               <pre
                 style={{
                   fontSize: '12px',
-                  color: 'rgba(248,250,252,0.6)',
-                  background: 'rgba(255,255,255,0.04)',
+                  color: 'var(--text-secondary)',
+                  background: 'var(--surface-input)',
                   padding: '12px',
                   borderRadius: '8px',
                   overflow: 'auto',
@@ -513,14 +513,14 @@ function ErrorLogContent() {
               </pre>
             </div>
             <div>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', marginBottom: '4px', textTransform: 'uppercase' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Response Data
               </p>
               <pre
                 style={{
                   fontSize: '12px',
-                  color: 'rgba(248,250,252,0.6)',
-                  background: 'rgba(255,255,255,0.04)',
+                  color: 'var(--text-secondary)',
+                  background: 'var(--surface-input)',
                   padding: '12px',
                   borderRadius: '8px',
                   overflow: 'auto',
@@ -535,24 +535,24 @@ function ErrorLogContent() {
             </div>
             <div style={{ display: 'flex', gap: '24px' }}>
               <div>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
                   Model
                 </p>
-                <p style={{ fontSize: '14px', color: '#F8FAFC' }}>{selectedError.model ?? '--'}</p>
+                <p style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{selectedError.model ?? '--'}</p>
               </div>
               <div>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
                   Processing Time
                 </p>
-                <p style={{ fontSize: '14px', color: '#F8FAFC' }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                   {selectedError.processing_time_ms ?? 0} ms
                 </p>
               </div>
               <div>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
                   Created At
                 </p>
-                <p style={{ fontSize: '14px', color: '#F8FAFC' }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                   {formatDate(selectedError.created_at)}
                 </p>
               </div>
@@ -665,7 +665,7 @@ function PerformanceContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading performance data...
       </div>
     );
@@ -699,7 +699,7 @@ function PerformanceContent() {
       />
 
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Performance Recommendations
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -797,7 +797,7 @@ function LoadingReportContent() {
         key: 'name',
         header: 'Endpoint Name',
         render: (row) => (
-          <span style={{ fontWeight: 500, color: '#F8FAFC' }}>{row.name}</span>
+          <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{row.name}</span>
         ),
       },
       {
@@ -807,7 +807,7 @@ function LoadingReportContent() {
         align: 'right',
         width: '160px',
         render: (row) => (
-          <span style={{ fontWeight: 600, color: '#F8FAFC' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
             {row.responseTime.toLocaleString()} ms
           </span>
         ),
@@ -828,7 +828,7 @@ function LoadingReportContent() {
         align: 'right',
         width: '120px',
         render: (row) => (
-          <span style={{ color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ color: 'var(--text-secondary)' }}>
             {row.rowCount !== null ? row.rowCount.toLocaleString() : 'N/A'}
           </span>
         ),
@@ -840,10 +840,10 @@ function LoadingReportContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Endpoint Health Check
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '16px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '16px' }}>
           Test API endpoints to measure response times.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -851,7 +851,7 @@ function LoadingReportContent() {
             Run All Tests
           </Button>
           {running && (
-            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
               Test Progress: {progress} of {total} completed
             </span>
           )}
@@ -949,7 +949,7 @@ function SystemEventsContent() {
         sortable: true,
         width: '120px',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.tenant_type ?? '--'}
           </span>
         ),
@@ -960,7 +960,7 @@ function SystemEventsContent() {
         sortable: true,
         width: '120px',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.source ?? '--'}
           </span>
         ),
@@ -971,7 +971,7 @@ function SystemEventsContent() {
         render: (row) => {
           const text = row.data ? JSON.stringify(row.data) : '--';
           return (
-            <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', fontFamily: 'monospace' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
               {text.length > 80 ? `${text.substring(0, 80)}...` : text}
             </span>
           );
@@ -982,7 +982,7 @@ function SystemEventsContent() {
         header: 'Correlation ID',
         width: '130px',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
             {row.correlation_id ? row.correlation_id.substring(0, 12) : '--'}
           </span>
         ),
@@ -1138,7 +1138,7 @@ function CostAnalysisContent() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading cost data...
       </div>
     );
@@ -1180,14 +1180,14 @@ function CostAnalysisContent() {
       />
 
       <GlassCard accent="teal" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Cost Optimization Tips
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {optimizationTips.map((tip, idx) => (
             <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
               <span style={{ color: '#06B6D4', fontSize: '14px' }}>{'\u2022'}</span>
-              <span style={{ fontSize: '14px', color: 'rgba(248,250,252,0.7)', lineHeight: 1.5 }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {tip}
               </span>
             </div>

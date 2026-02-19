@@ -195,7 +195,7 @@ function LoadingSpinner({ message }: { message: string }) {
           animation: 'ai-center-spin 700ms linear infinite',
         }}
       />
-      <span style={{ color: 'rgba(248,250,252,0.4)', fontSize: '14px' }}>
+      <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
         {message}
       </span>
       <style>{`
@@ -266,7 +266,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
       style={{
         fontSize: '16px',
         fontWeight: 600,
-        color: '#F8FAFC',
+        color: 'var(--text-primary)',
         marginBottom: '4px',
       }}
     >
@@ -437,10 +437,10 @@ function LlmCenterContent() {
           }}
         >
           <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '24px', fontWeight: 700, color: '#F8FAFC' }}>
+            <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatNumber(totalCalls)}
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Total API Calls
             </p>
           </div>
@@ -448,15 +448,15 @@ function LlmCenterContent() {
             <p style={{ fontSize: '24px', fontWeight: 700, color: errorRate > 0.1 ? '#EF4444' : '#34D399' }}>
               {formatPercent(errorRate)}
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Error Rate
             </p>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '24px', fontWeight: 700, color: '#F8FAFC' }}>
+            <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatNumber(avgProcessingTime)}ms
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Avg Processing Time
             </p>
           </div>
@@ -464,7 +464,7 @@ function LlmCenterContent() {
             <p style={{ fontSize: '24px', fontWeight: 700, color: accuracy > 0.8 ? '#34D399' : '#FBBF24' }}>
               {formatPercent(accuracy)}
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Accuracy
             </p>
           </div>
@@ -475,7 +475,7 @@ function LlmCenterContent() {
       <GlassCard accent="blue">
         <SectionTitle>Model Versions in Use</SectionTitle>
         {modelVersionCounts.length === 0 ? (
-          <p style={{ color: 'rgba(248,250,252,0.4)', fontSize: '14px', marginTop: '12px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px' }}>
             No AI responses recorded yet.
           </p>
         ) : (
@@ -492,15 +492,15 @@ function LlmCenterContent() {
                 key={mv.version}
                 style={{
                   padding: '14px 18px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--surface-input)',
+                  border: '1px solid var(--border-divider)',
                   borderRadius: '10px',
                 }}
               >
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {mv.version}
                 </p>
-                <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '4px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                   {formatNumber(mv.count)} call{mv.count !== 1 ? 's' : ''}
                 </p>
               </div>
@@ -797,13 +797,13 @@ function AllMappingsContent() {
                 borderColor:
                   statusFilter === pill.value
                     ? 'rgba(124,58,237,0.6)'
-                    : 'rgba(255,255,255,0.08)',
+                    : 'var(--border-subtle)',
                 background:
                   statusFilter === pill.value
                     ? 'rgba(124,58,237,0.2)'
-                    : 'rgba(255,255,255,0.04)',
+                    : 'var(--surface-input)',
                 color:
-                  statusFilter === pill.value ? '#C4B5FD' : 'rgba(248,250,252,0.5)',
+                  statusFilter === pill.value ? '#C4B5FD' : 'var(--text-muted)',
                 cursor: 'pointer',
                 transition: 'all 200ms ease',
               }}
@@ -1032,7 +1032,7 @@ function MlDashboardContent() {
         {testResults !== null && (
           <div style={{ marginTop: '16px' }}>
             {testResults.length === 0 ? (
-              <p style={{ color: 'rgba(248,250,252,0.4)', fontSize: '14px' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
                 No existing mappings found for this merchant.
               </p>
             ) : (
@@ -1052,7 +1052,7 @@ function MlDashboardContent() {
       {/* Manual Learning */}
       <GlassCard accent="teal">
         <SectionTitle>Manual Learning</SectionTitle>
-        <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginTop: '4px', marginBottom: '16px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '16px' }}>
           Manually add a merchant-to-ticker mapping to train the system.
         </p>
         <div
@@ -1223,7 +1223,7 @@ function DataManagementContent() {
         header: 'Feedback',
         width: '120px',
         render: (row) => (
-          <span style={{ color: row.admin_feedback ? '#F8FAFC' : 'rgba(248,250,252,0.3)', fontSize: '13px' }}>
+          <span style={{ color: row.admin_feedback ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '13px' }}>
             {row.admin_feedback ?? '--'}
           </span>
         ),
@@ -1287,8 +1287,8 @@ function DataManagementContent() {
           <div
             style={{
               padding: '16px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--surface-input)',
+              border: '1px solid var(--border-divider)',
               borderRadius: '10px',
               textAlign: 'center',
             }}
@@ -1296,15 +1296,15 @@ function DataManagementContent() {
             <p style={{ fontSize: '28px', fontWeight: 700, color: noTickerCount > 0 ? '#FBBF24' : '#34D399' }}>
               {formatNumber(noTickerCount)}
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Mappings with no ticker
             </p>
           </div>
           <div
             style={{
               padding: '16px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--surface-input)',
+              border: '1px solid var(--border-divider)',
               borderRadius: '10px',
               textAlign: 'center',
             }}
@@ -1312,15 +1312,15 @@ function DataManagementContent() {
             <p style={{ fontSize: '28px', fontWeight: 700, color: lowConfCount > 0 ? '#EF4444' : '#34D399' }}>
               {formatNumber(lowConfCount)}
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Confidence below 0.3
             </p>
           </div>
           <div
             style={{
               padding: '16px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--surface-input)',
+              border: '1px solid var(--border-divider)',
               borderRadius: '10px',
               textAlign: 'center',
             }}
@@ -1328,7 +1328,7 @@ function DataManagementContent() {
             <p style={{ fontSize: '28px', fontWeight: 700, color: errorResponses > 0 ? '#EF4444' : '#34D399' }}>
               {formatNumber(errorResponses)}
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Error responses
             </p>
           </div>
@@ -1481,7 +1481,7 @@ function AiAnalyticsContent() {
       <GlassCard accent="teal">
         <SectionTitle>Feedback Summary</SectionTitle>
         {feedbackSummary.length === 0 ? (
-          <p style={{ color: 'rgba(248,250,252,0.4)', fontSize: '14px', marginTop: '12px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px' }}>
             No admin feedback recorded yet.
           </p>
         ) : (
@@ -1507,8 +1507,8 @@ function AiAnalyticsContent() {
                   key={fb.label}
                   style={{
                     padding: '16px',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'var(--surface-input)',
+                    border: '1px solid var(--border-divider)',
                     borderRadius: '10px',
                     textAlign: 'center',
                   }}
@@ -1516,7 +1516,7 @@ function AiAnalyticsContent() {
                   <p style={{ fontSize: '28px', fontWeight: 700, color: accentColor }}>
                     {formatNumber(fb.count)}
                   </p>
-                  <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', marginTop: '4px', textTransform: 'capitalize' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', textTransform: 'capitalize' }}>
                     {fb.label}
                   </p>
                 </div>
@@ -1525,16 +1525,16 @@ function AiAnalyticsContent() {
             <div
               style={{
                 padding: '16px',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: 'var(--surface-input)',
+                border: '1px solid var(--border-divider)',
                 borderRadius: '10px',
                 textAlign: 'center',
               }}
             >
-              <p style={{ fontSize: '28px', fontWeight: 700, color: '#F8FAFC' }}>
+              <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {formatNumber(totalFeedback)}
               </p>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', marginTop: '4px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
                 Total Feedback
               </p>
             </div>
@@ -1655,7 +1655,7 @@ function FlowContent() {
       case 'healthy': return '#34D399';
       case 'warning': return '#FBBF24';
       case 'error': return '#EF4444';
-      case 'idle': return 'rgba(248,250,252,0.3)';
+      case 'idle': return 'var(--text-muted)';
     }
   };
 
@@ -1682,7 +1682,7 @@ function FlowContent() {
         alignItems: 'flex-start',
         gap: '16px',
         padding: '20px',
-        background: 'rgba(255,255,255,0.04)',
+        background: 'var(--surface-input)',
         border: `1px solid ${statusColor(stage.status)}33`,
         borderRadius: '12px',
         position: 'relative',
@@ -1716,7 +1716,7 @@ function FlowContent() {
       {/* Text */}
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC' }}>
+          <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
             {stage.title}
           </p>
           <Badge
@@ -1736,7 +1736,7 @@ function FlowContent() {
         <p
           style={{
             fontSize: '13px',
-            color: 'rgba(248,250,252,0.5)',
+            color: 'var(--text-muted)',
             marginTop: '6px',
             lineHeight: '1.5',
           }}
@@ -2058,7 +2058,7 @@ function ReceiptMappingsContent() {
         sortable: true,
         width: '130px',
         render: (row) => (
-          <span style={{ color: row.mapped_ticker ? '#F8FAFC' : 'rgba(248,250,252,0.3)', fontWeight: row.mapped_ticker ? 600 : 400 }}>
+          <span style={{ color: row.mapped_ticker ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: row.mapped_ticker ? 600 : 400 }}>
             {row.mapped_ticker ?? '--'}
           </span>
         ),
@@ -2134,13 +2134,13 @@ function ReceiptMappingsContent() {
                 borderColor:
                   statusFilter === pill.value
                     ? 'rgba(124,58,237,0.6)'
-                    : 'rgba(255,255,255,0.08)',
+                    : 'var(--border-subtle)',
                 background:
                   statusFilter === pill.value
                     ? 'rgba(124,58,237,0.2)'
-                    : 'rgba(255,255,255,0.04)',
+                    : 'var(--surface-input)',
                 color:
-                  statusFilter === pill.value ? '#C4B5FD' : 'rgba(248,250,252,0.5)',
+                  statusFilter === pill.value ? '#C4B5FD' : 'var(--text-muted)',
                 cursor: 'pointer',
                 transition: 'all 200ms ease',
               }}
@@ -2156,7 +2156,7 @@ function ReceiptMappingsContent() {
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
           />
-          <span style={{ color: 'rgba(248,250,252,0.4)', fontSize: '13px' }}>to</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>to</span>
           <Input
             type="date"
             placeholder="To"
@@ -2358,7 +2358,7 @@ function LlmDataAssetsContent() {
         sortable: true,
         width: '130px',
         render: (row) => (
-          <span style={{ color: row.primary_ticker ? '#F8FAFC' : 'rgba(248,250,252,0.3)', fontWeight: row.primary_ticker ? 600 : 400 }}>
+          <span style={{ color: row.primary_ticker ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: row.primary_ticker ? 600 : 400 }}>
             {row.primary_ticker ?? '--'}
           </span>
         ),
@@ -2430,14 +2430,14 @@ function LlmDataAssetsContent() {
               }}
             >
               <div>
-                <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>Newest Mapping: </span>
-                <span style={{ fontSize: '13px', color: '#F8FAFC', fontWeight: 500 }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Newest Mapping: </span>
+                <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>
                   {newestDate ? formatDateTime(newestDate) : 'N/A'}
                 </span>
               </div>
               <div>
-                <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>Oldest Mapping: </span>
-                <span style={{ fontSize: '13px', color: '#F8FAFC', fontWeight: 500 }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Oldest Mapping: </span>
+                <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>
                   {oldestDate ? formatDateTime(oldestDate) : 'N/A'}
                 </span>
               </div>
@@ -2539,7 +2539,7 @@ export function AiCenterTab() {
         style={{
           fontSize: '20px',
           fontWeight: 700,
-          color: '#F8FAFC',
+          color: 'var(--text-primary)',
         }}
       >
         AI / LLM Management Center

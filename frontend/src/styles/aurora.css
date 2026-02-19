@@ -29,6 +29,16 @@
 
   /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-divider: rgba(255, 255, 255, 0.06);
+
+  /* Interactive surfaces */
+  --surface-input: rgba(255, 255, 255, 0.06);
+  --surface-hover: rgba(255, 255, 255, 0.1);
+  --surface-row-hover: rgba(255, 255, 255, 0.03);
+  --surface-modal: rgba(15, 11, 26, 0.9);
+
+  /* Decorative */
+  --highlight-line: rgba(255, 255, 255, 0.15);
 
   /* Glow shadows */
   --glow-purple: 0 8px 32px rgba(124, 58, 237, 0.3);
@@ -60,6 +70,12 @@ body.light-mode {
   --text-secondary: rgba(30, 41, 59, 0.65);
   --text-muted: rgba(30, 41, 59, 0.45);
   --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-divider: rgba(0, 0, 0, 0.06);
+  --surface-input: rgba(0, 0, 0, 0.04);
+  --surface-hover: rgba(0, 0, 0, 0.06);
+  --surface-row-hover: rgba(0, 0, 0, 0.02);
+  --surface-modal: rgba(255, 255, 255, 0.95);
+  --highlight-line: rgba(0, 0, 0, 0.06);
   --glow-purple: 0 8px 32px rgba(124, 58, 237, 0.15);
   --glow-blue: 0 8px 32px rgba(59, 130, 246, 0.15);
   --glow-teal: 0 8px 32px rgba(6, 182, 212, 0.15);

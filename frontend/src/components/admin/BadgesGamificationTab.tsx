@@ -189,7 +189,7 @@ function BadgeDefinitionsContent() {
         key: 'description',
         header: 'Description',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.description ?? '--'}
           </span>
         ),
@@ -199,7 +199,7 @@ function BadgeDefinitionsContent() {
         header: 'Icon',
         width: '120px',
         render: (row) => (
-          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', wordBreak: 'break-all' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
             {row.icon ?? '--'}
           </span>
         ),
@@ -208,7 +208,7 @@ function BadgeDefinitionsContent() {
         key: 'criteria',
         header: 'Criteria',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.criteria ?? '--'}
           </span>
         ),
@@ -253,7 +253,7 @@ function BadgeDefinitionsContent() {
   if (tableNotFound) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           Badges table not configured. Run the badges migration to enable this feature.
         </p>
       </GlassCard>
@@ -321,7 +321,7 @@ function BadgeDefinitionsContent() {
                   borderRadius: '12px',
                   background: formIsActive
                     ? 'linear-gradient(135deg, #7C3AED, #3B82F6)'
-                    : 'rgba(255,255,255,0.1)',
+                    : 'var(--surface-hover)',
                   transition: 'background 200ms ease',
                   position: 'relative',
                   cursor: 'pointer',
@@ -339,7 +339,7 @@ function BadgeDefinitionsContent() {
                   }}
                 />
               </span>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: 'rgba(248,250,252,0.6)' }}>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>
                 {formIsActive ? 'Active' : 'Inactive'}
               </span>
             </label>
@@ -453,7 +453,7 @@ function AwardQueueContent() {
   if (tableNotFound) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           Badges table not configured. Run the badges migration to enable this feature.
         </p>
       </GlassCard>
@@ -463,7 +463,7 @@ function AwardQueueContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="20px" accent="blue">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           Badge awards are processed automatically when users meet criteria. Manual awards can be created below.
         </p>
       </GlassCard>
@@ -559,7 +559,7 @@ function AutoAwardRulesContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="20px" accent="purple">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           Auto-award rules trigger badge assignments when users meet specific criteria.
           Configure rules to automatically reward user achievements.
         </p>
@@ -569,10 +569,10 @@ function AutoAwardRulesContent() {
         <GlassCard key={rule.name} padding="20px">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC', marginBottom: '4px' }}>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
                 {rule.name}
               </p>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                 {rule.description}
               </p>
             </div>
@@ -584,7 +584,7 @@ function AutoAwardRulesContent() {
       ))}
 
       <GlassCard padding="16px">
-        <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', fontStyle: 'italic' }}>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
           These rules are display-only for now -- actual automation requires Edge Functions.
         </p>
       </GlassCard>
@@ -673,7 +673,7 @@ function AnalyticsContent() {
   if (loading) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           Loading analytics...
         </p>
       </GlassCard>
@@ -683,7 +683,7 @@ function AnalyticsContent() {
   if (tableNotFound) {
     return (
       <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
           Badges table not configured. Run the badges migration to enable this feature.
         </p>
       </GlassCard>
@@ -699,7 +699,7 @@ function AnalyticsContent() {
           <KpiCard label="Most Popular Badge" value="--" accent="teal" />
         </div>
         <GlassCard padding="28px">
-          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', textAlign: 'center' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center' }}>
             No badge awards recorded yet. Award badges to users to see analytics.
           </p>
         </GlassCard>
@@ -722,16 +722,16 @@ function AnalyticsContent() {
       </div>
 
       <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '20px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '20px' }}>
           Badges Awarded by Badge ID
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {badgeCounts.map((group) => (
             <div key={group.badge_id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', width: '100px', flexShrink: 0 }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', width: '100px', flexShrink: 0 }}>
                 Badge #{group.badge_id}
               </span>
-              <div style={{ flex: 1, height: '24px', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', overflow: 'hidden' }}>
+              <div style={{ flex: 1, height: '24px', background: 'var(--surface-input)', borderRadius: '6px', overflow: 'hidden' }}>
                 <div
                   style={{
                     height: '100%',
@@ -743,7 +743,7 @@ function AnalyticsContent() {
                   }}
                 />
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#F8FAFC', width: '40px', textAlign: 'right' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', width: '40px', textAlign: 'right' }}>
                 {group.count}
               </span>
             </div>

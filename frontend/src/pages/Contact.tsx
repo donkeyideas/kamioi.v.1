@@ -32,7 +32,7 @@ const h1Style: React.CSSProperties = {
 
 const subtitleStyle: React.CSSProperties = {
   fontSize: 18,
-  color: 'var(--text-secondary, rgba(248,250,252,0.6))',
+  color: 'var(--text-secondary)',
   maxWidth: 520,
   margin: '0 auto',
   lineHeight: 1.6,
@@ -91,13 +91,13 @@ function InfoItem({
           fontWeight: 600,
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
-          color: 'rgba(248,250,252,0.4)',
+          color: 'var(--text-muted)',
           marginBottom: 4,
         }}
       >
         {label}
       </div>
-      <div style={{ fontSize: 15, color: '#F8FAFC' }}>{value}</div>
+      <div style={{ fontSize: 15, color: 'var(--text-primary)' }}>{value}</div>
     </div>
   )
 }
@@ -237,7 +237,7 @@ export default function Contact() {
                 style={{
                   fontSize: 20,
                   fontWeight: 700,
-                  color: '#F8FAFC',
+                  color: 'var(--text-primary)',
                   marginBottom: 20,
                 }}
               >
@@ -253,7 +253,7 @@ export default function Contact() {
                 style={{
                   fontSize: 16,
                   fontWeight: 600,
-                  color: '#F8FAFC',
+                  color: 'var(--text-primary)',
                   marginBottom: 8,
                 }}
               >
@@ -262,7 +262,7 @@ export default function Contact() {
               <p
                 style={{
                   fontSize: 14,
-                  color: 'rgba(248,250,252,0.6)',
+                  color: 'var(--text-secondary)',
                   margin: '0 0 16px',
                   lineHeight: 1.6,
                 }}

@@ -77,9 +77,9 @@ const pillBase: React.CSSProperties = {
   fontWeight: 500,
   padding: '6px 16px',
   borderRadius: '20px',
-  border: '1px solid rgba(255,255,255,0.08)',
-  background: 'rgba(255,255,255,0.04)',
-  color: 'rgba(248,250,252,0.5)',
+  border: '1px solid var(--border-subtle)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
   transition: 'all 200ms ease',
 };
@@ -87,7 +87,7 @@ const pillBase: React.CSSProperties = {
 const pillActive: React.CSSProperties = {
   background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(59,130,246,0.2))',
   borderColor: 'rgba(124,58,237,0.4)',
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   fontWeight: 600,
 };
 
@@ -126,18 +126,18 @@ const detailRowStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   padding: '8px 0',
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  borderBottom: '1px solid var(--border-divider)',
 };
 
 const detailLabelStyle: React.CSSProperties = {
   fontSize: '13px',
-  color: 'rgba(248,250,252,0.5)',
+  color: 'var(--text-muted)',
   fontWeight: 500,
 };
 
 const detailValueStyle: React.CSSProperties = {
   fontSize: '13px',
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   fontWeight: 600,
   textAlign: 'right',
 };

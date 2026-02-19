@@ -39,9 +39,9 @@ const variantStyles: Record<
     color: '#7C3AED',
   },
   default: {
-    dot: 'rgba(248,250,252,0.4)',
-    bg: 'rgba(255,255,255,0.06)',
-    color: 'rgba(248,250,252,0.6)',
+    dot: 'var(--text-muted)',
+    bg: 'var(--surface-input)',
+    color: 'var(--text-secondary)',
   },
 };
 

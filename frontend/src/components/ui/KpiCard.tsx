@@ -71,7 +71,7 @@ export function KpiCard({
           <p
             style={{
               fontSize: '13px',
-              color: 'rgba(248,250,252,0.6)',
+              color: 'var(--text-secondary)',
               marginBottom: '8px',
               fontWeight: 500,
             }}
@@ -82,7 +82,7 @@ export function KpiCard({
             style={{
               fontSize: '28px',
               fontWeight: 700,
-              color: '#F8FAFC',
+              color: 'var(--text-primary)',
               lineHeight: 1.2,
               marginBottom: change ? '8px' : '0',
             }}

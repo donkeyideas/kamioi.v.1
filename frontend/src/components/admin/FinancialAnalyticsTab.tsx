@@ -233,7 +233,7 @@ function RevenueTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading revenue data...
       </div>
     );
@@ -249,7 +249,7 @@ function RevenueTab() {
       </div>
 
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Revenue by Source
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -261,8 +261,8 @@ function RevenueTab() {
               border: '1px solid rgba(124,58,237,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Subscriptions</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(totalSubscriptionRevenue)}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Subscriptions</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalSubscriptionRevenue)}</p>
           </div>
           <div
             style={{
@@ -272,8 +272,8 @@ function RevenueTab() {
               border: '1px solid rgba(6,182,212,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Fees</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(totalFeeRevenue)}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Fees</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalFeeRevenue)}</p>
           </div>
           <div
             style={{
@@ -283,8 +283,8 @@ function RevenueTab() {
               border: '1px solid rgba(59,130,246,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Round-Ups Processed</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(totalRoundUpProcessed)}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Round-Ups Processed</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalRoundUpProcessed)}</p>
           </div>
         </div>
       </GlassCard>
@@ -379,7 +379,7 @@ function ProfitLossTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading P&L data...
       </div>
     );
@@ -400,7 +400,7 @@ function ProfitLossTab() {
 
       {/* Revenue Breakdown */}
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Revenue Breakdown
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -412,8 +412,8 @@ function ProfitLossTab() {
               border: '1px solid rgba(124,58,237,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Subscription Revenue</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(subscriptionRevenue)}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Subscription Revenue</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(subscriptionRevenue)}</p>
           </div>
           <div
             style={{
@@ -423,15 +423,15 @@ function ProfitLossTab() {
               border: '1px solid rgba(6,182,212,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Round-Up Revenue</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(roundUpRevenue)}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Round-Up Revenue</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(roundUpRevenue)}</p>
           </div>
         </div>
       </GlassCard>
 
       {/* Expense Breakdown */}
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Expense Breakdown
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -443,8 +443,8 @@ function ProfitLossTab() {
               border: '1px solid rgba(239,68,68,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>AI / API Costs</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(apiCosts)}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>AI / API Costs</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(apiCosts)}</p>
           </div>
           <div
             style={{
@@ -454,8 +454,8 @@ function ProfitLossTab() {
               border: '1px solid rgba(148,163,184,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Infrastructure</p>
-            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.35)' }}>No data available</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Infrastructure</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No data available</p>
           </div>
           <div
             style={{
@@ -465,8 +465,8 @@ function ProfitLossTab() {
               border: '1px solid rgba(148,163,184,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Operations</p>
-            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.35)' }}>No data available</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Operations</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No data available</p>
           </div>
         </div>
       </GlassCard>
@@ -540,7 +540,7 @@ function BalanceSheetTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading balance sheet data...
       </div>
     );
@@ -561,7 +561,7 @@ function BalanceSheetTab() {
 
       {/* Assets Section */}
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Assets
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -573,9 +573,9 @@ function BalanceSheetTab() {
               border: '1px solid rgba(124,58,237,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Cash & Equivalents</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(cashEquivalents)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Active subscription revenue</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Cash & Equivalents</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(cashEquivalents)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Active subscription revenue</p>
           </div>
           <div
             style={{
@@ -585,9 +585,9 @@ function BalanceSheetTab() {
               border: '1px solid rgba(6,182,212,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Accounts Receivable</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(accountsReceivable)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Pending renewals</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Accounts Receivable</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(accountsReceivable)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Pending renewals</p>
           </div>
           <div
             style={{
@@ -597,16 +597,16 @@ function BalanceSheetTab() {
               border: '1px solid rgba(59,130,246,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>User Deposits</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(userDeposits)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Round-up deposits</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>User Deposits</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(userDeposits)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Round-up deposits</p>
           </div>
         </div>
       </GlassCard>
 
       {/* Liabilities Section */}
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Liabilities
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -618,8 +618,8 @@ function BalanceSheetTab() {
               border: '1px solid rgba(239,68,68,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Accounts Payable</p>
-            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.35)' }}>No data available</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Accounts Payable</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No data available</p>
           </div>
           <div
             style={{
@@ -629,16 +629,16 @@ function BalanceSheetTab() {
               border: '1px solid rgba(245,158,11,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Pending Payouts</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(pendingPayouts)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Pending market queue amounts</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Pending Payouts</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(pendingPayouts)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Pending market queue amounts</p>
           </div>
         </div>
       </GlassCard>
 
       {/* Equity Section */}
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Equity
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -650,9 +650,9 @@ function BalanceSheetTab() {
               border: '1px solid rgba(16,185,129,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Retained Earnings</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(equity)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Total assets minus total liabilities</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Retained Earnings</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(equity)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Total assets minus total liabilities</p>
           </div>
         </div>
       </GlassCard>
@@ -754,7 +754,7 @@ function CashFlowTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading cash flow data...
       </div>
     );
@@ -771,7 +771,7 @@ function CashFlowTab() {
 
       {/* Cash Inflows */}
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Cash Inflows
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -783,9 +783,9 @@ function CashFlowTab() {
               border: '1px solid rgba(16,185,129,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Subscriptions</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(subscriptionInflows)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Successful renewals</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Subscriptions</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(subscriptionInflows)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Successful renewals</p>
           </div>
           <div
             style={{
@@ -795,16 +795,16 @@ function CashFlowTab() {
               border: '1px solid rgba(6,182,212,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Round-Up Deposits</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(roundUpInflows)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>From roundup ledger</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Round-Up Deposits</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(roundUpInflows)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>From roundup ledger</p>
           </div>
         </div>
       </GlassCard>
 
       {/* Cash Outflows */}
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Cash Outflows
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -816,9 +816,9 @@ function CashFlowTab() {
               border: '1px solid rgba(239,68,68,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>API Costs</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(apiOutflows)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>AI and third-party APIs</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>API Costs</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(apiOutflows)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>AI and third-party APIs</p>
           </div>
           <div
             style={{
@@ -828,9 +828,9 @@ function CashFlowTab() {
               border: '1px solid rgba(245,158,11,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Investment Executions</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(investmentOutflows)}</p>
-            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Completed market queue</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Investment Executions</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(investmentOutflows)}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Completed market queue</p>
           </div>
         </div>
       </GlassCard>
@@ -946,7 +946,7 @@ function RoundUpsTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading round-up data...
       </div>
     );
@@ -971,7 +971,7 @@ function RoundUpsTab() {
       />
 
       <GlassCard padding="0">
-        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: '#F8FAFC' }}>
+        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
           Recent Ledger Entries (Last 100)
         </div>
         <Table<RoundUpRow>
@@ -1027,7 +1027,7 @@ function AccountingTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading accounting data...
       </div>
     );
@@ -1036,10 +1036,10 @@ function AccountingTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Accounting Overview
         </p>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Double-entry accounting and journal entries. Financial reconciliation tools.
         </p>
       </GlassCard>
@@ -1051,7 +1051,7 @@ function AccountingTab() {
       </div>
 
       <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Fee Reconciliation
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -1063,8 +1063,8 @@ function AccountingTab() {
               border: '1px solid rgba(124,58,237,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Transaction Fees</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(totalTxFees)}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Transaction Fees</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalTxFees)}</p>
           </div>
           <div
             style={{
@@ -1074,8 +1074,8 @@ function AccountingTab() {
               border: '1px solid rgba(6,182,212,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Ledger Fees</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(totalLedgerFees)}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Ledger Fees</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalLedgerFees)}</p>
           </div>
         </div>
         <div style={{ marginTop: '16px' }}>

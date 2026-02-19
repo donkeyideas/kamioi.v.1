@@ -269,7 +269,7 @@ export function SettingsTab() {
             display: 'inline-block',
             width: '24px',
             height: '24px',
-            border: '2px solid rgba(255,255,255,0.1)',
+            border: '2px solid var(--border-subtle)',
             borderTopColor: '#7C3AED',
             borderRadius: '50%',
             animation: 'settings-spin 600ms linear infinite',
@@ -288,7 +288,7 @@ export function SettingsTab() {
         style={{
           fontSize: '20px',
           fontWeight: 700,
-          color: '#F8FAFC',
+          color: 'var(--text-primary)',
           margin: 0,
         }}
       >
@@ -377,7 +377,7 @@ export function SettingsTab() {
         <p
           style={{
             fontSize: '14px',
-            color: 'rgba(248,250,252,0.55)',
+            color: 'var(--text-muted)',
             margin: '0 0 16px',
           }}
         >
@@ -410,8 +410,8 @@ export function SettingsTab() {
                   transition: 'all 200ms ease',
                   background: isActive
                     ? 'linear-gradient(135deg, #7C3AED, #3B82F6)'
-                    : 'rgba(255,255,255,0.06)',
-                  color: isActive ? '#FFFFFF' : 'rgba(248,250,252,0.6)',
+                    : 'var(--surface-input)',
+                  color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
                   boxShadow: isActive
                     ? '0 4px 20px rgba(124,58,237,0.3)'
                     : 'none',
@@ -442,7 +442,7 @@ export function SettingsTab() {
           <span
             style={{
               fontSize: '14px',
-              color: 'rgba(248,250,252,0.55)',
+              color: 'var(--text-muted)',
             }}
           >
             Current plan:
@@ -556,6 +556,6 @@ export function SettingsTab() {
 const sectionTitleStyle: React.CSSProperties = {
   fontSize: '16px',
   fontWeight: 600,
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   margin: '0 0 16px',
 }

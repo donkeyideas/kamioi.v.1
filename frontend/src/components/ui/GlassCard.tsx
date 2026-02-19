@@ -30,10 +30,10 @@ export function GlassCard({
       className={clsx('glass-card', className)}
       style={{
         position: 'relative',
-        background: 'rgba(15,11,26,0.6)',
+        background: 'var(--dark-card)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--border-subtle)',
         borderRadius: '16px',
         padding,
         transition: 'transform 300ms ease, box-shadow 300ms ease',
@@ -57,7 +57,7 @@ export function GlassCard({
           right: 0,
           height: '1px',
           background:
-            'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
+            'linear-gradient(90deg, transparent, var(--highlight-line), transparent)',
           pointerEvents: 'none',
         }}
       />

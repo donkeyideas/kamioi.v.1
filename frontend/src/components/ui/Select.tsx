@@ -18,9 +18,9 @@ const baseStyle: React.CSSProperties = {
   width: '100%',
   fontFamily: 'inherit',
   fontSize: '14px',
-  color: '#F8FAFC',
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  color: 'var(--text-primary)',
+  background: 'var(--surface-input)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '8px',
   padding: '10px 36px 10px 14px',
   outline: 'none',
@@ -28,7 +28,7 @@ const baseStyle: React.CSSProperties = {
   appearance: 'none',
   cursor: 'pointer',
   /* Arrow via encoded SVG background */
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(248,250,252,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(148,163,184,0.6)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
   backgroundRepeat: 'no-repeat',
   backgroundPosition: 'right 12px center',
 };
@@ -36,7 +36,7 @@ const baseStyle: React.CSSProperties = {
 const focusStyle: React.CSSProperties = {
   borderColor: 'rgba(124,58,237,0.5)',
   boxShadow: '0 0 0 3px rgba(124,58,237,0.1)',
-  background: 'rgba(255,255,255,0.08)',
+  background: 'var(--surface-hover)',
   /* Keep the arrow */
   backgroundImage: baseStyle.backgroundImage,
   backgroundRepeat: 'no-repeat',
@@ -47,7 +47,7 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: '13px',
   fontWeight: 500,
-  color: 'rgba(248,250,252,0.6)',
+  color: 'var(--text-secondary)',
   marginBottom: '6px',
 };
 
@@ -83,7 +83,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           {...rest}
         >
           {placeholder && (
-            <option value="" disabled style={{ color: 'rgba(248,250,252,0.4)' }}>
+            <option value="" disabled style={{ color: 'var(--text-muted)' }}>
               {placeholder}
             </option>
           )}
@@ -93,8 +93,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               value={opt.value}
               disabled={opt.disabled}
               style={{
-                background: '#1a1425',
-                color: opt.disabled ? 'rgba(248,250,252,0.3)' : '#F8FAFC',
+                background: 'var(--dark-card-solid)',
+                color: opt.disabled ? 'var(--text-muted)' : 'var(--text-primary)',
               }}
             >
               {opt.label}

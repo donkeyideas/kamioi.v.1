@@ -152,18 +152,18 @@ const detailRowStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   padding: '8px 0',
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  borderBottom: '1px solid var(--border-divider)',
 };
 
 const detailLabelStyle: React.CSSProperties = {
   fontSize: '13px',
-  color: 'rgba(248,250,252,0.5)',
+  color: 'var(--text-muted)',
   fontWeight: 500,
 };
 
 const detailValueStyle: React.CSSProperties = {
   fontSize: '13px',
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   fontWeight: 600,
   textAlign: 'right',
 };
@@ -180,7 +180,7 @@ function DetailRow({ label, value }: { label: string; value: string | number | n
 const sectionTitleStyle: React.CSSProperties = {
   fontSize: '14px',
   fontWeight: 700,
-  color: '#F8FAFC',
+  color: 'var(--text-primary)',
   marginTop: '12px',
   marginBottom: '4px',
   paddingBottom: '4px',
@@ -350,7 +350,7 @@ export function UserManagementTab() {
         sortable: true,
         width: '12%',
         render: (row: UserRow) => (
-          <span style={{ color: row.subscription_tier ? '#F8FAFC' : 'rgba(248,250,252,0.3)' }}>
+          <span style={{ color: row.subscription_tier ? 'var(--text-primary)' : 'var(--text-muted)' }}>
             {row.subscription_tier ?? 'None'}
           </span>
         ),
@@ -383,7 +383,7 @@ export function UserManagementTab() {
         sortable: true,
         width: '12%',
         render: (row: UserRow) => (
-          <span style={{ color: 'rgba(248,250,252,0.5)' }}>
+          <span style={{ color: 'var(--text-muted)' }}>
             {formatDate(row.created_at)}
           </span>
         ),
@@ -404,7 +404,7 @@ export function UserManagementTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading user data...
       </div>
     );
@@ -433,7 +433,7 @@ export function UserManagementTab() {
           style={{
             fontSize: '16px',
             fontWeight: 600,
-            color: '#F8FAFC',
+            color: 'var(--text-primary)',
             marginBottom: '16px',
           }}
         >
@@ -459,8 +459,8 @@ export function UserManagementTab() {
                 key={type}
                 style={{
                   position: 'relative',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--surface-row-hover)',
+                  border: '1px solid var(--border-divider)',
                   borderRadius: '12px',
                   padding: '20px',
                   overflow: 'hidden',
@@ -492,7 +492,7 @@ export function UserManagementTab() {
                     style={{
                       fontSize: '14px',
                       fontWeight: 600,
-                      color: '#F8FAFC',
+                      color: 'var(--text-primary)',
                       textTransform: 'capitalize',
                     }}
                   >
@@ -517,7 +517,7 @@ export function UserManagementTab() {
                   style={{
                     fontSize: '28px',
                     fontWeight: 700,
-                    color: '#F8FAFC',
+                    color: 'var(--text-primary)',
                     margin: '0 0 4px 0',
                     lineHeight: 1.1,
                   }}
@@ -527,7 +527,7 @@ export function UserManagementTab() {
                 <p
                   style={{
                     fontSize: '12px',
-                    color: 'rgba(248,250,252,0.45)',
+                    color: 'var(--text-muted)',
                     margin: '0 0 14px 0',
                   }}
                 >
@@ -539,7 +539,7 @@ export function UserManagementTab() {
                   style={{
                     width: '100%',
                     height: '6px',
-                    background: 'rgba(255,255,255,0.06)',
+                    background: 'var(--surface-input)',
                     borderRadius: '3px',
                     overflow: 'hidden',
                     marginBottom: '14px',
@@ -577,7 +577,7 @@ export function UserManagementTab() {
                   <span
                     style={{
                       fontSize: '12px',
-                      color: 'rgba(248,250,252,0.55)',
+                      color: 'var(--text-muted)',
                     }}
                   >
                     {formatNumber(activeSubs)} active subscription{activeSubs !== 1 ? 's' : ''}
@@ -687,7 +687,7 @@ export function UserManagementTab() {
           style={{
             fontSize: '16px',
             fontWeight: 600,
-            color: '#F8FAFC',
+            color: 'var(--text-primary)',
             marginBottom: '16px',
           }}
         >

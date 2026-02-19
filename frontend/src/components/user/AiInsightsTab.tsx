@@ -17,7 +17,7 @@ function LoadingSpinner() {
         style={{
           width: '36px',
           height: '36px',
-          border: '3px solid rgba(255,255,255,0.1)',
+          border: '3px solid var(--border-subtle)',
           borderTopColor: '#7C3AED',
           borderRadius: '50%',
           animation: 'insights-spin 700ms linear infinite',
@@ -64,7 +64,7 @@ function InsightCard({ title, accent, icon, children }: InsightCardProps) {
         >
           {icon}
         </div>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
           {title}
         </h3>
       </div>
@@ -188,10 +188,10 @@ export function AiInsightsTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
       <div>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC', margin: '0 0 8px 0' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px 0' }}>
           AI Insights
         </h2>
-        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', margin: 0, maxWidth: '600px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, maxWidth: '600px' }}>
           Personalized insights powered by AI analysis of your spending patterns and portfolio.
         </p>
       </div>
@@ -201,12 +201,12 @@ export function AiInsightsTab() {
         {/* 1. Spending Pattern */}
         <InsightCard title="Spending Pattern" accent="purple" icon={<SpendingPatternIcon />}>
           {!hasTransactions ? (
-            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', margin: 0 }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>
               Not enough data for spending analysis.
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', margin: 0 }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
                 Top spending categories based on your transaction history:
               </p>
               {topCategories.map((cat, idx) => (
@@ -217,9 +217,9 @@ export function AiInsightsTab() {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '10px 14px',
-                    background: 'rgba(255,255,255,0.04)',
+                    background: 'var(--surface-input)',
                     borderRadius: '8px',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid var(--border-divider)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -240,11 +240,11 @@ export function AiInsightsTab() {
                     >
                       {idx + 1}
                     </span>
-                    <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
                       {cat.category}
                     </span>
                   </div>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {formatCurrency(cat.total)}
                   </span>
                 </div>
@@ -256,7 +256,7 @@ export function AiInsightsTab() {
         {/* 2. Round-Up Impact */}
         <InsightCard title="Round-Up Impact" accent="blue" icon={<RoundUpIcon />}>
           {roundUpStats.count === 0 ? (
-            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', margin: 0 }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>
               No round-up data available yet. Start making purchases to see your round-up impact.
             </p>
           ) : (
@@ -269,10 +269,10 @@ export function AiInsightsTab() {
                   border: '1px solid rgba(59,130,246,0.12)',
                 }}
               >
-                <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', margin: '0 0 4px 0' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px 0' }}>
                   Total Round-Ups
                 </p>
-                <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+                <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                   {formatCurrency(roundUpStats.totalRoundUps)}
                 </p>
               </div>
@@ -284,10 +284,10 @@ export function AiInsightsTab() {
                   border: '1px solid rgba(59,130,246,0.12)',
                 }}
               >
-                <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', margin: '0 0 4px 0' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px 0' }}>
                   Avg per Transaction
                 </p>
-                <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+                <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                   {formatCurrency(roundUpStats.avgRoundUp)}
                 </p>
               </div>
@@ -299,10 +299,10 @@ export function AiInsightsTab() {
                   border: '1px solid rgba(59,130,246,0.12)',
                 }}
               >
-                <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', margin: '0 0 4px 0' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px 0' }}>
                   Projected Annual
                 </p>
-                <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+                <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                   {formatCurrency(roundUpStats.projectedAnnual)}
                 </p>
               </div>
@@ -313,29 +313,29 @@ export function AiInsightsTab() {
         {/* 3. Investment Suggestion */}
         <InsightCard title="Investment Suggestion" accent="teal" icon={<SuggestionIcon />}>
           {!hasTransactions ? (
-            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', margin: 0 }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>
               Not enough transaction data to generate suggestions. Link more cards and make purchases to get started.
             </p>
           ) : transactions.length < 10 ? (
             <div>
-              <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', margin: '0 0 8px 0' }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 8px 0' }}>
                 Your activity is still building up. Here are some tips:
               </p>
               <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <li style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+                <li style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                   Consider linking additional payment cards to increase round-up volume.
                 </li>
-                <li style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+                <li style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                   The more transactions you make, the better your insights become.
                 </li>
-                <li style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+                <li style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                   Set up automatic round-ups to build your investment portfolio passively.
                 </li>
               </ul>
             </div>
           ) : (
             <div>
-              <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', margin: '0 0 12px 0' }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>
                 Based on your round-up volume of {formatCurrency(roundUpStats.totalRoundUps)} across{' '}
                 {roundUpStats.count} transactions:
               </p>
@@ -347,10 +347,10 @@ export function AiInsightsTab() {
                   border: '1px solid rgba(6,182,212,0.12)',
                 }}
               >
-                <p style={{ fontSize: '14px', color: '#F8FAFC', margin: '0 0 6px 0', fontWeight: 600 }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: '0 0 6px 0', fontWeight: 600 }}>
                   Increase your round-up multiplier
                 </p>
-                <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', margin: 0 }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
                   Your average round-up is {formatCurrency(roundUpStats.avgRoundUp)} per transaction.
                   Increasing your round-up amount could boost your projected annual savings from{' '}
                   {formatCurrency(roundUpStats.projectedAnnual)} to{' '}

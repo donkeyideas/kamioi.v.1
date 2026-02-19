@@ -12,9 +12,9 @@ const baseFieldStyles: React.CSSProperties = {
   width: '100%',
   fontFamily: 'inherit',
   fontSize: '14px',
-  color: '#F8FAFC',
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  color: 'var(--text-primary)',
+  background: 'var(--surface-input)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '8px',
   padding: '10px 14px',
   outline: 'none',
@@ -24,14 +24,14 @@ const baseFieldStyles: React.CSSProperties = {
 const focusStyles: React.CSSProperties = {
   borderColor: 'rgba(124,58,237,0.5)',
   boxShadow: '0 0 0 3px rgba(124,58,237,0.1)',
-  background: 'rgba(255,255,255,0.08)',
+  background: 'var(--surface-hover)',
 };
 
 const labelStyles: React.CSSProperties = {
   display: 'block',
   fontSize: '13px',
   fontWeight: 500,
-  color: 'rgba(248,250,252,0.6)',
+  color: 'var(--text-secondary)',
   marginBottom: '6px',
 };
 

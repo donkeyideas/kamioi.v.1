@@ -922,7 +922,7 @@ function RenewalsTab() {
       </div>
 
       <GlassCard padding="0">
-        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: '#F8FAFC' }}>
+        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
           Renewal Queue
         </div>
         <Table<RenewalQueueItem>
@@ -936,7 +936,7 @@ function RenewalsTab() {
       </GlassCard>
 
       <GlassCard padding="0">
-        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: '#F8FAFC' }}>
+        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
           Renewal History
         </div>
         <Table<RenewalHistoryItem>
@@ -1060,7 +1060,7 @@ function AnalyticsTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading analytics...
       </div>
     );
@@ -1087,7 +1087,7 @@ function AnalyticsTab() {
       />
 
       <GlassCard padding="0">
-        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: '#F8FAFC' }}>
+        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
           Subscription Changes
         </div>
         <Table<SubscriptionChange>
@@ -1167,7 +1167,7 @@ function DemoRequestsTab() {
         key: 'message',
         header: 'Message',
         render: (row) => (
-          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             {row.message ? truncate(row.message, 60) : '--'}
           </span>
         ),
@@ -1225,29 +1225,29 @@ function DemoRequestsTab() {
         {selectedMessage && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>From</span>
-              <p style={{ color: '#F8FAFC', fontWeight: 600, margin: '4px 0 0' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>From</span>
+              <p style={{ color: 'var(--text-primary)', fontWeight: 600, margin: '4px 0 0' }}>
                 {selectedMessage.name} ({selectedMessage.email})
               </p>
             </div>
             <div>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>Subject</span>
-              <p style={{ color: '#F8FAFC', margin: '4px 0 0' }}>{selectedMessage.subject ?? '--'}</p>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Subject</span>
+              <p style={{ color: 'var(--text-primary)', margin: '4px 0 0' }}>{selectedMessage.subject ?? '--'}</p>
             </div>
             <div>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>Message</span>
-              <p style={{ color: 'rgba(248,250,252,0.8)', margin: '4px 0 0', lineHeight: 1.6 }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Message</span>
+              <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.6 }}>
                 {selectedMessage.message ?? '--'}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>Status:</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Status:</span>
               <Badge variant={contactStatusVariant(selectedMessage.status)}>
                 {selectedMessage.status}
               </Badge>
             </div>
             <div>
-              <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                 Received: {formatDate(selectedMessage.created_at)}
               </span>
             </div>

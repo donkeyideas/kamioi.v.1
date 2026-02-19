@@ -262,7 +262,7 @@ export function PlatformOverviewTab() {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         Loading platform overview...
       </div>
     );
@@ -320,7 +320,7 @@ export function PlatformOverviewTab() {
           style={{
             fontSize: '16px',
             fontWeight: 600,
-            color: '#F8FAFC',
+            color: 'var(--text-primary)',
             marginBottom: '16px',
           }}
         >
@@ -334,19 +334,19 @@ export function PlatformOverviewTab() {
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontWeight: 500 }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
               Database
             </span>
             <Badge variant="success">Healthy</Badge>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontWeight: 500 }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
               Auth Service
             </span>
             <Badge variant="success">Active</Badge>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontWeight: 500 }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
               Pending Queue
             </span>
             <Badge variant={pendingMappings > 0 ? 'warning' : 'success'}>
@@ -354,7 +354,7 @@ export function PlatformOverviewTab() {
             </Badge>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontWeight: 500 }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
               API Services
             </span>
             <Badge variant="success">Running</Badge>
@@ -368,7 +368,7 @@ export function PlatformOverviewTab() {
           style={{
             fontSize: '16px',
             fontWeight: 600,
-            color: '#F8FAFC',
+            color: 'var(--text-primary)',
             marginBottom: '16px',
           }}
         >
@@ -383,7 +383,7 @@ export function PlatformOverviewTab() {
           style={{
             fontSize: '16px',
             fontWeight: 600,
-            color: '#F8FAFC',
+            color: 'var(--text-primary)',
             marginBottom: '16px',
           }}
         >

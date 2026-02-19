@@ -180,7 +180,7 @@ export function NotificationsTab() {
           style={{
             fontSize: '20px',
             fontWeight: 700,
-            color: '#F8FAFC',
+            color: 'var(--text-primary)',
             margin: 0,
           }}
         >
@@ -229,7 +229,7 @@ export function NotificationsTab() {
                   : 'transparent',
                 color: isActive
                   ? '#A78BFA'
-                  : 'rgba(248,250,252,0.5)',
+                  : 'var(--text-muted)',
               }}
             >
               {f.label}
@@ -256,7 +256,7 @@ export function NotificationsTab() {
               display: 'inline-block',
               width: '24px',
               height: '24px',
-              border: '2px solid rgba(255,255,255,0.1)',
+              border: '2px solid var(--border-subtle)',
               borderTopColor: '#7C3AED',
               borderRadius: '50%',
               animation: 'notif-spin 600ms linear infinite',
@@ -283,7 +283,7 @@ export function NotificationsTab() {
             height="48"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="rgba(248,250,252,0.2)"
+            stroke="var(--text-muted)"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -293,7 +293,7 @@ export function NotificationsTab() {
           </svg>
           <p
             style={{
-              color: 'rgba(248,250,252,0.35)',
+              color: 'var(--text-muted)',
               fontSize: '14px',
               margin: 0,
             }}
@@ -308,7 +308,7 @@ export function NotificationsTab() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filtered.map((n) => {
             const dotColor =
-              typeDotColors[n.type as NotificationType] ?? 'rgba(248,250,252,0.3)'
+              typeDotColors[n.type as NotificationType] ?? 'var(--text-muted)'
             const isUnread = !n.read
 
             return (
@@ -321,8 +321,8 @@ export function NotificationsTab() {
                 style={{
                   cursor: isUnread ? 'pointer' : 'default',
                   background: isUnread
-                    ? 'rgba(15,11,26,0.63)'
-                    : 'rgba(15,11,26,0.6)',
+                    ? 'var(--dark-card)'
+                    : 'var(--dark-card)',
                 }}
               >
                 <div
@@ -361,7 +361,7 @@ export function NotificationsTab() {
                         style={{
                           fontSize: '14px',
                           fontWeight: 600,
-                          color: '#F8FAFC',
+                          color: 'var(--text-primary)',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -372,7 +372,7 @@ export function NotificationsTab() {
                       <span
                         style={{
                           fontSize: '12px',
-                          color: 'rgba(248,250,252,0.35)',
+                          color: 'var(--text-muted)',
                           flexShrink: 0,
                           whiteSpace: 'nowrap',
                         }}
@@ -385,7 +385,7 @@ export function NotificationsTab() {
                     <p
                       style={{
                         fontSize: '14px',
-                        color: 'rgba(248,250,252,0.55)',
+                        color: 'var(--text-muted)',
                         margin: 0,
                         lineHeight: 1.5,
                       }}

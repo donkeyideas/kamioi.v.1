@@ -137,7 +137,7 @@ export default function Home() {
           <Link
             to="/how-it-works"
             style={{
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--surface-input)',
               border: '1px solid var(--border-subtle)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
@@ -150,11 +150,11 @@ export default function Home() {
               transition: 'background 300ms ease, transform 300ms ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.12)'
+              e.currentTarget.style.background = 'var(--surface-input)'
               e.currentTarget.style.transform = 'translateY(-2px)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.background = 'var(--surface-input)'
               e.currentTarget.style.transform = 'translateY(0)'
             }}
           >

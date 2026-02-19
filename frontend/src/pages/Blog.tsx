@@ -45,7 +45,7 @@ const h1Style: React.CSSProperties = {
 
 const subtitleStyle: React.CSSProperties = {
   fontSize: 18,
-  color: 'var(--text-secondary, rgba(248,250,252,0.6))',
+  color: 'var(--text-secondary)',
   maxWidth: 520,
   margin: '0 auto',
   lineHeight: 1.6,
@@ -60,14 +60,14 @@ const gridStyle: React.CSSProperties = {
 const emptyStyle: React.CSSProperties = {
   textAlign: 'center',
   padding: '60px 20px',
-  color: 'rgba(248,250,252,0.5)',
+  color: 'var(--text-muted)',
   fontSize: 16,
 }
 
 const loadingStyle: React.CSSProperties = {
   textAlign: 'center',
   padding: '60px 20px',
-  color: 'rgba(248,250,252,0.5)',
+  color: 'var(--text-muted)',
   fontSize: 16,
 }
 
@@ -119,7 +119,7 @@ function PostCard({ post }: { post: BlogPost }) {
           style={{
             fontSize: 12,
             fontWeight: 500,
-            color: 'rgba(248,250,252,0.4)',
+            color: 'var(--text-muted)',
             marginBottom: 8,
           }}
         >
@@ -131,7 +131,7 @@ function PostCard({ post }: { post: BlogPost }) {
           style={{
             fontSize: 18,
             fontWeight: 700,
-            color: '#F8FAFC',
+            color: 'var(--text-primary)',
             lineHeight: 1.35,
             marginBottom: 12,
           }}
@@ -143,7 +143,7 @@ function PostCard({ post }: { post: BlogPost }) {
         <p
           style={{
             fontSize: 14,
-            color: 'rgba(248,250,252,0.6)',
+            color: 'var(--text-secondary)',
             lineHeight: 1.6,
             flex: 1,
             margin: '0 0 16px',

@@ -33,7 +33,7 @@ function LoadingSpinner() {
         style={{
           width: '36px',
           height: '36px',
-          border: '3px solid rgba(255,255,255,0.1)',
+          border: '3px solid var(--border-subtle)',
           borderTopColor: '#7C3AED',
           borderRadius: '50%',
           animation: 'goals-spin 700ms linear infinite',
@@ -61,7 +61,7 @@ function EmptyState() {
         height="48"
         viewBox="0 0 24 24"
         fill="none"
-        stroke="rgba(248,250,252,0.3)"
+        stroke="var(--text-muted)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -70,7 +70,7 @@ function EmptyState() {
         <path d="M2 17l10 5 10-5" />
         <path d="M2 12l10 5 10-5" />
       </svg>
-      <p style={{ color: 'rgba(248,250,252,0.5)', fontSize: '15px', marginTop: '16px', maxWidth: '300px' }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginTop: '16px', maxWidth: '300px' }}>
         No goals yet. Create your first savings goal.
       </p>
     </div>
@@ -89,7 +89,7 @@ function GoalCard({ goal, onDelete, deleting }: GoalCardProps) {
   return (
     <GlassCard padding="20px">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
           {goal.title}
         </h3>
         <Button
@@ -121,7 +121,7 @@ function GoalCard({ goal, onDelete, deleting }: GoalCardProps) {
           width: '100%',
           height: '8px',
           borderRadius: '4px',
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--surface-input)',
           overflow: 'hidden',
           marginBottom: '10px',
         }}
@@ -138,7 +138,7 @@ function GoalCard({ goal, onDelete, deleting }: GoalCardProps) {
       </div>
 
       {/* Amount text */}
-      <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', margin: '0 0 12px 0' }}>
+      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>
         {formatCurrency(goal.current_amount)} of {formatCurrency(goal.target_amount)}
       </p>
 
@@ -275,7 +275,7 @@ export function GoalsTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header with Create button */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
           Goals
         </h2>
         <Button variant="primary" size="md" onClick={handleOpenModal}>
