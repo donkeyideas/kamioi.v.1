@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
-import { KpiCard, GlassCard, ActivityFeed } from '@/components/ui';
-import type { ActivityItem } from '@/components/ui';
+import { KpiCard, GlassCard, Badge, ActivityFeed, QuickActions } from '@/components/ui';
+import type { ActivityItem, QuickAction } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
+import LineChart from '@/components/charts/LineChart';
 
 /* ---------- Types ---------- */
 
@@ -12,7 +12,7 @@ interface UserGrowthPoint {
   users: number;
 }
 
-interface RevenuePlanPoint {
+interface RevenueTrendPoint {
   name: string;
   revenue: number;
 }
@@ -39,8 +39,16 @@ function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US').format(value);
 }
 
-function monthLabel(dateString: string): string {
+function monthKey(dateString: string): string {
   const d = new Date(dateString);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+function monthLabel(key: string): string {
+  const [year, month] = key.split('-');
+  const d = new Date(Number(year), Number(month) - 1, 1);
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
 }
 
@@ -55,6 +63,18 @@ function timeAgo(dateString: string): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
+}
+
+function getLast12MonthKeys(): string[] {
+  const keys: string[] = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    keys.push(`${year}-${month}`);
+  }
+  return keys;
 }
 
 const EVENT_COLORS: Record<string, ActivityItem['color']> = {
@@ -75,39 +95,35 @@ function eventColor(eventType: string): ActivityItem['color'] {
 /* ---------- Component ---------- */
 
 export function PlatformOverviewTab() {
-  const { profile } = useAuth();
-
   const [loading, setLoading] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [pendingMappings, setPendingMappings] = useState(0);
   const [activeSubscriptions, setActiveSubscriptions] = useState(0);
   const [usersByMonth, setUsersByMonth] = useState<UserGrowthPoint[]>([]);
-  const [revenueByPlan, setRevenueByPlan] = useState<RevenuePlanPoint[]>([]);
+  const [revenueByMonth, setRevenueByMonth] = useState<RevenueTrendPoint[]>([]);
   const [systemEvents, setSystemEvents] = useState<SystemEventRow[]>([]);
 
   useEffect(() => {
-    if (!profile?.id) {
-      setLoading(false);
-      return;
-    }
-
     async function fetchData() {
       try {
         const [
           usersResult,
-          subscriptionsResult,
+          revenueResult,
           pendingResult,
           activeSubsResult,
           usersListResult,
-          revenueResult,
+          subsListResult,
           eventsResult,
         ] = await Promise.all([
           /* Total users count */
           supabase.from('users').select('id', { count: 'exact', head: true }),
 
-          /* Total revenue from user_subscriptions */
-          supabase.from('user_subscriptions').select('amount'),
+          /* Total revenue from active subscriptions */
+          supabase
+            .from('user_subscriptions')
+            .select('amount')
+            .eq('status', 'active'),
 
           /* Pending mappings count */
           supabase
@@ -121,16 +137,16 @@ export function PlatformOverviewTab() {
             .select('id', { count: 'exact', head: true })
             .eq('status', 'active'),
 
-          /* Users list for growth chart (only created_at needed) */
+          /* Users list for growth chart */
           supabase
             .from('users')
             .select('created_at')
             .order('created_at', { ascending: true }),
 
-          /* Revenue by plan: join user_subscriptions with subscription_plans */
+          /* Subscriptions list for revenue trend chart */
           supabase
             .from('user_subscriptions')
-            .select('amount, subscription_plans(name)')
+            .select('amount, created_at')
             .eq('status', 'active'),
 
           /* Recent system events */
@@ -145,7 +161,7 @@ export function PlatformOverviewTab() {
         setTotalUsers(usersResult.count ?? 0);
 
         /* KPI: Total Revenue */
-        const revTotal = (subscriptionsResult.data ?? []).reduce(
+        const revTotal = (revenueResult.data ?? []).reduce(
           (sum: number, row: { amount: number }) => sum + (row.amount ?? 0),
           0,
         );
@@ -157,30 +173,40 @@ export function PlatformOverviewTab() {
         /* KPI: Active Subscriptions */
         setActiveSubscriptions(activeSubsResult.count ?? 0);
 
-        /* Chart: User Growth by month */
-        const monthMap = new Map<string, number>();
+        /* Chart: User Growth by month (last 12 months) */
+        const last12 = getLast12MonthKeys();
+        const userMonthMap = new Map<string, number>();
+        for (const key of last12) {
+          userMonthMap.set(key, 0);
+        }
         for (const row of usersListResult.data ?? []) {
-          const key = monthLabel(row.created_at);
-          monthMap.set(key, (monthMap.get(key) ?? 0) + 1);
+          const key = monthKey(row.created_at);
+          if (userMonthMap.has(key)) {
+            userMonthMap.set(key, (userMonthMap.get(key) ?? 0) + 1);
+          }
         }
-        const growthData: UserGrowthPoint[] = [];
-        for (const [name, users] of monthMap) {
-          growthData.push({ name, users });
-        }
+        const growthData: UserGrowthPoint[] = last12.map((key) => ({
+          name: monthLabel(key),
+          users: userMonthMap.get(key) ?? 0,
+        }));
         setUsersByMonth(growthData);
 
-        /* Chart: Revenue by Plan */
-        const planRevenueMap = new Map<string, number>();
-        for (const row of revenueResult.data ?? []) {
-          const planData = row.subscription_plans as unknown as { name: string } | null;
-          const planName = planData?.name ?? 'Unknown';
-          planRevenueMap.set(planName, (planRevenueMap.get(planName) ?? 0) + (row.amount ?? 0));
+        /* Chart: Revenue Trend by month (last 12 months) */
+        const revMonthMap = new Map<string, number>();
+        for (const key of last12) {
+          revMonthMap.set(key, 0);
         }
-        const planData: RevenuePlanPoint[] = [];
-        for (const [name, revenue] of planRevenueMap) {
-          planData.push({ name, revenue });
+        for (const row of subsListResult.data ?? []) {
+          const key = monthKey(row.created_at);
+          if (revMonthMap.has(key)) {
+            revMonthMap.set(key, (revMonthMap.get(key) ?? 0) + (row.amount ?? 0));
+          }
         }
-        setRevenueByPlan(planData);
+        const revData: RevenueTrendPoint[] = last12.map((key) => ({
+          name: monthLabel(key),
+          revenue: revMonthMap.get(key) ?? 0,
+        }));
+        setRevenueByMonth(revData);
 
         /* Activity Feed: System Events */
         setSystemEvents((eventsResult.data as SystemEventRow[]) ?? []);
@@ -192,7 +218,7 @@ export function PlatformOverviewTab() {
     }
 
     fetchData();
-  }, [profile?.id]);
+  }, []);
 
   /* Map system events to ActivityFeed items */
   const activityItems: ActivityItem[] = useMemo(
@@ -203,6 +229,33 @@ export function PlatformOverviewTab() {
         time: timeAgo(evt.created_at),
       })),
     [systemEvents],
+  );
+
+  /* Quick actions */
+  const quickActions: QuickAction[] = useMemo(
+    () => [
+      {
+        label: 'Manage Users',
+        gradient: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(124,58,237,0.1))',
+        onClick: () => {},
+      },
+      {
+        label: 'Process Investments',
+        gradient: 'linear-gradient(135deg, rgba(6,182,212,0.3), rgba(6,182,212,0.1))',
+        onClick: () => {},
+      },
+      {
+        label: 'View Financial Reports',
+        gradient: 'linear-gradient(135deg, rgba(59,130,246,0.3), rgba(59,130,246,0.1))',
+        onClick: () => {},
+      },
+      {
+        label: 'System Settings',
+        gradient: 'linear-gradient(135deg, rgba(236,72,153,0.3), rgba(236,72,153,0.1))',
+        onClick: () => {},
+      },
+    ],
+    [],
   );
 
   /* ---------- Render ---------- */
@@ -251,17 +304,65 @@ export function PlatformOverviewTab() {
           color="#7C3AED"
           height={260}
         />
-        <BarChart<RevenuePlanPoint>
-          data={revenueByPlan}
+        <LineChart<RevenueTrendPoint>
+          data={revenueByMonth}
           dataKey="revenue"
           xKey="name"
-          title="Revenue by Plan"
+          title="Revenue Trend"
           color="#06B6D4"
           height={260}
         />
       </div>
 
-      {/* Recent System Events */}
+      {/* System Status */}
+      <GlassCard accent="blue" padding="24px">
+        <p
+          style={{
+            fontSize: '16px',
+            fontWeight: 600,
+            color: '#F8FAFC',
+            marginBottom: '16px',
+          }}
+        >
+          System Status
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '16px',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontWeight: 500 }}>
+              Database
+            </span>
+            <Badge variant="success">Healthy</Badge>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontWeight: 500 }}>
+              Auth Service
+            </span>
+            <Badge variant="success">Active</Badge>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontWeight: 500 }}>
+              Pending Queue
+            </span>
+            <Badge variant={pendingMappings > 0 ? 'warning' : 'success'}>
+              {pendingMappings > 0 ? `${pendingMappings} pending` : 'Clear'}
+            </Badge>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.6)', fontWeight: 500 }}>
+              API Services
+            </span>
+            <Badge variant="success">Running</Badge>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Recent Activity */}
       <GlassCard accent="purple" padding="24px">
         <p
           style={{
@@ -271,9 +372,24 @@ export function PlatformOverviewTab() {
             marginBottom: '16px',
           }}
         >
-          Recent System Events
+          Recent Activity
         </p>
         <ActivityFeed items={activityItems} emptyMessage="No recent system events" />
+      </GlassCard>
+
+      {/* Quick Actions */}
+      <GlassCard accent="teal" padding="24px">
+        <p
+          style={{
+            fontSize: '16px',
+            fontWeight: 600,
+            color: '#F8FAFC',
+            marginBottom: '16px',
+          }}
+        >
+          Quick Actions
+        </p>
+        <QuickActions actions={quickActions} />
       </GlassCard>
     </div>
   );

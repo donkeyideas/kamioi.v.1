@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { KpiCard, GlassCard, Table, Badge, Tabs } from '@/components/ui';
-import type { Column, TabItem } from '@/components/ui';
+import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select } from '@/components/ui';
+import type { Column, TabItem, SelectOption } from '@/components/ui';
 import type { Database } from '@/types/database';
 
 /* ------------------------------------------------------------------ */
@@ -11,6 +11,20 @@ import type { Database } from '@/types/database';
 type AdminSettingRow = Database['public']['Tables']['admin_settings']['Row'];
 type SystemEventRow = Database['public']['Tables']['system_events']['Row'];
 type ApiBalanceRow = Database['public']['Tables']['api_balance']['Row'];
+
+interface SettingDraft {
+  id: number;
+  setting_key: string;
+  setting_value: string;
+  setting_type: string | null;
+  description: string | null;
+  original_value: string;
+}
+
+interface SopSection {
+  title: string;
+  procedures: { name: string; description: string }[];
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -51,38 +65,169 @@ function settingTypeBadgeVariant(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Settings tab                                                       */
+/*  Toggle Component                                                   */
 /* ------------------------------------------------------------------ */
 
-function SettingsContent() {
+function Toggle({
+  active,
+  onToggle,
+  disabled = false,
+}: {
+  active: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <span
+      onClick={disabled ? undefined : onToggle}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '44px',
+        height: '24px',
+        borderRadius: '12px',
+        background: active
+          ? 'linear-gradient(135deg, #7C3AED, #3B82F6)'
+          : 'rgba(255,255,255,0.1)',
+        transition: 'background 200ms ease',
+        position: 'relative',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          left: active ? '22px' : '2px',
+          width: '20px',
+          height: '20px',
+          borderRadius: '50%',
+          background: '#F8FAFC',
+          transition: 'left 200ms ease',
+        }}
+      />
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shared hook: fetch admin_settings                                  */
+/* ------------------------------------------------------------------ */
+
+function useAdminSettings(filterType?: string) {
   const [settings, setSettings] = useState<AdminSettingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchSettings = useCallback(async () => {
+    try {
+      let query = supabase
+        .from('admin_settings')
+        .select('*')
+        .order('setting_key', { ascending: true });
+
+      if (filterType) {
+        query = query.eq('setting_type', filterType);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Failed to fetch admin settings:', error.message);
+        setSettings([]);
+        return;
+      }
+
+      setSettings(data ?? []);
+    } catch (err) {
+      console.error('Unexpected error fetching admin settings:', err);
+      setSettings([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filterType]);
+
   useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const { data, error } = await supabase
+    fetchSettings();
+  }, [fetchSettings]);
+
+  return { settings, loading, refetch: fetchSettings };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Settings tab                                                       */
+/* ------------------------------------------------------------------ */
+
+const SECURITY_OPTIONS: SelectOption[] = [
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+];
+
+const BACKUP_OPTIONS: SelectOption[] = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+];
+
+function SettingsContent() {
+  const { settings, loading, refetch } = useAdminSettings();
+  const [drafts, setDrafts] = useState<SettingDraft[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDrafts(
+      settings.map((s) => ({
+        id: s.id,
+        setting_key: s.setting_key,
+        setting_value: s.setting_value,
+        setting_type: s.setting_type,
+        description: s.description,
+        original_value: s.setting_value,
+      })),
+    );
+  }, [settings]);
+
+  function updateDraft(id: number, value: string) {
+    setDrafts((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, setting_value: value } : d)),
+    );
+  }
+
+  function toggleBooleanDraft(id: number) {
+    setDrafts((prev) =>
+      prev.map((d) => {
+        if (d.id !== id) return d;
+        const current = d.setting_value.toLowerCase();
+        return { ...d, setting_value: current === 'true' ? 'false' : 'true' };
+      }),
+    );
+  }
+
+  const hasChanges = drafts.some((d) => d.setting_value !== d.original_value);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const changed = drafts.filter((d) => d.setting_value !== d.original_value);
+      for (const draft of changed) {
+        const { error } = await supabase
           .from('admin_settings')
-          .select('*')
-          .order('setting_key', { ascending: true });
+          .update({ setting_value: draft.setting_value })
+          .eq('id', draft.id);
 
         if (error) {
-          console.error('Failed to fetch admin settings:', error.message);
-          setSettings([]);
-          return;
+          console.error(`Failed to update setting ${draft.setting_key}:`, error.message);
         }
-
-        setSettings(data ?? []);
-      } catch (err) {
-        console.error('Unexpected error fetching admin settings:', err);
-        setSettings([]);
-      } finally {
-        setLoading(false);
       }
+      await refetch();
+    } catch (err) {
+      console.error('Unexpected error saving settings:', err);
+    } finally {
+      setSaving(false);
     }
-
-    fetchSettings();
-  }, []);
+  }
 
   if (loading) {
     return (
@@ -98,70 +243,564 @@ function SettingsContent() {
     return (
       <GlassCard padding="28px">
         <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
-          No system settings configured yet.
+          No system settings configured. Add settings via Supabase dashboard.
+        </p>
+      </GlassCard>
+    );
+  }
+
+  function renderSettingControl(draft: SettingDraft) {
+    const key = draft.setting_key.toLowerCase();
+
+    // Toggle-style buttons
+    if (key === 'maintenance_mode' || key === 'registration_enabled') {
+      const isOn = draft.setting_value.toLowerCase() === 'true';
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Toggle active={isOn} onToggle={() => toggleBooleanDraft(draft.id)} />
+          <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)' }}>
+            {isOn ? 'Enabled' : 'Disabled'}
+          </span>
+        </div>
+      );
+    }
+
+    // Number inputs
+    if (key === 'api_rate_limit' || key === 'max_users') {
+      return (
+        <Input
+          type="number"
+          value={draft.setting_value}
+          onChange={(e) => updateDraft(draft.id, e.target.value)}
+          style={{ maxWidth: '200px' }}
+        />
+      );
+    }
+
+    // Select inputs
+    if (key === 'security_level') {
+      return (
+        <Select
+          options={SECURITY_OPTIONS}
+          value={draft.setting_value.toLowerCase()}
+          onChange={(e) => updateDraft(draft.id, e.target.value)}
+          style={{ maxWidth: '200px' }}
+        />
+      );
+    }
+
+    if (key === 'backup_frequency') {
+      return (
+        <Select
+          options={BACKUP_OPTIONS}
+          value={draft.setting_value.toLowerCase()}
+          onChange={(e) => updateDraft(draft.id, e.target.value)}
+          style={{ maxWidth: '200px' }}
+        />
+      );
+    }
+
+    // Default: text input
+    return (
+      <Input
+        value={draft.setting_value}
+        onChange={(e) => updateDraft(draft.id, e.target.value)}
+        style={{ maxWidth: '300px' }}
+      />
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <GlassCard padding="24px">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {drafts.map((draft) => (
+            <div
+              key={draft.id}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                padding: '14px 0',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                gap: '16px',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>
+                    {draft.setting_key}
+                  </p>
+                  <Badge variant={settingTypeBadgeVariant(draft.setting_type)}>
+                    {draft.setting_type ?? 'unknown'}
+                  </Badge>
+                </div>
+                {draft.description && (
+                  <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginTop: '2px' }}>
+                    {draft.description}
+                  </p>
+                )}
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                {renderSettingControl(draft)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button onClick={handleSave} loading={saving} disabled={!hasChanges}>
+          Save Settings
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Business Info tab                                                  */
+/* ------------------------------------------------------------------ */
+
+const BUSINESS_FIELDS = [
+  { key: 'company_name', label: 'Company Name' },
+  { key: 'support_email', label: 'Support Email' },
+  { key: 'website_url', label: 'Website URL' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'address', label: 'Address' },
+  { key: 'description', label: 'Description' },
+];
+
+function BusinessInfoContent() {
+  const { settings, loading, refetch } = useAdminSettings('business');
+  const [formValues, setFormValues] = useState<Record<string, { id: number | null; value: string }>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const values: Record<string, { id: number | null; value: string }> = {};
+    for (const field of BUSINESS_FIELDS) {
+      const match = settings.find((s) => s.setting_key === field.key);
+      values[field.key] = {
+        id: match?.id ?? null,
+        value: match?.setting_value ?? '',
+      };
+    }
+    setFormValues(values);
+  }, [settings]);
+
+  function updateField(key: string, value: string) {
+    setFormValues((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], value },
+    }));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      for (const [key, entry] of Object.entries(formValues)) {
+        if (entry.id !== null) {
+          const { error } = await supabase
+            .from('admin_settings')
+            .update({ setting_value: entry.value })
+            .eq('id', entry.id);
+
+          if (error) {
+            console.error(`Failed to update ${key}:`, error.message);
+          }
+        }
+      }
+      await refetch();
+    } catch (err) {
+      console.error('Unexpected error saving business info:', err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <GlassCard padding="28px">
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+          Loading business info...
         </p>
       </GlassCard>
     );
   }
 
   return (
-    <GlassCard padding="24px">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {settings.map((setting) => (
-          <div
-            key={setting.id}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <GlassCard padding="24px">
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '20px' }}>
+          Business Information
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {BUSINESS_FIELDS.map((field) => (
+            <Input
+              key={field.key}
+              label={field.label}
+              value={formValues[field.key]?.value ?? ''}
+              onChange={(e) => updateField(field.key, e.target.value)}
+              placeholder={`Enter ${field.label.toLowerCase()}`}
+            />
+          ))}
+        </div>
+      </GlassCard>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button onClick={handleSave} loading={saving}>
+          Save
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Access Controls tab                                                */
+/* ------------------------------------------------------------------ */
+
+const ACCOUNT_TYPE_OPTIONS = ['Individual', 'Family', 'Business'];
+
+function AccessControlsContent() {
+  const { settings, loading, refetch } = useAdminSettings();
+  const [saving, setSaving] = useState(false);
+
+  // Derive toggle states from settings
+  const getSettingValue = useCallback(
+    (key: string): string => {
+      const match = settings.find((s) => s.setting_key === key);
+      return match?.setting_value ?? 'false';
+    },
+    [settings],
+  );
+
+  const getSettingId = useCallback(
+    (key: string): number | null => {
+      const match = settings.find((s) => s.setting_key === key);
+      return match?.id ?? null;
+    },
+    [settings],
+  );
+
+  const signinEnabled = getSettingValue('signin_enabled').toLowerCase() === 'true';
+  const signupEnabled = getSettingValue('signup_enabled').toLowerCase() === 'true';
+  const demoMode = getSettingValue('demo_mode').toLowerCase() === 'true';
+  const allowedAccountTypesRaw = getSettingValue('allowed_account_types');
+
+  const [localAllowedTypes, setLocalAllowedTypes] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (allowedAccountTypesRaw && allowedAccountTypesRaw !== 'false') {
+      try {
+        const parsed = JSON.parse(allowedAccountTypesRaw);
+        if (Array.isArray(parsed)) {
+          setLocalAllowedTypes(parsed as string[]);
+          return;
+        }
+      } catch {
+        // If not JSON, try comma-separated
+        setLocalAllowedTypes(
+          allowedAccountTypesRaw.split(',').map((s: string) => s.trim()).filter(Boolean),
+        );
+        return;
+      }
+    }
+    setLocalAllowedTypes([]);
+  }, [allowedAccountTypesRaw]);
+
+  async function toggleSetting(key: string, currentValue: boolean) {
+    const id = getSettingId(key);
+    if (id === null) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ setting_value: currentValue ? 'false' : 'true' })
+        .eq('id', id);
+
+      if (error) {
+        console.error(`Failed to toggle ${key}:`, error.message);
+        return;
+      }
+      await refetch();
+    } catch (err) {
+      console.error(`Unexpected error toggling ${key}:`, err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggleAccountType(type: string) {
+    const lower = type.toLowerCase();
+    setLocalAllowedTypes((prev) =>
+      prev.includes(lower) ? prev.filter((t) => t !== lower) : [...prev, lower],
+    );
+  }
+
+  async function saveAllowedTypes() {
+    const id = getSettingId('allowed_account_types');
+    if (id === null) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ setting_value: JSON.stringify(localAllowedTypes) })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Failed to save allowed account types:', error.message);
+        return;
+      }
+      await refetch();
+    } catch (err) {
+      console.error('Unexpected error saving allowed account types:', err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <GlassCard padding="28px">
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+          Loading access controls...
+        </p>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <GlassCard padding="24px">
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '20px' }}>
+          Authentication Controls
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>Sign-In Enabled</p>
+              <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>Allow users to sign in to the platform</p>
+            </div>
+            <Toggle
+              active={signinEnabled}
+              onToggle={() => toggleSetting('signin_enabled', signinEnabled)}
+              disabled={saving}
+            />
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>Sign-Up Enabled</p>
+              <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>Allow new user registrations</p>
+            </div>
+            <Toggle
+              active={signupEnabled}
+              onToggle={() => toggleSetting('signup_enabled', signupEnabled)}
+              disabled={saving}
+            />
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>Demo Mode</p>
+              <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>Enable demo mode with sample data</p>
+            </div>
+            <Toggle
+              active={demoMode}
+              onToggle={() => toggleSetting('demo_mode', demoMode)}
+              disabled={saving}
+            />
+          </div>
+        </div>
+      </GlassCard>
+
+      <GlassCard padding="24px">
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+          Allowed Account Types
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {ACCOUNT_TYPE_OPTIONS.map((type) => {
+            const isChecked = localAllowedTypes.includes(type.toLowerCase());
+            return (
+              <label
+                key={type}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              >
+                <span
+                  onClick={() => toggleAccountType(type)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '4px',
+                    border: isChecked
+                      ? '2px solid #7C3AED'
+                      : '2px solid rgba(255,255,255,0.15)',
+                    background: isChecked ? 'rgba(124,58,237,0.2)' : 'transparent',
+                    transition: 'all 200ms ease',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isChecked && (
+                    <span style={{ color: '#7C3AED', fontSize: '14px', lineHeight: 1 }}>
+                      &#x2713;
+                    </span>
+                  )}
+                </span>
+                <span style={{ fontSize: '14px', color: '#F8FAFC' }}>{type}</span>
+              </label>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+          <Button size="sm" onClick={saveAllowedTypes} loading={saving}>
+            Save Account Types
+          </Button>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  2FA Management tab                                                 */
+/* ------------------------------------------------------------------ */
+
+function TwoFAManagementContent() {
+  const { settings, loading, refetch } = useAdminSettings();
+  const [saving, setSaving] = useState(false);
+  const [totpCode, setTotpCode] = useState('');
+  const [verifyResult, setVerifyResult] = useState<string | null>(null);
+
+  const twoFaSetting = settings.find((s) => s.setting_key === '2fa_enabled');
+  const is2FAEnabled = twoFaSetting?.setting_value?.toLowerCase() === 'true';
+
+  async function toggle2FA() {
+    if (!twoFaSetting) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ setting_value: is2FAEnabled ? 'false' : 'true' })
+        .eq('id', twoFaSetting.id);
+
+      if (error) {
+        console.error('Failed to toggle 2FA:', error.message);
+        return;
+      }
+      await refetch();
+    } catch (err) {
+      console.error('Unexpected error toggling 2FA:', err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleVerify() {
+    setVerifyResult(null);
+    const trimmed = totpCode.trim();
+    if (/^\d{6}$/.test(trimmed)) {
+      setVerifyResult('Valid TOTP format. Actual verification requires an Edge Function.');
+    } else {
+      setVerifyResult('Invalid format. TOTP code must be exactly 6 digits.');
+    }
+  }
+
+  if (loading) {
+    return (
+      <GlassCard padding="28px">
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)' }}>
+          Loading 2FA settings...
+        </p>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <GlassCard padding="24px" accent="purple">
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+          Two-Factor Authentication
+        </h3>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Two-Factor Authentication adds an extra layer of security for admin accounts.
+        </p>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <p style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>2FA Status</p>
+            <Badge variant={is2FAEnabled ? 'success' : 'warning'}>
+              {is2FAEnabled ? 'Enabled' : 'Disabled'}
+            </Badge>
+          </div>
+          <Button
+            variant={is2FAEnabled ? 'danger' : 'primary'}
+            size="sm"
+            onClick={toggle2FA}
+            loading={saving}
+            disabled={!twoFaSetting}
+          >
+            {is2FAEnabled ? 'Disable 2FA' : 'Enable 2FA'}
+          </Button>
+        </div>
+
+        {is2FAEnabled && (
+          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '8px' }}>
+            2FA is managed through Supabase Auth. Admin users can set up TOTP via their account settings.
+          </p>
+        )}
+
+        {!twoFaSetting && (
+          <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)', fontStyle: 'italic' }}>
+            The "2fa_enabled" setting key was not found. Add it via Supabase dashboard to manage 2FA.
+          </p>
+        )}
+      </GlassCard>
+
+      <GlassCard padding="24px">
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+          TOTP Verification (Test)
+        </h3>
+        <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '16px' }}>
+          Enter a 6-digit TOTP code to validate the format. Actual verification needs an Edge Function.
+        </p>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+          <Input
+            label="TOTP Code"
+            value={totpCode}
+            onChange={(e) => {
+              setTotpCode(e.target.value);
+              setVerifyResult(null);
+            }}
+            placeholder="123456"
+            style={{ maxWidth: '200px' }}
+          />
+          <Button size="sm" onClick={handleVerify} disabled={!totpCode.trim()}>
+            Verify
+          </Button>
+        </div>
+        {verifyResult && (
+          <p
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              padding: '14px 0',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              gap: '16px',
+              fontSize: '13px',
+              marginTop: '10px',
+              color: verifyResult.startsWith('Valid') ? '#34D399' : '#EF4444',
             }}
           >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: '#F8FAFC',
-                  }}
-                >
-                  {setting.setting_key}
-                </p>
-                <Badge variant={settingTypeBadgeVariant(setting.setting_type)}>
-                  {setting.setting_type ?? 'unknown'}
-                </Badge>
-              </div>
-              {setting.description && (
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: 'rgba(248,250,252,0.4)',
-                    marginTop: '2px',
-                  }}
-                >
-                  {setting.description}
-                </p>
-              )}
-            </div>
-            <p
-              style={{
-                fontSize: '14px',
-                fontWeight: 500,
-                color: 'rgba(248,250,252,0.7)',
-                flexShrink: 0,
-                maxWidth: '300px',
-                wordBreak: 'break-all',
-              }}
-            >
-              {setting.setting_value}
-            </p>
-          </div>
-        ))}
-      </div>
-    </GlassCard>
+            {verifyResult}
+          </p>
+        )}
+      </GlassCard>
+    </div>
   );
 }
 
@@ -169,50 +808,17 @@ function SettingsContent() {
 /*  System Events tab                                                  */
 /* ------------------------------------------------------------------ */
 
-const eventColumns: Column<SystemEventRow>[] = [
-  { key: 'event_type', header: 'Event Type', sortable: true, width: '160px' },
-  {
-    key: 'tenant_type',
-    header: 'Tenant Type',
-    sortable: true,
-    width: '120px',
-    render: (row) => row.tenant_type ?? '--',
-  },
-  {
-    key: 'source',
-    header: 'Source',
-    sortable: true,
-    width: '120px',
-    render: (row) => row.source ?? '--',
-  },
-  {
-    key: 'data',
-    header: 'Data',
-    render: (row) => (
-      <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>
-        {truncate(row.data, 50)}
-      </span>
-    ),
-  },
-  {
-    key: 'created_at',
-    header: 'Created At',
-    sortable: true,
-    width: '180px',
-    render: (row) => formatDate(row.created_at),
-  },
-];
-
 function SystemEventsContent() {
   const [events, setEvents] = useState<SystemEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [todayCount, setTodayCount] = useState(0);
+  const [eventTypeCount, setEventTypeCount] = useState(0);
 
   useEffect(() => {
     async function fetchEvents() {
       try {
-        // Fetch total count
+        // Total count
         const { count: total, error: countErr } = await supabase
           .from('system_events')
           .select('*', { count: 'exact', head: true });
@@ -223,7 +829,7 @@ function SystemEventsContent() {
           setTotalCount(total ?? 0);
         }
 
-        // Fetch today count
+        // Today count
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const { count: today, error: todayErr } = await supabase
@@ -250,7 +856,12 @@ function SystemEventsContent() {
           return;
         }
 
-        setEvents(data ?? []);
+        const eventsData = data ?? [];
+        setEvents(eventsData);
+
+        // Count distinct event types
+        const eventTypes = new Set(eventsData.map((e) => e.event_type));
+        setEventTypeCount(eventTypes.size);
       } catch (err) {
         console.error('Unexpected error fetching system events:', err);
         setEvents([]);
@@ -262,11 +873,65 @@ function SystemEventsContent() {
     fetchEvents();
   }, []);
 
+  const eventColumns: Column<SystemEventRow>[] = useMemo(
+    () => [
+      {
+        key: 'event_type',
+        header: 'Event Type',
+        sortable: true,
+        width: '160px',
+        render: (row) => <Badge variant="info">{row.event_type}</Badge>,
+      },
+      {
+        key: 'tenant_type',
+        header: 'Tenant Type',
+        sortable: true,
+        width: '120px',
+        render: (row) => row.tenant_type ?? '--',
+      },
+      {
+        key: 'source',
+        header: 'Source',
+        sortable: true,
+        width: '120px',
+        render: (row) => row.source ?? '--',
+      },
+      {
+        key: 'data',
+        header: 'Data',
+        render: (row) => (
+          <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>
+            {truncate(row.data, 80)}
+          </span>
+        ),
+      },
+      {
+        key: 'correlation_id',
+        header: 'Correlation ID',
+        width: '140px',
+        render: (row) => (
+          <span style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', fontFamily: 'monospace' }}>
+            {truncate(row.correlation_id, 20)}
+          </span>
+        ),
+      },
+      {
+        key: 'created_at',
+        header: 'Created At',
+        sortable: true,
+        width: '180px',
+        render: (row) => formatDate(row.created_at),
+      },
+    ],
+    [],
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
         <KpiCard label="Total Events" value={totalCount.toLocaleString()} accent="purple" />
         <KpiCard label="Events Today" value={todayCount.toLocaleString()} accent="blue" />
+        <KpiCard label="Event Types" value={eventTypeCount.toLocaleString()} accent="teal" />
       </div>
 
       <GlassCard padding="0">
@@ -279,6 +944,135 @@ function SystemEventsContent() {
           rowKey={(row) => row.id}
         />
       </GlassCard>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  SOPs tab                                                           */
+/* ------------------------------------------------------------------ */
+
+const SOP_SECTIONS: SopSection[] = [
+  {
+    title: 'Daily Operations',
+    procedures: [
+      { name: 'System Health Check', description: 'Verify all services are running, check error logs' },
+      { name: 'Transaction Queue Review', description: 'Process pending transactions, investigate failures' },
+      { name: 'Investment Processing', description: 'Execute staged trades, verify completions' },
+      { name: 'Revenue Monitoring', description: 'Check subscription payments, verify fee collection' },
+    ],
+  },
+  {
+    title: 'User Management',
+    procedures: [
+      { name: 'Account Creation', description: 'New user onboarding workflow' },
+      { name: 'Support Triage', description: 'Handle user support requests, escalation procedures' },
+      { name: 'Compliance Check', description: 'Verify KYC/AML requirements' },
+    ],
+  },
+  {
+    title: 'Financial Operations',
+    procedures: [
+      { name: 'Revenue Verification', description: 'Cross-check subscription payments' },
+      { name: 'Fee Processing', description: 'Verify fee calculations and collections' },
+      { name: 'Payout Reconciliation', description: 'Match payouts with ledger entries' },
+    ],
+  },
+  {
+    title: 'AI/ML Management',
+    procedures: [
+      { name: 'Model Performance Check', description: 'Review accuracy metrics' },
+      { name: 'Training Data Updates', description: 'Verify new merchant mappings' },
+      { name: 'Drift Detection', description: 'Monitor for model performance degradation' },
+    ],
+  },
+  {
+    title: 'Emergency Procedures',
+    procedures: [
+      { name: 'System Downtime Response', description: 'Notification, diagnosis, recovery steps' },
+      { name: 'Data Loss Recovery', description: 'Backup restoration procedures' },
+      { name: 'Security Incident', description: 'Containment, investigation, remediation steps' },
+    ],
+  },
+];
+
+function SopsContent() {
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+
+  function toggleSection(index: number) {
+    setExpanded((prev) => ({ ...prev, [index]: !prev[index] }));
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {SOP_SECTIONS.map((section, idx) => {
+        const isExpanded = expanded[idx] ?? false;
+        return (
+          <GlassCard key={idx} padding="0">
+            <div
+              onClick={() => toggleSection(idx)}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '18px 24px',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC' }}>
+                {section.title}
+              </h3>
+              <span
+                style={{
+                  fontSize: '16px',
+                  color: 'rgba(248,250,252,0.4)',
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 200ms ease',
+                }}
+              >
+                &#x25BC;
+              </span>
+            </div>
+
+            {isExpanded && (
+              <div
+                style={{
+                  padding: '0 24px 20px',
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <ol
+                  style={{
+                    paddingLeft: '20px',
+                    margin: '16px 0 0 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  {section.procedures.map((proc, pIdx) => (
+                    <li
+                      key={pIdx}
+                      style={{
+                        fontSize: '14px',
+                        color: 'rgba(248,250,252,0.7)',
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: '#F8FAFC' }}>
+                        {proc.name}
+                      </span>
+                      {' -- '}
+                      {proc.description}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </GlassCard>
+        );
+      })}
     </div>
   );
 }
@@ -329,34 +1123,15 @@ function ApiBalanceContent() {
       </div>
 
       <GlassCard padding="28px" accent="blue">
-        <h3
-          style={{
-            fontSize: '16px',
-            fontWeight: 600,
-            color: '#F8FAFC',
-            marginBottom: '12px',
-          }}
-        >
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
           API Balance Info
         </h3>
-        <p
-          style={{
-            fontSize: '14px',
-            color: 'rgba(248,250,252,0.6)',
-            lineHeight: 1.6,
-          }}
-        >
-          API balance is used for LLM processing costs. Top up via Supabase
-          dashboard.
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.6)', lineHeight: 1.6 }}>
+          API balance is used for LLM processing costs. Monitor usage in the Monitoring tab.
+          Top up balance via Supabase dashboard or payment integration.
         </p>
         {balanceRow && (
-          <p
-            style={{
-              fontSize: '12px',
-              color: 'rgba(248,250,252,0.4)',
-              marginTop: '8px',
-            }}
-          >
+          <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginTop: '8px' }}>
             Last updated: {formatDate(balanceRow.updated_at)}
           </p>
         )}
@@ -373,7 +1148,11 @@ export function SystemOperationsTab() {
   const tabs: TabItem[] = useMemo(
     () => [
       { key: 'settings', label: 'Settings', content: <SettingsContent /> },
+      { key: 'business', label: 'Business Info', content: <BusinessInfoContent /> },
+      { key: 'access', label: 'Access Controls', content: <AccessControlsContent /> },
+      { key: '2fa', label: '2FA Management', content: <TwoFAManagementContent /> },
       { key: 'events', label: 'System Events', content: <SystemEventsContent /> },
+      { key: 'sops', label: 'SOPs', content: <SopsContent /> },
       { key: 'balance', label: 'API Balance', content: <ApiBalanceContent /> },
     ],
     [],
