@@ -71,6 +71,52 @@ interface ManualLearningForm {
   confidence: string;
 }
 
+interface TransactionRow {
+  id: number;
+  user_id: number;
+  date: string;
+  merchant: string;
+  amount: number;
+  category: string;
+  status: 'pending' | 'completed' | 'failed';
+  round_up: number;
+  fee: number;
+  ticker: string | null;
+  shares: number | null;
+  price_per_share: number | null;
+  stock_price: number | null;
+  transaction_type: string | null;
+  created_at: string;
+}
+
+interface ReceiptMappingRow {
+  transaction_id: string | number;
+  date: string;
+  merchant: string;
+  amount: number;
+  round_up: number;
+  mapped_ticker: string | null;
+  confidence: number | null;
+  mapping_status: string;
+}
+
+interface MerchantAssetRow {
+  merchant_name: string;
+  primary_ticker: string | null;
+  avg_confidence: number;
+  mapping_count: number;
+  approved_count: number;
+  most_recent: string;
+}
+
+interface CategoryCountPoint {
+  [key: string]: unknown;
+  name: string;
+  count: number;
+}
+
+type ReceiptStatusFilter = 'all' | 'mapped' | 'unmapped';
+
 /* ========================================================================== */
 /*  Helpers                                                                   */
 /* ========================================================================== */
@@ -1500,12 +1546,832 @@ function AiAnalyticsContent() {
 }
 
 /* ========================================================================== */
+/*  Tab 7: Flow (Transaction Processing Pipeline)                             */
+/* ========================================================================== */
+
+interface PipelineStage {
+  step: number;
+  title: string;
+  description: string;
+  status: 'healthy' | 'warning' | 'error' | 'idle';
+}
+
+function FlowContent() {
+  const [loading, setLoading] = useState(true);
+  const [transactionsToday, setTransactionsToday] = useState(0);
+  const [avgProcessingTime, setAvgProcessingTime] = useState(0);
+  const [pipelineHealth, setPipelineHealth] = useState(0);
+  const [autoApprovalRate, setAutoApprovalRate] = useState(0);
+  const [stages, setStages] = useState<PipelineStage[]>([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayISO = todayStart.toISOString();
+
+        const [txResult, aiResult, mapResult] = await Promise.all([
+          supabase
+            .from('transactions')
+            .select('id, created_at', { count: 'exact' })
+            .gte('created_at', todayISO),
+          supabase
+            .from('ai_responses')
+            .select('processing_time_ms, is_error'),
+          supabase
+            .from('llm_mappings')
+            .select('status, admin_approved'),
+        ]);
+
+        const txCount = txResult.count ?? (txResult.data?.length ?? 0);
+        setTransactionsToday(txCount);
+
+        const aiData = (aiResult.data ?? []) as { processing_time_ms: number | null; is_error: boolean }[];
+        const withTime = aiData.filter((r) => r.processing_time_ms !== null);
+        const avgTime = withTime.length > 0
+          ? Math.round(withTime.reduce((acc, r) => acc + (r.processing_time_ms ?? 0), 0) / withTime.length)
+          : 0;
+        setAvgProcessingTime(avgTime);
+
+        const errorCount = aiData.filter((r) => r.is_error).length;
+        const healthPct = aiData.length > 0 ? (aiData.length - errorCount) / aiData.length : 1;
+        setPipelineHealth(healthPct);
+
+        const mapData = (mapResult.data ?? []) as { status: string; admin_approved: boolean | null }[];
+        const approvedAuto = mapData.filter((m) => m.status === 'approved').length;
+        const autoRate = mapData.length > 0 ? approvedAuto / mapData.length : 0;
+        setAutoApprovalRate(autoRate);
+
+        // Determine stage statuses
+        const stageList: PipelineStage[] = [
+          {
+            step: 1,
+            title: 'Bank Sync',
+            description: 'Plaid pulls new transactions from linked bank accounts in real-time.',
+            status: txCount > 0 ? 'healthy' : 'idle',
+          },
+          {
+            step: 2,
+            title: 'Event Detection',
+            description: 'Round-up amounts are calculated and new spending events are queued for processing.',
+            status: txCount > 0 ? 'healthy' : 'idle',
+          },
+          {
+            step: 3,
+            title: 'LLM Processing',
+            description: 'Merchant names are sent to the LLM to determine the best matching stock ticker.',
+            status: aiData.length > 0
+              ? (errorCount / Math.max(aiData.length, 1) > 0.2 ? 'warning' : 'healthy')
+              : 'idle',
+          },
+          {
+            step: 4,
+            title: 'Ticker Assignment',
+            description: 'The AI-selected ticker is validated and assigned to the transaction mapping.',
+            status: mapData.length > 0
+              ? (mapData.filter((m) => m.status === 'pending').length / Math.max(mapData.length, 1) > 0.5 ? 'warning' : 'healthy')
+              : 'idle',
+          },
+          {
+            step: 5,
+            title: 'Investment Ready',
+            description: 'Approved mappings are queued for fractional share purchases via the brokerage API.',
+            status: approvedAuto > 0 ? 'healthy' : 'idle',
+          },
+        ];
+        setStages(stageList);
+      } catch (err) {
+        console.error('FlowContent fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const statusColor = (status: PipelineStage['status']): string => {
+    switch (status) {
+      case 'healthy': return '#34D399';
+      case 'warning': return '#FBBF24';
+      case 'error': return '#EF4444';
+      case 'idle': return 'rgba(248,250,252,0.3)';
+    }
+  };
+
+  const statusLabel = (status: PipelineStage['status']): string => {
+    switch (status) {
+      case 'healthy': return 'Healthy';
+      case 'warning': return 'Warning';
+      case 'error': return 'Error';
+      case 'idle': return 'Idle';
+    }
+  };
+
+  if (loading) {
+    return <LoadingSpinner message="Loading pipeline flow..." />;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* KPI Cards */}
+      <KpiGrid>
+        <KpiCard label="Transactions Today" value={formatNumber(transactionsToday)} accent="purple" />
+        <KpiCard label="Avg Processing Time" value={`${formatNumber(avgProcessingTime)}ms`} accent="blue" />
+        <KpiCard label="Pipeline Health" value={formatPercent(pipelineHealth)} accent="teal" />
+        <KpiCard label="Auto-Approval Rate" value={formatPercent(autoApprovalRate)} accent="pink" />
+      </KpiGrid>
+
+      {/* Pipeline Flow Visualization */}
+      <GlassCard accent="purple">
+        <SectionTitle>Transaction Processing Pipeline</SectionTitle>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0',
+            marginTop: '20px',
+          }}
+        >
+          {stages.map((stage, idx) => (
+            <div key={stage.step}>
+              {/* Stage Card */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '16px',
+                  padding: '20px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${statusColor(stage.status)}33`,
+                  borderRadius: '12px',
+                  position: 'relative',
+                }}
+              >
+                {/* Step number circle */}
+                <div
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: `${statusColor(stage.status)}22`,
+                    border: `2px solid ${statusColor(stage.status)}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: 700,
+                      color: statusColor(stage.status),
+                    }}
+                  >
+                    {stage.step}
+                  </span>
+                </div>
+
+                {/* Text */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <p style={{ fontSize: '15px', fontWeight: 600, color: '#F8FAFC' }}>
+                      {stage.title}
+                    </p>
+                    <Badge
+                      variant={
+                        stage.status === 'healthy'
+                          ? 'success'
+                          : stage.status === 'warning'
+                            ? 'warning'
+                            : stage.status === 'error'
+                              ? 'error'
+                              : 'default'
+                      }
+                    >
+                      {statusLabel(stage.status)}
+                    </Badge>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: '13px',
+                      color: 'rgba(248,250,252,0.5)',
+                      marginTop: '6px',
+                      lineHeight: '1.5',
+                    }}
+                  >
+                    {stage.description}
+                  </p>
+                </div>
+              </div>
+
+              {/* Arrow connector between stages */}
+              {idx < stages.length - 1 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    padding: '4px 0',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '2px',
+                      height: '24px',
+                      background: 'linear-gradient(to bottom, rgba(124,58,237,0.4), rgba(59,130,246,0.4))',
+                      position: 'relative',
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '-4px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '0',
+                        height: '0',
+                        borderLeft: '5px solid transparent',
+                        borderRight: '5px solid transparent',
+                        borderTop: '6px solid rgba(59,130,246,0.5)',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ========================================================================== */
+/*  Tab 8: Receipt Mappings                                                    */
+/* ========================================================================== */
+
+function ReceiptMappingsContent() {
+  const [loading, setLoading] = useState(true);
+  const [receiptRows, setReceiptRows] = useState<ReceiptMappingRow[]>([]);
+  const [statusFilter, setStatusFilter] = useState<ReceiptStatusFilter>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [txResult, mapResult] = await Promise.all([
+          supabase.from('transactions').select('id, date, merchant, amount, round_up, ticker, created_at').order('created_at', { ascending: false }),
+          supabase.from('llm_mappings').select('transaction_id, ticker, confidence, status'),
+        ]);
+
+        const transactions = (txResult.data ?? []) as {
+          id: number;
+          date: string;
+          merchant: string;
+          amount: number;
+          round_up: number;
+          ticker: string | null;
+          created_at: string;
+        }[];
+
+        const mappingsByTxId = new Map<string, { ticker: string | null; confidence: number | null; status: string }>();
+        for (const m of (mapResult.data ?? []) as { transaction_id: string | null; ticker: string | null; confidence: number | null; status: string }[]) {
+          if (m.transaction_id) {
+            mappingsByTxId.set(String(m.transaction_id), {
+              ticker: m.ticker,
+              confidence: m.confidence,
+              status: m.status,
+            });
+          }
+        }
+
+        const rows: ReceiptMappingRow[] = transactions.map((tx) => {
+          const mapping = mappingsByTxId.get(String(tx.id));
+          return {
+            transaction_id: tx.id,
+            date: tx.date ?? tx.created_at,
+            merchant: tx.merchant,
+            amount: tx.amount,
+            round_up: tx.round_up ?? 0,
+            mapped_ticker: mapping?.ticker ?? tx.ticker ?? null,
+            confidence: mapping?.confidence ?? null,
+            mapping_status: mapping ? mapping.status : (tx.ticker ? 'auto' : 'unmapped'),
+          };
+        });
+
+        setReceiptRows(rows);
+      } catch (err) {
+        console.error('ReceiptMappingsContent fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const filteredRows = useMemo(() => {
+    let result = receiptRows;
+    if (statusFilter === 'mapped') {
+      result = result.filter((r) => r.mapped_ticker !== null);
+    } else if (statusFilter === 'unmapped') {
+      result = result.filter((r) => r.mapped_ticker === null);
+    }
+    if (dateFrom) {
+      result = result.filter((r) => r.date >= dateFrom);
+    }
+    if (dateTo) {
+      result = result.filter((r) => r.date <= dateTo);
+    }
+    return result;
+  }, [receiptRows, statusFilter, dateFrom, dateTo]);
+
+  /* KPI computations */
+  const totalReceipts = receiptRows.length;
+  const mappedCount = useMemo(() => receiptRows.filter((r) => r.mapped_ticker !== null).length, [receiptRows]);
+  const unmappedCount = totalReceipts - mappedCount;
+  const mappedThisMonth = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    return receiptRows.filter((r) => r.mapped_ticker !== null && r.date >= monthStart).length;
+  }, [receiptRows]);
+  const avgConfidence = useMemo(() => {
+    const withConf = receiptRows.filter((r) => r.confidence !== null);
+    if (withConf.length === 0) return 0;
+    return withConf.reduce((acc, r) => acc + (r.confidence ?? 0), 0) / withConf.length;
+  }, [receiptRows]);
+
+  const columns: Column<ReceiptMappingRow>[] = useMemo(
+    () => [
+      {
+        key: 'transaction_id',
+        header: 'Tx ID',
+        sortable: true,
+        width: '80px',
+        align: 'right',
+      },
+      {
+        key: 'date',
+        header: 'Date',
+        sortable: true,
+        width: '120px',
+        render: (row) => formatDate(row.date),
+      },
+      { key: 'merchant', header: 'Merchant', sortable: true },
+      {
+        key: 'amount',
+        header: 'Amount',
+        sortable: true,
+        width: '100px',
+        align: 'right',
+        render: (row) => `$${row.amount.toFixed(2)}`,
+      },
+      {
+        key: 'round_up',
+        header: 'Round-Up',
+        sortable: true,
+        width: '100px',
+        align: 'right',
+        render: (row) => `$${row.round_up.toFixed(2)}`,
+      },
+      {
+        key: 'mapped_ticker',
+        header: 'Mapped Ticker',
+        sortable: true,
+        width: '130px',
+        render: (row) => (
+          <span style={{ color: row.mapped_ticker ? '#F8FAFC' : 'rgba(248,250,252,0.3)', fontWeight: row.mapped_ticker ? 600 : 400 }}>
+            {row.mapped_ticker ?? '--'}
+          </span>
+        ),
+      },
+      {
+        key: 'confidence',
+        header: 'Confidence',
+        sortable: true,
+        width: '120px',
+        align: 'right',
+        render: (row) => <ConfidenceBadge confidence={row.confidence} />,
+      },
+      {
+        key: 'mapping_status',
+        header: 'Status',
+        sortable: true,
+        width: '120px',
+        render: (row) => {
+          const variant = row.mapping_status === 'approved'
+            ? 'success'
+            : row.mapping_status === 'unmapped'
+              ? 'error'
+              : row.mapping_status === 'auto'
+                ? 'info'
+                : row.mapping_status === 'pending'
+                  ? 'warning'
+                  : 'default';
+          return (
+            <Badge variant={variant}>
+              {row.mapping_status.charAt(0).toUpperCase() + row.mapping_status.slice(1)}
+            </Badge>
+          );
+        },
+      },
+    ],
+    [],
+  );
+
+  const filterPills: { label: string; value: ReceiptStatusFilter }[] = [
+    { label: 'All', value: 'all' },
+    { label: 'Mapped', value: 'mapped' },
+    { label: 'Unmapped', value: 'unmapped' },
+  ];
+
+  if (loading) {
+    return <LoadingSpinner message="Loading receipt mappings..." />;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* KPI Cards */}
+      <KpiGrid>
+        <KpiCard label="Total Receipt Mappings" value={formatNumber(totalReceipts)} accent="purple" />
+        <KpiCard label="Mapped This Month" value={formatNumber(mappedThisMonth)} accent="teal" />
+        <KpiCard label="Unmapped" value={formatNumber(unmappedCount)} accent="pink" />
+        <KpiCard label="Avg Confidence" value={formatPercent(avgConfidence)} accent="blue" />
+      </KpiGrid>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {filterPills.map((pill) => (
+            <button
+              key={pill.value}
+              onClick={() => setStatusFilter(pill.value)}
+              style={{
+                fontFamily: 'inherit',
+                fontSize: '13px',
+                fontWeight: 600,
+                padding: '8px 18px',
+                borderRadius: '20px',
+                border: '1px solid',
+                borderColor:
+                  statusFilter === pill.value
+                    ? 'rgba(124,58,237,0.6)'
+                    : 'rgba(255,255,255,0.08)',
+                background:
+                  statusFilter === pill.value
+                    ? 'rgba(124,58,237,0.2)'
+                    : 'rgba(255,255,255,0.04)',
+                color:
+                  statusFilter === pill.value ? '#C4B5FD' : 'rgba(248,250,252,0.5)',
+                cursor: 'pointer',
+                transition: 'all 200ms ease',
+              }}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Input
+            type="date"
+            placeholder="From"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+          <span style={{ color: 'rgba(248,250,252,0.4)', fontSize: '13px' }}>to</span>
+          <Input
+            type="date"
+            placeholder="To"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <GlassCard accent="blue" padding="0">
+        <Table<ReceiptMappingRow>
+          columns={columns}
+          data={filteredRows}
+          loading={false}
+          emptyMessage="No receipt mappings found"
+          pageSize={20}
+          rowKey={(row) => row.transaction_id}
+        />
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ========================================================================== */
+/*  Tab 9: LLM Data Assets                                                     */
+/* ========================================================================== */
+
+function LlmDataAssetsContent() {
+  const [loading, setLoading] = useState(true);
+  const [assets, setAssets] = useState<MerchantAssetRow[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryCountPoint[]>([]);
+  const [totalMerchants, setTotalMerchants] = useState(0);
+  const [uniqueTickers, setUniqueTickers] = useState(0);
+  const [avgConfidence, setAvgConfidence] = useState(0);
+  const [coverageRate, setCoverageRate] = useState(0);
+  const [newestDate, setNewestDate] = useState('');
+  const [oldestDate, setOldestDate] = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const result = await supabase
+          .from('llm_mappings')
+          .select('merchant_name, ticker, category, confidence, status, admin_approved, created_at')
+          .order('created_at', { ascending: false });
+
+        const mappings = (result.data ?? []) as {
+          merchant_name: string;
+          ticker: string | null;
+          category: string | null;
+          confidence: number | null;
+          status: string;
+          admin_approved: boolean | null;
+          created_at: string;
+        }[];
+
+        // Group by merchant
+        const merchantMap = new Map<string, {
+          tickers: Map<string, number>;
+          totalConf: number;
+          confCount: number;
+          count: number;
+          approved: number;
+          newest: string;
+          oldest: string;
+        }>();
+
+        for (const m of mappings) {
+          const name = m.merchant_name;
+          const existing = merchantMap.get(name) ?? {
+            tickers: new Map<string, number>(),
+            totalConf: 0,
+            confCount: 0,
+            count: 0,
+            approved: 0,
+            newest: m.created_at,
+            oldest: m.created_at,
+          };
+          if (m.ticker) {
+            existing.tickers.set(m.ticker, (existing.tickers.get(m.ticker) ?? 0) + 1);
+          }
+          if (m.confidence !== null) {
+            existing.totalConf += m.confidence;
+            existing.confCount += 1;
+          }
+          existing.count += 1;
+          if (m.status === 'approved') existing.approved += 1;
+          if (m.created_at > existing.newest) existing.newest = m.created_at;
+          if (m.created_at < existing.oldest) existing.oldest = m.created_at;
+          merchantMap.set(name, existing);
+        }
+
+        const assetRows: MerchantAssetRow[] = Array.from(merchantMap.entries()).map(([name, data]) => {
+          let primaryTicker: string | null = null;
+          let maxCount = 0;
+          for (const [ticker, count] of data.tickers.entries()) {
+            if (count > maxCount) {
+              maxCount = count;
+              primaryTicker = ticker;
+            }
+          }
+          return {
+            merchant_name: name,
+            primary_ticker: primaryTicker,
+            avg_confidence: data.confCount > 0 ? data.totalConf / data.confCount : 0,
+            mapping_count: data.count,
+            approved_count: data.approved,
+            most_recent: data.newest,
+          };
+        });
+
+        assetRows.sort((a, b) => b.mapping_count - a.mapping_count);
+        setAssets(assetRows);
+        setTotalMerchants(assetRows.length);
+
+        // Unique tickers
+        const tickerSet = new Set<string>();
+        for (const m of mappings) {
+          if (m.ticker) tickerSet.add(m.ticker);
+        }
+        setUniqueTickers(tickerSet.size);
+
+        // Global avg confidence
+        const withConf = mappings.filter((m) => m.confidence !== null);
+        const globalAvg = withConf.length > 0
+          ? withConf.reduce((acc, m) => acc + (m.confidence ?? 0), 0) / withConf.length
+          : 0;
+        setAvgConfidence(globalAvg);
+
+        // Coverage: merchants that have a ticker
+        const withTicker = assetRows.filter((a) => a.primary_ticker !== null).length;
+        setCoverageRate(assetRows.length > 0 ? withTicker / assetRows.length : 0);
+
+        // Category distribution
+        const catMap = new Map<string, number>();
+        for (const m of mappings) {
+          const cat = m.category ?? 'Uncategorized';
+          catMap.set(cat, (catMap.get(cat) ?? 0) + 1);
+        }
+        const catData: CategoryCountPoint[] = Array.from(catMap.entries())
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count);
+        setCategoryData(catData);
+
+        // Freshness dates
+        if (mappings.length > 0) {
+          const sorted = [...mappings].sort((a, b) => a.created_at.localeCompare(b.created_at));
+          setOldestDate(sorted[0].created_at);
+          setNewestDate(sorted[sorted.length - 1].created_at);
+        }
+      } catch (err) {
+        console.error('LlmDataAssetsContent fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const handleExport = useCallback(() => {
+    setExporting(true);
+    try {
+      const headers = ['Merchant Name', 'Primary Ticker', 'Avg Confidence', 'Mapping Count', 'Approved Count', 'Most Recent'];
+      const csvRows = [headers.join(',')];
+      for (const row of assets) {
+        csvRows.push([
+          `"${row.merchant_name.replace(/"/g, '""')}"`,
+          row.primary_ticker ?? '',
+          row.avg_confidence.toFixed(3),
+          String(row.mapping_count),
+          String(row.approved_count),
+          row.most_recent,
+        ].join(','));
+      }
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `llm_data_assets_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export error:', err);
+    } finally {
+      setExporting(false);
+    }
+  }, [assets]);
+
+  const columns: Column<MerchantAssetRow>[] = useMemo(
+    () => [
+      { key: 'merchant_name', header: 'Merchant', sortable: true },
+      {
+        key: 'primary_ticker',
+        header: 'Primary Ticker',
+        sortable: true,
+        width: '130px',
+        render: (row) => (
+          <span style={{ color: row.primary_ticker ? '#F8FAFC' : 'rgba(248,250,252,0.3)', fontWeight: row.primary_ticker ? 600 : 400 }}>
+            {row.primary_ticker ?? '--'}
+          </span>
+        ),
+      },
+      {
+        key: 'avg_confidence',
+        header: 'Avg Confidence',
+        sortable: true,
+        width: '130px',
+        align: 'right',
+        render: (row) => <ConfidenceBadge confidence={row.avg_confidence} />,
+      },
+      {
+        key: 'mapping_count',
+        header: 'Mappings',
+        sortable: true,
+        width: '100px',
+        align: 'right',
+        render: (row) => formatNumber(row.mapping_count),
+      },
+      {
+        key: 'approved_count',
+        header: 'Approved',
+        sortable: true,
+        width: '100px',
+        align: 'right',
+        render: (row) => (
+          <Badge variant={row.approved_count > 0 ? 'success' : 'default'}>
+            {formatNumber(row.approved_count)}
+          </Badge>
+        ),
+      },
+      {
+        key: 'most_recent',
+        header: 'Last Updated',
+        sortable: true,
+        width: '140px',
+        render: (row) => formatDate(row.most_recent),
+      },
+    ],
+    [],
+  );
+
+  if (loading) {
+    return <LoadingSpinner message="Loading LLM data assets..." />;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* KPI Cards */}
+      <KpiGrid>
+        <KpiCard label="Total Merchants" value={formatNumber(totalMerchants)} accent="purple" />
+        <KpiCard label="Unique Tickers" value={formatNumber(uniqueTickers)} accent="blue" />
+        <KpiCard label="Avg Confidence" value={formatPercent(avgConfidence)} accent="teal" />
+        <KpiCard label="Coverage Rate" value={formatPercent(coverageRate)} accent="pink" />
+      </KpiGrid>
+
+      {/* Data Freshness + Export */}
+      <GlassCard accent="teal">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <SectionTitle>Data Freshness</SectionTitle>
+            <div
+              style={{
+                display: 'flex',
+                gap: '24px',
+                marginTop: '8px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div>
+                <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>Newest Mapping: </span>
+                <span style={{ fontSize: '13px', color: '#F8FAFC', fontWeight: 500 }}>
+                  {newestDate ? formatDateTime(newestDate) : 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)' }}>Oldest Mapping: </span>
+                <span style={{ fontSize: '13px', color: '#F8FAFC', fontWeight: 500 }}>
+                  {oldestDate ? formatDateTime(oldestDate) : 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+          <Button variant="secondary" size="sm" loading={exporting} onClick={handleExport}>
+            Export CSV
+          </Button>
+        </div>
+      </GlassCard>
+
+      {/* Merchant Knowledge Base Table */}
+      <GlassCard accent="purple" padding="0">
+        <div style={{ padding: '20px 20px 0 20px' }}>
+          <SectionTitle>Merchant-to-Ticker Knowledge Base</SectionTitle>
+        </div>
+        <Table<MerchantAssetRow>
+          columns={columns}
+          data={assets}
+          loading={false}
+          emptyMessage="No merchant data assets found"
+          pageSize={20}
+          rowKey={(row) => row.merchant_name}
+        />
+      </GlassCard>
+
+      {/* Category Distribution Chart */}
+      <BarChart<CategoryCountPoint>
+        data={categoryData}
+        dataKey="count"
+        xKey="name"
+        title="Category Distribution"
+        color="#7C3AED"
+        height={280}
+      />
+    </div>
+  );
+}
+
+/* ========================================================================== */
 /*  Main Component                                                            */
 /* ========================================================================== */
 
 export function AiCenterTab() {
   const tabs: TabItem[] = useMemo(
     () => [
+      {
+        key: 'flow',
+        label: 'Flow',
+        content: <FlowContent />,
+      },
       {
         key: 'llm-center',
         label: 'LLM Center',
@@ -1532,6 +2398,16 @@ export function AiCenterTab() {
         content: <DataManagementContent />,
       },
       {
+        key: 'receipt-mappings',
+        label: 'Receipt Mappings',
+        content: <ReceiptMappingsContent />,
+      },
+      {
+        key: 'llm-data-assets',
+        label: 'LLM Data Assets',
+        content: <LlmDataAssetsContent />,
+      },
+      {
         key: 'analytics',
         label: 'AI Analytics',
         content: <AiAnalyticsContent />,
@@ -1551,7 +2427,7 @@ export function AiCenterTab() {
       >
         AI / LLM Management Center
       </p>
-      <Tabs tabs={tabs} defaultTab="llm-center" />
+      <Tabs tabs={tabs} defaultTab="flow" />
     </div>
   );
 }

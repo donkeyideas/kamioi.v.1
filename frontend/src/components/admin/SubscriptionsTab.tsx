@@ -1264,15 +1264,15 @@ function DemoRequestsTab() {
 
 export function SubscriptionsTab() {
   const tabs: TabItem[] = [
+    { key: 'analytics', label: 'Analytics', content: <AnalyticsTab /> },
     { key: 'plans', label: 'Plans', content: <PlansTab /> },
     { key: 'subscribers', label: 'Subscribers', content: <SubscribersTab /> },
     { key: 'promo-codes', label: 'Promo Codes', content: <PromoCodesTab /> },
     { key: 'renewals', label: 'Renewals', content: <RenewalsTab /> },
-    { key: 'analytics', label: 'Analytics', content: <AnalyticsTab /> },
     { key: 'demo-requests', label: 'Demo Requests', content: <DemoRequestsTab /> },
   ];
 
-  return <Tabs tabs={tabs} defaultTab="plans" />;
+  return <Tabs tabs={tabs} defaultTab="analytics" />;
 }
 
 export default SubscriptionsTab;

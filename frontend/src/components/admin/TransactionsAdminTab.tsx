@@ -400,7 +400,6 @@ export function TransactionsAdminTab() {
         <KpiCard label="Total Transactions" value={kpis.count.toLocaleString()} accent="purple" />
         <KpiCard label="Total Volume" value={usd(kpis.volume)} accent="blue" />
         <KpiCard label="Total Round-Ups" value={usd(kpis.roundUps)} accent="teal" />
-        <KpiCard label="Total Fees" value={usd(kpis.fees)} accent="pink" />
         <KpiCard label="Completed" value={kpis.completed.toLocaleString()} accent="teal" />
         <KpiCard label="Failed" value={kpis.failed.toLocaleString()} accent="pink" />
       </div>

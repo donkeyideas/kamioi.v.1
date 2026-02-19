@@ -699,7 +699,652 @@ function GeoAiSearchContent() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tab 7: Recommendations                                            */
+/*  Tab 7: AEO (Answer Engine Optimization)                            */
+/* ------------------------------------------------------------------ */
+
+function AeoContent() {
+  const answerEngines = [
+    {
+      name: 'ChatGPT / OpenAI',
+      desc: 'Conversational AI that retrieves and synthesizes answers from web content.',
+    },
+    {
+      name: 'Google AI Overview',
+      desc: 'AI-generated summaries displayed at the top of Google search results.',
+    },
+    {
+      name: 'Perplexity AI',
+      desc: 'AI-powered search engine that provides sourced, citation-backed answers.',
+    },
+    {
+      name: 'Bing Copilot',
+      desc: 'Microsoft AI assistant that answers queries using web data and Bing index.',
+    },
+    {
+      name: 'Claude (Anthropic)',
+      desc: 'AI assistant with web search capabilities for real-time information retrieval.',
+    },
+  ];
+
+  const qaStrategies = [
+    {
+      title: 'Use explicit question-and-answer formatting',
+      desc: 'Structure content with clear question headings (H2/H3) followed by concise, direct answers in the first 1-2 sentences.',
+    },
+    {
+      title: 'Provide concise, factual answers first',
+      desc: 'Lead with a direct answer (40-60 words), then expand with supporting details. Answer engines prefer content that front-loads the answer.',
+    },
+    {
+      title: 'Target long-tail conversational queries',
+      desc: 'Optimize for natural-language questions users ask AI assistants, such as "How does round-up investing work?" or "What is micro-investing?".',
+    },
+    {
+      title: 'Include structured lists and step-by-step guides',
+      desc: 'Answer engines frequently extract ordered lists and numbered steps. Format actionable content as bulleted or numbered lists.',
+    },
+    {
+      title: 'Add authoritative citations and data points',
+      desc: 'Include specific statistics, percentages, and references to authoritative sources. AI engines prioritize well-sourced content.',
+    },
+  ];
+
+  const voiceSearchChecklist: Array<{ item: string; status: 'ready' | 'needs-review' | 'not-configured' }> = [
+    { item: 'Content uses natural, conversational language', status: 'ready' },
+    { item: 'FAQ sections with question-format headings', status: 'ready' },
+    { item: 'Short, direct answers (under 30 words) for key queries', status: 'needs-review' },
+    { item: 'Local business schema markup', status: 'not-configured' },
+    { item: 'Page load speed under 3 seconds on mobile', status: 'needs-review' },
+    { item: 'HTTPS enabled across all pages', status: 'ready' },
+    { item: 'Speakable schema markup for key content', status: 'not-configured' },
+  ];
+
+  const snippetGuide = [
+    {
+      title: 'Paragraph snippets',
+      desc: 'Write 40-60 word answer paragraphs directly below question headings. Google and AI engines extract these as featured answers.',
+    },
+    {
+      title: 'List snippets',
+      desc: 'Use ordered or unordered lists for "how to" and "best of" content. Ensure lists have 3-8 items with clear, concise descriptions.',
+    },
+    {
+      title: 'Table snippets',
+      desc: 'Present comparison data in HTML tables with clear headers. Tables are frequently extracted for "vs" and comparison queries.',
+    },
+    {
+      title: 'Video snippets',
+      desc: 'Add VideoObject schema to embedded videos. Include timestamps and transcripts for AI extraction.',
+    },
+  ];
+
+  const faqSchemaStatus: Array<{ page: string; status: 'implemented' | 'pending' | 'not-applicable'; count: number }> = [
+    { page: 'Learn / FAQ Page', status: 'implemented', count: 8 },
+    { page: 'Homepage', status: 'pending', count: 0 },
+    { page: 'Pricing Page', status: 'pending', count: 0 },
+    { page: 'Blog Posts', status: 'pending', count: 0 },
+    { page: 'Contact Page', status: 'not-applicable', count: 0 },
+  ];
+
+  const knowledgePanelItems: Array<{ label: string; variant: 'success' | 'warning' | 'info'; text: string }> = [
+    { label: 'Organization schema with complete properties', variant: 'success', text: 'Implemented' },
+    { label: 'Social media profile links (sameAs)', variant: 'warning', text: 'Needs Review' },
+    { label: 'Official website claim in Google Knowledge Panel', variant: 'warning', text: 'Not Verified' },
+    { label: 'Wikipedia / Wikidata entity', variant: 'info', text: 'Not Created' },
+    { label: 'Google Business Profile', variant: 'info', text: 'Not Configured' },
+    { label: 'Brand logo and images in schema', variant: 'success', text: 'Implemented' },
+  ];
+
+  const metricsToTrack = [
+    { metric: 'Answer Box Appearances', desc: 'Number of times your content appears in Google featured snippets and AI overviews.' },
+    { metric: 'Voice Search Impressions', desc: 'Estimated impressions from voice-activated search queries (requires GSC integration).' },
+    { metric: 'AI Citation Rate', desc: 'Frequency with which AI engines cite your content as a source in generated answers.' },
+    { metric: 'Zero-Click Search Share', desc: 'Percentage of queries where users get the answer directly from your snippet without clicking through.' },
+    { metric: 'FAQ Rich Result Impressions', desc: 'Impressions generated by FAQ schema rich results in search (requires GSC).' },
+    { metric: 'People Also Ask Appearances', desc: 'Number of times your content appears in Google "People Also Ask" expandable sections.' },
+  ];
+
+  const statusVariant = (status: string): 'success' | 'warning' | 'info' => {
+    if (status === 'ready' || status === 'implemented') return 'success';
+    if (status === 'needs-review' || status === 'pending') return 'warning';
+    return 'info';
+  };
+
+  const statusLabel = (status: string): string => {
+    if (status === 'ready') return 'Ready';
+    if (status === 'needs-review') return 'Needs Review';
+    if (status === 'not-configured') return 'Not Configured';
+    if (status === 'implemented') return 'Implemented';
+    if (status === 'pending') return 'Pending';
+    if (status === 'not-applicable') return 'N/A';
+    return status;
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* What is AEO */}
+      <GlassCard accent="purple" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Answer Engine Optimization (AEO)
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          AEO is the practice of optimizing content so that answer engines -- AI-powered platforms such as
+          ChatGPT, Perplexity, Google AI Overview, and Bing Copilot -- can accurately retrieve, cite, and
+          present your information in their generated responses. Unlike traditional SEO which focuses on
+          ranking web pages in link-based results, AEO focuses on making your content the preferred source
+          for AI-synthesized answers.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {answerEngines.map((engine) => (
+            <div key={engine.name} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <span style={{ color: '#A78BFA', fontSize: '14px', marginTop: '2px' }}>{'\u2022'}</span>
+              <div>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>{engine.name}</span>
+                <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginLeft: '8px' }}>
+                  {engine.desc}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Q&A Format Optimization */}
+      <GlassCard accent="blue" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Question-Answer Format Optimization
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Structure your content in question-and-answer format to increase the likelihood of extraction by answer engines.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {qaStrategies.map((strategy, idx) => (
+            <GlassCard key={idx} padding="20px">
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '6px' }}>
+                {idx + 1}. {strategy.title}
+              </p>
+              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
+                {strategy.desc}
+              </p>
+            </GlassCard>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Voice Search Readiness */}
+      <GlassCard accent="teal" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Voice Search Readiness Checklist
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Voice search queries are typically conversational and question-based. Ensure your content is optimized
+          for voice assistants (Google Assistant, Siri, Alexa) that rely on answer engines.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {voiceSearchChecklist.map((entry) => (
+            <div key={entry.item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ color: entry.status === 'ready' ? '#34D399' : entry.status === 'needs-review' ? '#FBBF24' : 'rgba(248,250,252,0.4)', fontSize: '16px' }}>
+                  {entry.status === 'ready' ? '\u2713' : entry.status === 'needs-review' ? '\u25CB' : '\u2717'}
+                </span>
+                <span style={{ fontSize: '14px', color: '#F8FAFC' }}>{entry.item}</span>
+              </div>
+              <Badge variant={statusVariant(entry.status)}>{statusLabel(entry.status)}</Badge>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Featured Snippet Optimization */}
+      <GlassCard accent="purple" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Featured Snippet Optimization Guide
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Featured snippets are the primary source for AI answer engines. Optimize your content to win snippet
+          positions across all four snippet types.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {snippetGuide.map((guide, idx) => (
+            <GlassCard key={idx} padding="20px">
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '6px' }}>
+                {guide.title}
+              </p>
+              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
+                {guide.desc}
+              </p>
+            </GlassCard>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* FAQ Schema Implementation Status */}
+      <GlassCard accent="blue" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          FAQ Schema Implementation Status
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          FAQ schema (FAQPage structured data) enables rich results in search and improves content extraction
+          by answer engines.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {faqSchemaStatus.map((entry) => (
+            <div key={entry.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC', minWidth: '160px' }}>
+                  {entry.page}
+                </span>
+                {entry.status === 'implemented' && entry.count > 0 && (
+                  <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>
+                    {entry.count} questions
+                  </span>
+                )}
+              </div>
+              <Badge variant={statusVariant(entry.status)}>{statusLabel(entry.status)}</Badge>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Knowledge Panel Readiness */}
+      <GlassCard accent="teal" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Knowledge Panel Readiness
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Knowledge panels are used by Google and AI engines to display authoritative entity information.
+          Establishing a verified knowledge panel increases your content authority in answer engine results.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {knowledgePanelItems.map((item) => (
+            <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '14px', color: '#F8FAFC' }}>{item.label}</span>
+              <Badge variant={item.variant}>{item.text}</Badge>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Key Metrics to Track */}
+      <GlassCard accent="purple" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Key Metrics to Track
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Monitor these AEO-specific metrics to measure your answer engine visibility. Metric collection
+          requires Google Search Console and third-party AEO tracking integrations.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {metricsToTrack.map((entry) => (
+            <GlassCard key={entry.metric} padding="20px">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>
+                  {entry.metric}
+                </p>
+                <Badge variant="info">Not Connected</Badge>
+              </div>
+              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5 }}>
+                {entry.desc}
+              </p>
+            </GlassCard>
+          ))}
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tab 8: CRO (Conversion Rate Optimization)                         */
+/* ------------------------------------------------------------------ */
+
+function CroContent() {
+  const funnelStages: Array<{ stage: string; desc: string; widthPercent: number; color: string }> = [
+    { stage: 'Visitor', desc: 'Users who land on the site from any source.', widthPercent: 100, color: '#8B5CF6' },
+    { stage: 'Sign Up', desc: 'Users who create a Kamioi account.', widthPercent: 70, color: '#6366F1' },
+    { stage: 'Subscribe', desc: 'Users who activate a subscription or link a payment method.', widthPercent: 40, color: '#06B6D4' },
+    { stage: 'Active User', desc: 'Users who complete at least one round-up investment.', widthPercent: 22, color: '#34D399' },
+  ];
+
+  const abTestFields: Array<{ label: string; value: string }> = [
+    { label: 'Active Tests', value: '--' },
+    { label: 'Completed Tests', value: '--' },
+    { label: 'Avg. Conversion Lift', value: '--' },
+    { label: 'Statistical Significance', value: '--' },
+  ];
+
+  const landingPageMetrics = [
+    { page: 'Homepage (/)', metric: 'Conversion Rate', value: '--', note: 'Requires GA4 integration' },
+    { page: 'Learn (/learn)', metric: 'Conversion Rate', value: '--', note: 'Requires GA4 integration' },
+    { page: 'Pricing (/pricing)', metric: 'Conversion Rate', value: '--', note: 'Requires GA4 integration' },
+    { page: 'Blog (/blog)', metric: 'Conversion Rate', value: '--', note: 'Requires GA4 integration' },
+    { page: 'Contact (/contact)', metric: 'Submission Rate', value: '--', note: 'Requires GA4 integration' },
+  ];
+
+  const ctaItems = [
+    { cta: 'Hero "Get Started" Button', placement: 'Homepage hero section', clicks: '--', conversions: '--' },
+    { cta: 'Navigation "Sign Up" Link', placement: 'Global navigation bar', clicks: '--', conversions: '--' },
+    { cta: 'Pricing "Subscribe" Button', placement: 'Pricing page cards', clicks: '--', conversions: '--' },
+    { cta: 'Blog "Read More" Links', placement: 'Blog listing page', clicks: '--', conversions: '--' },
+    { cta: 'Footer "Contact Us" Link', placement: 'Global footer', clicks: '--', conversions: '--' },
+  ];
+
+  const journeyStages = [
+    {
+      title: 'Awareness',
+      desc: 'User discovers Kamioi through search, social, or referral. Track entry pages, traffic sources, and first-touch attribution.',
+    },
+    {
+      title: 'Consideration',
+      desc: 'User browses features, pricing, and learn pages. Track page depth, time on site, and content engagement.',
+    },
+    {
+      title: 'Decision',
+      desc: 'User reaches signup or pricing page. Track form starts, drop-off points, and hesitation signals.',
+    },
+    {
+      title: 'Action',
+      desc: 'User completes signup and activates account. Track completion rate, time to convert, and post-signup behavior.',
+    },
+    {
+      title: 'Retention',
+      desc: 'User returns and engages regularly. Track login frequency, feature usage, and churn indicators.',
+    },
+  ];
+
+  const bounceExitPages = [
+    { page: '/', label: 'Homepage', bounceRate: '--', exitRate: '--' },
+    { page: '/learn', label: 'Learn', bounceRate: '--', exitRate: '--' },
+    { page: '/pricing', label: 'Pricing', bounceRate: '--', exitRate: '--' },
+    { page: '/blog', label: 'Blog', bounceRate: '--', exitRate: '--' },
+    { page: '/contact', label: 'Contact', bounceRate: '--', exitRate: '--' },
+  ];
+
+  const formAnalytics = [
+    { form: 'Sign Up Form', views: '--', starts: '--', completions: '--', dropOff: '--' },
+    { form: 'Contact Form', views: '--', starts: '--', completions: '--', dropOff: '--' },
+    { form: 'Demo Request Form', views: '--', starts: '--', completions: '--', dropOff: '--' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Conversion Funnel */}
+      <GlassCard accent="purple" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Conversion Funnel
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '24px' }}>
+          Visualize the user journey from first visit to active investor. Funnel data will populate
+          when GA4 conversion tracking is configured.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          {funnelStages.map((stage) => (
+            <div key={stage.stage} style={{ width: '100%', maxWidth: '600px' }}>
+              <div
+                style={{
+                  width: `${stage.widthPercent}%`,
+                  margin: '0 auto',
+                  background: `linear-gradient(135deg, ${stage.color}33, ${stage.color}11)`,
+                  border: `1px solid ${stage.color}44`,
+                  borderRadius: '8px',
+                  padding: '14px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>{stage.stage}</p>
+                  <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.5)', marginTop: '2px' }}>{stage.desc}</p>
+                </div>
+                <span style={{ fontSize: '20px', fontWeight: 700, color: stage.color }}>--</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* A/B Test Tracking */}
+      <GlassCard accent="blue" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          A/B Test Tracking
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Track and manage A/B tests across landing pages, CTAs, and user flows. Connect an A/B testing
+          platform (e.g., Google Optimize, VWO, Optimizely) to populate test data.
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '16px',
+            marginBottom: '20px',
+          }}
+        >
+          {abTestFields.map((field) => (
+            <KpiCard key={field.label} label={field.label} value={field.value} accent="blue" />
+          ))}
+        </div>
+        <GlassCard padding="20px">
+          <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6 }}>
+            No active A/B tests. Create tests by defining variants for your landing pages, headlines,
+            CTAs, or signup flows. Each test should run until it reaches statistical significance
+            (typically 95% confidence level with a minimum sample of 1,000 visitors per variant).
+          </p>
+        </GlassCard>
+      </GlassCard>
+
+      {/* Landing Page Performance */}
+      <GlassCard accent="teal" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Landing Page Performance
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Monitor conversion rates and engagement metrics for each landing page. Data requires GA4 event tracking.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {landingPageMetrics.map((entry) => (
+            <div key={entry.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC', minWidth: '180px' }}>
+                  {entry.page}
+                </span>
+                <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>{entry.metric}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(248,250,252,0.4)' }}>
+                  {entry.value}
+                </span>
+                <Badge variant="info">{entry.note}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* CTA Effectiveness */}
+      <GlassCard accent="purple" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          CTA Effectiveness Tracking
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Measure how effectively each call-to-action drives user engagement and conversions. Requires
+          GA4 event tracking on CTA elements.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {ctaItems.map((cta) => (
+            <GlassCard key={cta.cta} padding="20px">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>{cta.cta}</p>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>
+                    Clicks: {cta.clicks}
+                  </span>
+                  <span style={{ fontSize: '13px', color: 'rgba(248,250,252,0.4)' }}>
+                    Conversions: {cta.conversions}
+                  </span>
+                </div>
+              </div>
+              <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)' }}>{cta.placement}</p>
+            </GlassCard>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* User Journey Analysis */}
+      <GlassCard accent="blue" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          User Journey Analysis
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Map the complete user journey from awareness to retention. Identify drop-off points and optimize
+          each stage of the conversion path.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {journeyStages.map((stage, idx) => (
+            <GlassCard key={idx} padding="20px">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                <span
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #8B5CF6, #06B6D4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: '#F8FAFC',
+                    flexShrink: 0,
+                  }}
+                >
+                  {idx + 1}
+                </span>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC' }}>{stage.title}</p>
+              </div>
+              <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.5, marginLeft: '40px' }}>
+                {stage.desc}
+              </p>
+            </GlassCard>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Bounce Rate & Exit Page Analysis */}
+      <GlassCard accent="teal" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Bounce Rate and Exit Page Analysis
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Identify pages where users leave without converting. High bounce and exit rates indicate opportunities
+          for content or UX improvement. Data requires GA4 integration.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 120px 120px',
+              gap: '12px',
+              paddingBottom: '10px',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Page
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>
+              Bounce Rate
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(248,250,252,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>
+              Exit Rate
+            </span>
+          </div>
+          {bounceExitPages.map((entry) => (
+            <div
+              key={entry.page}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 120px 120px',
+                gap: '12px',
+                padding: '8px 0',
+                borderBottom: '1px solid rgba(255,255,255,0.04)',
+              }}
+            >
+              <div>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#F8FAFC' }}>{entry.label}</span>
+                <span style={{ fontSize: '12px', color: 'rgba(248,250,252,0.4)', marginLeft: '8px' }}>
+                  {entry.page}
+                </span>
+              </div>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', textAlign: 'right' }}>
+                {entry.bounceRate}
+              </span>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(248,250,252,0.4)', textAlign: 'right' }}>
+                {entry.exitRate}
+              </span>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Form Analytics */}
+      <GlassCard accent="purple" padding="28px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '8px' }}>
+          Form Analytics
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.5)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Track form performance across signup, contact, and demo request forms. Identify where users
+          abandon forms and optimize for completion. Requires GA4 form interaction event tracking.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {formAnalytics.map((form) => (
+            <GlassCard key={form.form} padding="20px">
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFC', marginBottom: '12px' }}>
+                {form.form}
+              </p>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                    Views
+                  </p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(248,250,252,0.4)' }}>{form.views}</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                    Starts
+                  </p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(248,250,252,0.4)' }}>{form.starts}</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                    Completions
+                  </p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(248,250,252,0.4)' }}>{form.completions}</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', color: 'rgba(248,250,252,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                    Drop-off
+                  </p>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(248,250,252,0.4)' }}>{form.dropOff}</p>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tab 9: Recommendations                                            */
 /* ------------------------------------------------------------------ */
 
 function RecommendationsContent() {
@@ -758,7 +1403,7 @@ function RecommendationsContent() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tab 8: GA4 Analytics                                               */
+/*  Tab 10: GA4 Analytics                                              */
 /* ------------------------------------------------------------------ */
 
 function Ga4AnalyticsContent() {
@@ -930,6 +1575,8 @@ export function SeoGeoTab() {
       { key: 'content-seo', label: 'Content SEO', content: <ContentSeoContent /> },
       { key: 'structured-data', label: 'Structured Data', content: <StructuredDataContent /> },
       { key: 'geo-ai-search', label: 'GEO / AI Search', content: <GeoAiSearchContent /> },
+      { key: 'aeo', label: 'AEO', content: <AeoContent /> },
+      { key: 'cro', label: 'CRO', content: <CroContent /> },
       { key: 'recommendations', label: 'Recommendations', content: <RecommendationsContent /> },
       { key: 'ga4-analytics', label: 'GA4 Analytics', content: <Ga4AnalyticsContent /> },
     ],
@@ -939,7 +1586,7 @@ export function SeoGeoTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>
-        SEO and GEO Analytics
+        SEO, GEO, AEO & CRO Analytics
       </p>
       <Tabs tabs={tabs} defaultTab="overview" />
     </div>

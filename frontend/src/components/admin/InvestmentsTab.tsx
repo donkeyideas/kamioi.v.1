@@ -707,7 +707,6 @@ function InvestmentProcessingTab() {
           <KpiCard label="Processing" value={processingCount.toLocaleString()} accent="teal" />
           <KpiCard label="Completed Today" value={completedToday.toLocaleString()} accent="teal" />
           <KpiCard label="Failed" value={failedCount.toLocaleString()} accent="pink" />
-          <KpiCard label="Success Rate" value={pct(successRate)} accent="teal" />
         </div>
       </GlassCard>
 

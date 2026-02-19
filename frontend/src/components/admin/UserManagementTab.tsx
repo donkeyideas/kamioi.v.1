@@ -258,6 +258,23 @@ export function UserManagementTab() {
     return { total, individual, family, business, newThisMonth };
   }, [users]);
 
+  /* Account breakdown with active subscriptions */
+  const accountBreakdown = useMemo(() => {
+    const total = users.length || 1; // avoid division by zero
+    const types = ['individual', 'family', 'business'] as const;
+
+    return types.map((type) => {
+      const subset = users.filter((u) => u.account_type === type);
+      const count = subset.length;
+      const activeSubs = subset.filter(
+        (u) => u.subscription_status === 'active' || u.subscription_status === 'Active',
+      ).length;
+      const pct = Math.round((count / total) * 100);
+
+      return { type, count, activeSubs, pct };
+    });
+  }, [users]);
+
   /* Chart data: Users by account type */
   const accountTypeChartData = useMemo<AccountTypeChartPoint[]>(() => {
     const map = new Map<string, number>();
@@ -409,6 +426,168 @@ export function UserManagementTab() {
         <KpiCard label="Business" value={formatNumber(kpis.business)} accent="pink" />
         <KpiCard label="New This Month" value={formatNumber(kpis.newThisMonth)} accent="purple" />
       </div>
+
+      {/* Account Breakdown */}
+      <GlassCard padding="24px">
+        <p
+          style={{
+            fontSize: '16px',
+            fontWeight: 600,
+            color: '#F8FAFC',
+            marginBottom: '16px',
+          }}
+        >
+          Account Breakdown
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '16px',
+          }}
+        >
+          {accountBreakdown.map(({ type, count, activeSubs, pct }) => {
+            const accentMap: Record<string, string> = {
+              individual: '#7C3AED',
+              family: '#3B82F6',
+              business: '#14B8A6',
+            };
+            const accent = accentMap[type] ?? '#7C3AED';
+
+            return (
+              <div
+                key={type}
+                style={{
+                  position: 'relative',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Colored accent bar at the top */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '3px',
+                    background: `linear-gradient(90deg, ${accent}, ${accent}88)`,
+                    borderRadius: '12px 12px 0 0',
+                  }}
+                />
+
+                {/* Header row: label + percentage badge */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: '#F8FAFC',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {type}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: accent,
+                      background: `${accent}18`,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                    }}
+                  >
+                    {pct}%
+                  </span>
+                </div>
+
+                {/* Count */}
+                <p
+                  style={{
+                    fontSize: '28px',
+                    fontWeight: 700,
+                    color: '#F8FAFC',
+                    margin: '0 0 4px 0',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {formatNumber(count)}
+                </p>
+                <p
+                  style={{
+                    fontSize: '12px',
+                    color: 'rgba(248,250,252,0.45)',
+                    margin: '0 0 14px 0',
+                  }}
+                >
+                  of {formatNumber(kpis.total)} total users
+                </p>
+
+                {/* Progress bar */}
+                <div
+                  style={{
+                    width: '100%',
+                    height: '6px',
+                    background: 'rgba(255,255,255,0.06)',
+                    borderRadius: '3px',
+                    overflow: 'hidden',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${pct}%`,
+                      height: '100%',
+                      background: `linear-gradient(90deg, ${accent}, ${accent}CC)`,
+                      borderRadius: '3px',
+                      transition: 'width 0.4s ease',
+                    }}
+                  />
+                </div>
+
+                {/* Active subscriptions */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: accent,
+                      boxShadow: `0 0 6px ${accent}66`,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      color: 'rgba(248,250,252,0.55)',
+                    }}
+                  >
+                    {formatNumber(activeSubs)} active subscription{activeSubs !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </GlassCard>
 
       {/* Filter Bar */}
       <GlassCard padding="20px">

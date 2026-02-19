@@ -47,14 +47,44 @@ interface MonthlyRevenuePoint {
   revenue: number;
 }
 
-interface MonthlyFeePoint {
-  name: string;
-  fees: number;
-}
-
 interface MonthlyRoundUpPoint {
   name: string;
   amount: number;
+}
+
+interface MonthlyPnLPoint {
+  name: string;
+  revenue: number;
+  expenses: number;
+}
+
+interface MonthlyCashFlowPoint {
+  name: string;
+  inflows: number;
+  outflows: number;
+  net: number;
+}
+
+interface ApiUsageRow {
+  cost: number;
+  created_at: string;
+}
+
+interface RenewalHistoryRow {
+  amount: number;
+  renewal_date: string;
+  status: string;
+}
+
+interface RenewalQueueRow {
+  amount: number;
+  status: string;
+}
+
+interface MarketQueueRow {
+  amount: number;
+  status: string;
+  created_at: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -272,31 +302,48 @@ function RevenueTab() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Sub-tab: Fees                                                      */
+/*  Sub-tab: P&L (Profit & Loss)                                       */
 /* ------------------------------------------------------------------ */
 
-function FeesTab() {
+function ProfitLossTab() {
   const [loading, setLoading] = useState(true);
-  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [subscriptionRevenue, setSubscriptionRevenue] = useState(0);
+  const [roundUpRevenue, setRoundUpRevenue] = useState(0);
+  const [apiCosts, setApiCosts] = useState(0);
+  const [renewals, setRenewals] = useState<RenewalHistoryRow[]>([]);
+  const [roundUps, setRoundUps] = useState<RoundUpRow[]>([]);
+  const [apiUsage, setApiUsage] = useState<ApiUsageRow[]>([]);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data, error } = await supabase
-          .from('transactions')
-          .select('*')
-          .gt('fee', 0)
-          .order('created_at', { ascending: false })
-          .limit(50);
-        if (error) {
-          console.error('Failed to fetch transactions:', error.message);
-          setTransactions([]);
-          return;
-        }
-        setTransactions((data ?? []) as TransactionRow[]);
+        const [subsResult, ruResult, apiResult, renewalResult] = await Promise.all([
+          supabase
+            .from('user_subscriptions')
+            .select('amount, status')
+            .eq('status', 'active'),
+          supabase.from('roundup_ledger').select('round_up_amount, fee_amount, created_at'),
+          supabase.from('api_usage').select('cost, created_at'),
+          supabase
+            .from('renewal_history')
+            .select('amount, renewal_date, status')
+            .eq('status', 'success')
+            .order('renewal_date', { ascending: true }),
+        ]);
+
+        const subs = (subsResult.data ?? []) as UserSubscriptionRow[];
+        const rus = (ruResult.data ?? []) as RoundUpRow[];
+        const apis = (apiResult.data ?? []) as ApiUsageRow[];
+        const rens = (renewalResult.data ?? []) as RenewalHistoryRow[];
+
+        setSubscriptionRevenue(subs.reduce((sum, s) => sum + s.amount, 0));
+        setRoundUpRevenue(rus.reduce((sum, r) => sum + r.fee_amount, 0));
+        setApiCosts(apis.reduce((sum, a) => sum + (a.cost ?? 0), 0));
+        setRenewals(rens);
+        setRoundUps(rus);
+        setApiUsage(apis);
       } catch (err) {
-        console.error('Fees fetch error:', err);
-        setTransactions([]);
+        console.error('P&L fetch error:', err);
       } finally {
         setLoading(false);
       }
@@ -304,66 +351,36 @@ function FeesTab() {
     fetchData();
   }, []);
 
-  const totalFees = useMemo(
-    () => transactions.reduce((sum, t) => sum + t.fee, 0),
-    [transactions],
-  );
-  const avgFee = transactions.length > 0 ? totalFees / transactions.length : 0;
-  const txWithFees = transactions.length;
+  const totalRevenue = subscriptionRevenue + roundUpRevenue;
+  const totalExpenses = apiCosts;
+  const netIncome = totalRevenue - totalExpenses;
+  const operatingMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
 
-  const feesByMonth: MonthlyFeePoint[] = useMemo(() => {
-    const map = groupByMonth(transactions, (t) => t.created_at, (t) => t.fee);
-    const points: MonthlyFeePoint[] = [];
-    for (const [name, fees] of map) {
-      points.push({ name, fees });
+  const monthlyPnL: MonthlyPnLPoint[] = useMemo(() => {
+    const revenueMap = groupByMonth(renewals, (r) => r.renewal_date, (r) => r.amount);
+    const ruRevenueMap = groupByMonth(roundUps, (r) => r.created_at, (r) => r.fee_amount);
+    const expenseMap = groupByMonth(apiUsage, (a) => a.created_at, (a) => a.cost ?? 0);
+
+    const allMonths = new Set<string>();
+    for (const key of revenueMap.keys()) allMonths.add(key);
+    for (const key of ruRevenueMap.keys()) allMonths.add(key);
+    for (const key of expenseMap.keys()) allMonths.add(key);
+
+    const points: MonthlyPnLPoint[] = [];
+    for (const month of allMonths) {
+      points.push({
+        name: month,
+        revenue: (revenueMap.get(month) ?? 0) + (ruRevenueMap.get(month) ?? 0),
+        expenses: expenseMap.get(month) ?? 0,
+      });
     }
-    return points;
-  }, [transactions]);
-
-  const txColumns: Column<TransactionRow>[] = useMemo(
-    () => [
-      { key: 'id', header: 'ID', sortable: true, width: '70px' },
-      {
-        key: 'date',
-        header: 'Date',
-        sortable: true,
-        width: '130px',
-        render: (row) => formatDate(row.date),
-      },
-      { key: 'merchant', header: 'Merchant', sortable: true, render: (row) => row.merchant ?? '--' },
-      {
-        key: 'amount',
-        header: 'Amount',
-        sortable: true,
-        align: 'right',
-        width: '110px',
-        render: (row) => usd(row.amount),
-      },
-      {
-        key: 'fee',
-        header: 'Fee',
-        sortable: true,
-        align: 'right',
-        width: '100px',
-        render: (row) => usd(row.fee),
-      },
-      {
-        key: 'status',
-        header: 'Status',
-        sortable: true,
-        width: '110px',
-        render: (row) => (
-          <Badge variant={statusBadgeVariant(row.status)}>{row.status ?? '--'}</Badge>
-        ),
-      },
-    ],
-    [],
-  );
+    return points.sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+  }, [renewals, roundUps, apiUsage]);
 
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
-        Loading fees data...
+        Loading P&L data...
       </div>
     );
   }
@@ -371,33 +388,466 @@ function FeesTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <KpiCard label="Total Fees" value={usd(totalFees)} accent="teal" />
-        <KpiCard label="Avg Fee per Transaction" value={usd(avgFee)} accent="pink" />
-        <KpiCard label="Transactions with Fees" value={txWithFees} accent="purple" />
+        <KpiCard label="Total Revenue" value={usd(totalRevenue)} accent="purple" />
+        <KpiCard label="Total Expenses" value={usd(totalExpenses)} accent="pink" />
+        <KpiCard label="Net Income" value={usd(netIncome)} accent="teal" />
+        <KpiCard
+          label="Operating Margin"
+          value={`${operatingMargin.toFixed(1)}%`}
+          accent="blue"
+        />
       </div>
 
-      <BarChart<MonthlyFeePoint>
-        data={feesByMonth}
-        dataKey="fees"
+      {/* Revenue Breakdown */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+          Revenue Breakdown
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(124,58,237,0.08)',
+              border: '1px solid rgba(124,58,237,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Subscription Revenue</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(subscriptionRevenue)}</p>
+          </div>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(6,182,212,0.08)',
+              border: '1px solid rgba(6,182,212,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Round-Up Revenue</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(roundUpRevenue)}</p>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Expense Breakdown */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+          Expense Breakdown
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>AI / API Costs</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(apiCosts)}</p>
+          </div>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(148,163,184,0.08)',
+              border: '1px solid rgba(148,163,184,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Infrastructure</p>
+            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.35)' }}>No data available</p>
+          </div>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(148,163,184,0.08)',
+              border: '1px solid rgba(148,163,184,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Operations</p>
+            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.35)' }}>No data available</p>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Monthly P&L Trend */}
+      <LineChart<MonthlyPnLPoint>
+        data={monthlyPnL}
+        dataKey="revenue"
         xKey="name"
-        title="Fees by Month"
+        title="Monthly P&L Trend (Revenue vs Expenses)"
+        color="#7C3AED"
+        height={280}
+        additionalLines={[{ dataKey: 'expenses', color: '#EF4444' }]}
+      />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Sub-tab: Balance Sheet                                             */
+/* ------------------------------------------------------------------ */
+
+function BalanceSheetTab() {
+  const [loading, setLoading] = useState(true);
+  const [cashEquivalents, setCashEquivalents] = useState(0);
+  const [accountsReceivable, setAccountsReceivable] = useState(0);
+  const [userDeposits, setUserDeposits] = useState(0);
+  const [pendingPayouts, setPendingPayouts] = useState(0);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [subsResult, renewalQueueResult, ruResult, marketQueueResult] = await Promise.all([
+          supabase
+            .from('user_subscriptions')
+            .select('amount, status')
+            .eq('status', 'active'),
+          supabase
+            .from('renewal_queue')
+            .select('amount, status')
+            .eq('status', 'pending'),
+          supabase.from('roundup_ledger').select('round_up_amount'),
+          supabase
+            .from('market_queue')
+            .select('amount, status')
+            .eq('status', 'pending'),
+        ]);
+
+        const subs = (subsResult.data ?? []) as UserSubscriptionRow[];
+        const renewalQ = (renewalQueueResult.data ?? []) as RenewalQueueRow[];
+        const rus = (ruResult.data ?? []) as Array<{ round_up_amount: number }>;
+        const marketQ = (marketQueueResult.data ?? []) as MarketQueueRow[];
+
+        setCashEquivalents(subs.reduce((sum, s) => sum + s.amount, 0));
+        setAccountsReceivable(renewalQ.reduce((sum, r) => sum + (r.amount ?? 0), 0));
+        setUserDeposits(rus.reduce((sum, r) => sum + r.round_up_amount, 0));
+        setPendingPayouts(marketQ.reduce((sum, m) => sum + (m.amount ?? 0), 0));
+      } catch (err) {
+        console.error('Balance Sheet fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const totalAssets = cashEquivalents + accountsReceivable + userDeposits;
+  const totalLiabilities = pendingPayouts;
+  const equity = totalAssets - totalLiabilities;
+  const currentRatio = totalLiabilities > 0 ? totalAssets / totalLiabilities : 0;
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+        Loading balance sheet data...
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <KpiCard label="Total Assets" value={usd(totalAssets)} accent="purple" />
+        <KpiCard label="Total Liabilities" value={usd(totalLiabilities)} accent="pink" />
+        <KpiCard label="Equity" value={usd(equity)} accent="teal" />
+        <KpiCard
+          label="Current Ratio"
+          value={currentRatio > 0 ? currentRatio.toFixed(2) : '--'}
+          accent="blue"
+        />
+      </div>
+
+      {/* Assets Section */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+          Assets
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(124,58,237,0.08)',
+              border: '1px solid rgba(124,58,237,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Cash & Equivalents</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(cashEquivalents)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Active subscription revenue</p>
+          </div>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(6,182,212,0.08)',
+              border: '1px solid rgba(6,182,212,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Accounts Receivable</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(accountsReceivable)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Pending renewals</p>
+          </div>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(59,130,246,0.08)',
+              border: '1px solid rgba(59,130,246,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>User Deposits</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(userDeposits)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Round-up deposits</p>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Liabilities Section */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+          Liabilities
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Accounts Payable</p>
+            <p style={{ fontSize: '14px', color: 'rgba(248,250,252,0.35)' }}>No data available</p>
+          </div>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(245,158,11,0.08)',
+              border: '1px solid rgba(245,158,11,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Pending Payouts</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(pendingPayouts)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Pending market queue amounts</p>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Equity Section */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+          Equity
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(16,185,129,0.08)',
+              border: '1px solid rgba(16,185,129,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Retained Earnings</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(equity)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Total assets minus total liabilities</p>
+          </div>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Sub-tab: Cash Flow                                                 */
+/* ------------------------------------------------------------------ */
+
+function CashFlowTab() {
+  const [loading, setLoading] = useState(true);
+  const [subscriptionInflows, setSubscriptionInflows] = useState(0);
+  const [roundUpInflows, setRoundUpInflows] = useState(0);
+  const [apiOutflows, setApiOutflows] = useState(0);
+  const [investmentOutflows, setInvestmentOutflows] = useState(0);
+  const [renewals, setRenewals] = useState<RenewalHistoryRow[]>([]);
+  const [roundUps, setRoundUps] = useState<RoundUpRow[]>([]);
+  const [apiUsage, setApiUsage] = useState<ApiUsageRow[]>([]);
+  const [completedMarket, setCompletedMarket] = useState<MarketQueueRow[]>([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [renewalResult, ruResult, apiResult, marketResult] = await Promise.all([
+          supabase
+            .from('renewal_history')
+            .select('amount, renewal_date, status')
+            .eq('status', 'success')
+            .order('renewal_date', { ascending: true }),
+          supabase
+            .from('roundup_ledger')
+            .select('id, user_id, round_up_amount, fee_amount, status, created_at')
+            .order('created_at', { ascending: true }),
+          supabase
+            .from('api_usage')
+            .select('cost, created_at')
+            .order('created_at', { ascending: true }),
+          supabase
+            .from('market_queue')
+            .select('amount, status, created_at')
+            .eq('status', 'completed')
+            .order('created_at', { ascending: true }),
+        ]);
+
+        const rens = (renewalResult.data ?? []) as RenewalHistoryRow[];
+        const rus = (ruResult.data ?? []) as RoundUpRow[];
+        const apis = (apiResult.data ?? []) as ApiUsageRow[];
+        const mkts = (marketResult.data ?? []) as MarketQueueRow[];
+
+        setSubscriptionInflows(rens.reduce((sum, r) => sum + r.amount, 0));
+        setRoundUpInflows(rus.reduce((sum, r) => sum + r.round_up_amount, 0));
+        setApiOutflows(apis.reduce((sum, a) => sum + (a.cost ?? 0), 0));
+        setInvestmentOutflows(mkts.reduce((sum, m) => sum + (m.amount ?? 0), 0));
+        setRenewals(rens);
+        setRoundUps(rus);
+        setApiUsage(apis);
+        setCompletedMarket(mkts);
+      } catch (err) {
+        console.error('Cash Flow fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const operatingCashFlow = subscriptionInflows + roundUpInflows - apiOutflows;
+  const investingCashFlow = -investmentOutflows;
+  const financingCashFlow = 0;
+  const netCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow;
+
+  const monthlyCashFlow: MonthlyCashFlowPoint[] = useMemo(() => {
+    const inflowSubMap = groupByMonth(renewals, (r) => r.renewal_date, (r) => r.amount);
+    const inflowRuMap = groupByMonth(roundUps, (r) => r.created_at, (r) => r.round_up_amount);
+    const outflowApiMap = groupByMonth(apiUsage, (a) => a.created_at, (a) => a.cost ?? 0);
+    const outflowMktMap = groupByMonth(completedMarket, (m) => m.created_at, (m) => m.amount ?? 0);
+
+    const allMonths = new Set<string>();
+    for (const key of inflowSubMap.keys()) allMonths.add(key);
+    for (const key of inflowRuMap.keys()) allMonths.add(key);
+    for (const key of outflowApiMap.keys()) allMonths.add(key);
+    for (const key of outflowMktMap.keys()) allMonths.add(key);
+
+    const points: MonthlyCashFlowPoint[] = [];
+    for (const month of allMonths) {
+      const inflows = (inflowSubMap.get(month) ?? 0) + (inflowRuMap.get(month) ?? 0);
+      const outflows = (outflowApiMap.get(month) ?? 0) + (outflowMktMap.get(month) ?? 0);
+      points.push({
+        name: month,
+        inflows,
+        outflows,
+        net: inflows - outflows,
+      });
+    }
+    return points.sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+  }, [renewals, roundUps, apiUsage, completedMarket]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(248,250,252,0.4)' }}>
+        Loading cash flow data...
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <KpiCard label="Operating Cash Flow" value={usd(operatingCashFlow)} accent="purple" />
+        <KpiCard label="Investing Cash Flow" value={usd(investingCashFlow)} accent="pink" />
+        <KpiCard label="Financing Cash Flow" value={usd(financingCashFlow)} accent="blue" />
+        <KpiCard label="Net Cash Flow" value={usd(netCashFlow)} accent="teal" />
+      </div>
+
+      {/* Cash Inflows */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+          Cash Inflows
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(16,185,129,0.08)',
+              border: '1px solid rgba(16,185,129,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Subscriptions</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(subscriptionInflows)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Successful renewals</p>
+          </div>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(6,182,212,0.08)',
+              border: '1px solid rgba(6,182,212,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Round-Up Deposits</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(roundUpInflows)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>From roundup ledger</p>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Cash Outflows */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '16px', fontWeight: 600, color: '#F8FAFC', marginBottom: '16px' }}>
+          Cash Outflows
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>API Costs</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(apiOutflows)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>AI and third-party APIs</p>
+          </div>
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '12px',
+              background: 'rgba(245,158,11,0.08)',
+              border: '1px solid rgba(245,158,11,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '13px', color: 'rgba(248,250,252,0.5)', marginBottom: '8px' }}>Investment Executions</p>
+            <p style={{ fontSize: '20px', fontWeight: 700, color: '#F8FAFC' }}>{usd(investmentOutflows)}</p>
+            <p style={{ fontSize: '12px', color: 'rgba(248,250,252,0.35)', marginTop: '4px' }}>Completed market queue</p>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Monthly Cash Flow Trend */}
+      <AreaChart<MonthlyCashFlowPoint>
+        data={monthlyCashFlow}
+        dataKey="net"
+        xKey="name"
+        title="Monthly Cash Flow Trend"
         color="#06B6D4"
         height={280}
+        additionalAreas={[
+          { dataKey: 'inflows', color: '#10B981' },
+          { dataKey: 'outflows', color: '#EF4444' },
+        ]}
       />
-
-      <GlassCard padding="0">
-        <div style={{ padding: '16px 16px 0', fontSize: '16px', fontWeight: 600, color: '#F8FAFC' }}>
-          Transactions with Fees (Top 50)
-        </div>
-        <Table<TransactionRow>
-          columns={txColumns}
-          data={transactions}
-          loading={false}
-          emptyMessage="No transactions with fees found"
-          pageSize={15}
-          rowKey={(row) => row.id}
-        />
-      </GlassCard>
     </div>
   );
 }
@@ -649,7 +1099,9 @@ function AccountingTab() {
 export function FinancialAnalyticsTab() {
   const tabs: TabItem[] = [
     { key: 'revenue', label: 'Revenue', content: <RevenueTab /> },
-    { key: 'fees', label: 'Fees', content: <FeesTab /> },
+    { key: 'pnl', label: 'P&L', content: <ProfitLossTab /> },
+    { key: 'balance-sheet', label: 'Balance Sheet', content: <BalanceSheetTab /> },
+    { key: 'cash-flow', label: 'Cash Flow', content: <CashFlowTab /> },
     { key: 'roundups', label: 'Round-Ups', content: <RoundUpsTab /> },
     { key: 'accounting', label: 'Accounting', content: <AccountingTab /> },
   ];
