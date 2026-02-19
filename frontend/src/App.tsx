@@ -7,6 +7,14 @@ import { useAuth } from '@/hooks/useAuth'
 const Home = lazy(() => import('@/pages/Home'))
 const Login = lazy(() => import('@/pages/Login'))
 const Register = lazy(() => import('@/pages/Register'))
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'))
+const Features = lazy(() => import('@/pages/Features'))
+const HowItWorks = lazy(() => import('@/pages/HowItWorks'))
+const Pricing = lazy(() => import('@/pages/Pricing'))
+const Learn = lazy(() => import('@/pages/Learn'))
+const Contact = lazy(() => import('@/pages/Contact'))
+const Blog = lazy(() => import('@/pages/Blog'))
+const BlogPost = lazy(() => import('@/pages/BlogPost'))
 const UserDashboard = lazy(() => import('@/pages/UserDashboard'))
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
 
@@ -66,6 +74,14 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/learn" element={<Learn />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
 
           {/* App redirect */}
           <Route path="/app" element={

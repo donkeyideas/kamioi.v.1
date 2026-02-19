@@ -1,0 +1,251 @@
+import { useEffect, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { PublicLayout } from '@/components/public'
+import { GlassCard } from '@/components/ui'
+import { SEO } from '@/components/common/SEO.tsx'
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+interface BlogPostData {
+  id: number
+  slug: string
+  title: string
+  content: string
+  author?: string | null
+  status: string
+  created_at: string
+}
+
+/* ------------------------------------------------------------------ */
+/*  Styles                                                             */
+/* ------------------------------------------------------------------ */
+
+const sectionStyle: React.CSSProperties = {
+  maxWidth: 800,
+  margin: '0 auto',
+  padding: '80px 40px',
+}
+
+const backLinkStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 14,
+  fontWeight: 600,
+  color: '#06B6D4',
+  textDecoration: 'none',
+  marginBottom: 32,
+}
+
+const titleStyle: React.CSSProperties = {
+  fontSize: 'clamp(28px, 5vw, 42px)',
+  fontWeight: 800,
+  lineHeight: 1.2,
+  color: '#F8FAFC',
+  marginBottom: 16,
+}
+
+const metaStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  fontSize: 14,
+  color: 'rgba(248,250,252,0.5)',
+  marginBottom: 40,
+}
+
+const contentStyle: React.CSSProperties = {
+  fontSize: 16,
+  lineHeight: 1.75,
+  color: 'rgba(248,250,252,0.8)',
+}
+
+const centerStyle: React.CSSProperties = {
+  textAlign: 'center',
+  padding: '60px 20px',
+  color: 'rgba(248,250,252,0.5)',
+  fontSize: 16,
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function formatDate(dateStr: string): string {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+/** Detect if content looks like HTML */
+function isHTML(str: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(str)
+}
+
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
+
+export default function BlogPost() {
+  const { slug } = useParams<{ slug: string }>()
+  const [post, setPost] = useState<BlogPostData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchPost() {
+      if (!slug) {
+        setNotFound(true)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const { supabase } = await import('@/lib/supabase')
+        const { data, error } = await supabase
+          .from('blog_posts')
+          .select('*')
+          .eq('slug', slug)
+          .single()
+
+        if (error || !data) {
+          if (!cancelled) setNotFound(true)
+        } else if (!cancelled) {
+          setPost(data as unknown as BlogPostData)
+        }
+      } catch {
+        if (!cancelled) setNotFound(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void fetchPost()
+    return () => {
+      cancelled = true
+    }
+  }, [slug])
+
+  /* Loading state */
+  if (loading) {
+    return (
+      <PublicLayout>
+        <SEO title="Loading..." />
+        <section style={sectionStyle}>
+          <p style={centerStyle}>Loading post...</p>
+        </section>
+      </PublicLayout>
+    )
+  }
+
+  /* Not found state */
+  if (notFound || !post) {
+    return (
+      <PublicLayout>
+        <SEO title="Post Not Found" noindex />
+        <section style={sectionStyle}>
+          <div style={centerStyle}>
+            <GlassCard accent="purple" style={{ display: 'inline-block', textAlign: 'center' }}>
+              <h2
+                style={{
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: '#F8FAFC',
+                  marginBottom: 12,
+                }}
+              >
+                Post not found
+              </h2>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: 'rgba(248,250,252,0.6)',
+                  marginBottom: 20,
+                }}
+              >
+                The blog post you are looking for does not exist or has been removed.
+              </p>
+              <Link
+                to="/blog"
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#06B6D4',
+                  textDecoration: 'none',
+                }}
+              >
+                Back to Blog
+              </Link>
+            </GlassCard>
+          </div>
+        </section>
+      </PublicLayout>
+    )
+  }
+
+  /* Post content */
+  const htmlContent = isHTML(post.content)
+
+  return (
+    <PublicLayout>
+      <SEO
+        title={post.title}
+        description={post.content.replace(/<[^>]*>/g, '').slice(0, 160)}
+        canonical={`https://kamioi.com/blog/${post.slug}`}
+        ogType="article"
+      />
+
+      <section style={sectionStyle}>
+        {/* Back link */}
+        <Link to="/blog" style={backLinkStyle}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M10 12L6 8L10 4"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Back to Blog
+        </Link>
+
+        {/* Title */}
+        <h1 style={titleStyle}>{post.title}</h1>
+
+        {/* Meta */}
+        <div style={metaStyle}>
+          {post.author && <span>{post.author}</span>}
+          {post.author && <span style={{ opacity: 0.3 }}>|</span>}
+          <time dateTime={post.created_at}>{formatDate(post.created_at)}</time>
+        </div>
+
+        {/* Content */}
+        {htmlContent ? (
+          <div
+            style={contentStyle}
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
+        ) : (
+          <div style={contentStyle}>
+            {post.content.split('\n').map((paragraph, i) => (
+              <p key={i} style={{ marginBottom: 16 }}>
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        )}
+      </section>
+    </PublicLayout>
+  )
+}
