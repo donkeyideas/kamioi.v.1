@@ -1,4 +1,5 @@
 export { BusinessOverviewTab } from './BusinessOverviewTab'
+export { BusinessPortfolioTab } from './BusinessPortfolioTab'
 export { BusinessTransactionsTab } from './BusinessTransactionsTab'
 export { BusinessTeamTab } from './BusinessTeamTab'
 export { BusinessGoalsTab } from './BusinessGoalsTab'

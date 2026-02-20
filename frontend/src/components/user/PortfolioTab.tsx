@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Table } from '@/components/ui/Table'
 import type { Column } from '@/components/ui/Table'
 import BarChart from '@/components/charts/BarChart'
+import { Badge } from '@/components/ui/Badge'
+import { CompanyLogo } from '@/components/common/CompanyLogo'
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
 import type { Database } from '@/types/database'
 
 /* ---- Types ---- */
@@ -78,24 +81,34 @@ const sectionTitleStyle: React.CSSProperties = {
 /* ---- Component ---- */
 
 export function PortfolioTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
+  const [prices, setPrices] = useState<Map<string, StockQuote>>(new Map())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchPortfolios() {
-      if (!profile?.id) { setLoading(false); return }
-      const { data: rows } = await supabase
+      if (!userId) { setLoading(false); return }
+      const { data: rows } = await supabaseAdmin
         .from('portfolios')
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
-      setPortfolios(rows ?? [])
+        .limit(100)
+      const pf = rows ?? []
+      setPortfolios(pf)
       setLoading(false)
+
+      // Fetch live stock prices
+      if (pf.length > 0) {
+        const tickers = pf.map((p) => p.ticker)
+        const quotes = await fetchStockPrices(tickers)
+        if (quotes.size > 0) setPrices(quotes)
+      }
     }
-    fetchPortfolios()
-  }, [profile?.id])
+    if (!userLoading) fetchPortfolios()
+  }, [userId, userLoading])
 
   /* ---- Computed KPIs ---- */
 
@@ -123,16 +136,19 @@ export function PortfolioTab() {
         header: 'Ticker',
         sortable: true,
         render: (row) => (
-          <span
-            style={{
-              fontWeight: 700,
-              color: '#7C3AED',
-              fontSize: '14px',
-              letterSpacing: '0.02em',
-            }}
-          >
-            {row.ticker}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CompanyLogo name={row.ticker} size={22} />
+            <span
+              style={{
+                fontWeight: 700,
+                color: '#7C3AED',
+                fontSize: '14px',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {row.ticker}
+            </span>
+          </div>
         ),
       },
       {
@@ -141,9 +157,13 @@ export function PortfolioTab() {
         sortable: true,
         align: 'right' as const,
         render: (row) => (
-          <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
-            {formatNumber(row.shares)}
-          </span>
+          row.shares > 0 ? (
+            <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
+              {formatNumber(row.shares)}
+            </span>
+          ) : (
+            <Badge variant="warning">Pending</Badge>
+          )
         ),
       },
       {
@@ -162,11 +182,31 @@ export function PortfolioTab() {
         header: 'Current Price',
         sortable: true,
         align: 'right' as const,
-        render: (row) => (
-          <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
-            {formatCurrency(row.current_price)}
-          </span>
-        ),
+        render: (row) => {
+          const quote = prices.get(row.ticker)
+          const price = quote?.price ?? row.current_price
+          const dayChange = quote?.changePercent ?? 0
+          const isUp = dayChange >= 0
+
+          return (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
+                {formatCurrency(price)}
+              </div>
+              {quote && (
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: isUp ? '#34D399' : '#F87171',
+                  }}
+                >
+                  {isUp ? '+' : ''}{dayChange.toFixed(2)}%
+                </div>
+              )}
+            </div>
+          )
+        },
       },
       {
         key: 'total_value',
@@ -181,10 +221,17 @@ export function PortfolioTab() {
       },
       {
         key: 'gain_loss',
-        header: 'Gain/Loss',
+        header: 'Status',
         sortable: true,
         align: 'right' as const,
         render: (row) => {
+          if (row.shares === 0) {
+            return (
+              <span style={{ color: '#FBBF24', fontWeight: 600, fontSize: '13px' }}>
+                Awaiting Purchase
+              </span>
+            )
+          }
           const gainLoss = (row.current_price - row.average_price) * row.shares
           const isPositive = gainLoss >= 0
           return (
@@ -201,7 +248,7 @@ export function PortfolioTab() {
         },
       },
     ],
-    [],
+    [prices],
   )
 
   /* ---- Chart data: value by ticker ---- */
@@ -238,7 +285,7 @@ export function PortfolioTab() {
       {/* KPI Row */}
       <div style={kpiGridStyle}>
         <KpiCard
-          label="Total Value"
+          label="Total Allocated"
           value={formatCurrency(totalValue)}
           accent="purple"
           icon={<WalletIcon />}
@@ -250,7 +297,7 @@ export function PortfolioTab() {
           icon={<LayersIcon />}
         />
         <KpiCard
-          label="Holdings"
+          label="Unique Stocks"
           value={holdingsCount}
           accent="teal"
           icon={<PieIcon />}

@@ -25,7 +25,7 @@
   /* Text */
   --text-primary: #F8FAFC;
   --text-secondary: rgba(248, 250, 252, 0.6);
-  --text-muted: rgba(248, 250, 252, 0.4);
+  --text-muted: rgba(248, 250, 252, 0.55);
 
   /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.08);
@@ -68,7 +68,7 @@ body.light-mode {
   --dark-card-solid: rgba(255, 255, 255, 0.9);
   --text-primary: #1E293B;
   --text-secondary: rgba(30, 41, 59, 0.65);
-  --text-muted: rgba(30, 41, 59, 0.45);
+  --text-muted: rgba(30, 41, 59, 0.55);
   --border-subtle: rgba(0, 0, 0, 0.08);
   --border-divider: rgba(0, 0, 0, 0.06);
   --surface-input: rgba(0, 0, 0, 0.04);
@@ -256,7 +256,7 @@ body.light-mode .aurora-sidebar-overlay--visible {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--purple), var(--blue), var(--teal));
+  background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(6,182,212,0.15));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -264,6 +264,13 @@ body.light-mode .aurora-sidebar-overlay--visible {
   font-size: 16px;
   color: white;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.aurora-sidebar__logo-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .aurora-sidebar__logo-text {
@@ -847,7 +854,39 @@ body.light-mode .aurora-page-title {
 }
 
 /* ============================================
-   9. FOCUS-VISIBLE (accessibility)
+   9a. SKIP-TO-CONTENT LINK (accessibility)
+   ============================================ */
+.aurora-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 99999;
+  padding: 12px 24px;
+  background: var(--purple);
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: top 200ms ease;
+}
+
+.aurora-skip-link:focus {
+  top: 16px;
+}
+
+/* ============================================
+   9b. REDUCED MOTION (accessibility)
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob {
+    animation: none !important;
+    opacity: 0.2;
+  }
+}
+
+/* ============================================
+   9c. FOCUS-VISIBLE (accessibility)
    ============================================ */
 .aurora-nav-item:focus-visible,
 .aurora-header-btn:focus-visible,
@@ -930,6 +969,11 @@ body.light-mode .aurora-page-title {
 @media (max-width: 480px) {
   .aurora-header__greeting strong {
     display: block;
+  }
+
+  .aurora-blob {
+    filter: blur(60px);
+    opacity: 0.2;
   }
 }
 

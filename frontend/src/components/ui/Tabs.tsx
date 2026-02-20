@@ -26,9 +26,14 @@ const tabBtnBase: React.CSSProperties = {
   fontFamily: 'inherit',
   fontSize: '14px',
   padding: '12px 16px',
+  minHeight: '44px',
   background: 'transparent',
-  border: 'none',
-  borderBottom: '2px solid transparent',
+  borderTop: 'none',
+  borderLeft: 'none',
+  borderRight: 'none',
+  borderBottomWidth: '2px',
+  borderBottomStyle: 'solid',
+  borderBottomColor: 'transparent',
   color: 'var(--text-muted)',
   cursor: 'pointer',
   transition: 'all 200ms ease',
@@ -40,7 +45,6 @@ const tabBtnActive: React.CSSProperties = {
   color: 'var(--text-primary)',
   fontWeight: 600,
   borderBottomColor: '#7C3AED',
-  borderImage: 'linear-gradient(90deg, #7C3AED, #3B82F6) 1',
 };
 
 export function Tabs({ tabs, defaultTab, className, onChange }: TabsProps) {
@@ -65,8 +69,11 @@ export function Tabs({ tabs, defaultTab, className, onChange }: TabsProps) {
           return (
             <button
               key={tab.key}
+              id={`tab-${tab.key}`}
               role="tab"
               aria-selected={isActive}
+              aria-controls={`tabpanel-${tab.key}`}
+              tabIndex={isActive ? 0 : -1}
               style={{
                 ...tabBtnBase,
                 ...(isActive ? tabBtnActive : {}),
@@ -89,7 +96,13 @@ export function Tabs({ tabs, defaultTab, className, onChange }: TabsProps) {
         })}
       </div>
 
-      <div role="tabpanel">{activeTab?.content}</div>
+      <div
+        role="tabpanel"
+        id={`tabpanel-${activeKey}`}
+        aria-labelledby={`tab-${activeKey}`}
+      >
+        {activeTab?.content}
+      </div>
     </div>
   );
 }

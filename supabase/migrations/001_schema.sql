@@ -30,6 +30,7 @@ CREATE TABLE users (
     name            VARCHAR(255),
     account_type    VARCHAR(20) DEFAULT 'individual'
                     CHECK (account_type IN ('individual', 'family', 'business', 'admin')),
+    account_id      VARCHAR(11) UNIQUE,
     account_number  VARCHAR(50),
     user_guid       VARCHAR(100),
     city            VARCHAR(100),
@@ -74,7 +75,7 @@ CREATE TABLE transactions (
     price_per_share  DECIMAL(10,2),
     stock_price      DECIMAL(10,2),
     status           VARCHAR(20) DEFAULT 'pending'
-                     CHECK (status IN ('pending', 'completed', 'failed')),
+                     CHECK (status IN ('pending', 'mapped', 'completed', 'failed')),
     fee              DECIMAL(10,2) DEFAULT 0,
     transaction_type VARCHAR(20) DEFAULT 'bank',
     created_at       TIMESTAMP DEFAULT NOW()

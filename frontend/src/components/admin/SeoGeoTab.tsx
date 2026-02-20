@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
+import { runSeoAudit } from '@/services/api';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input } from '@/components/ui';
 import type { Column, TabItem } from '@/components/ui';
 import LineChart from '@/components/charts/LineChart';
@@ -37,6 +38,18 @@ interface AdminSettingRow {
   created_at: string;
 }
 
+interface SeoAuditPageResult {
+  url: string;
+  score: number;
+  issues: string[];
+  suggestions: string[];
+}
+
+interface SeoAuditResult {
+  overall_score: number;
+  pages: SeoAuditPageResult[];
+}
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -71,23 +84,26 @@ function OverviewContent() {
   const [apiCallCount, setApiCallCount] = useState(0);
   const [activeAdsCount, setActiveAdsCount] = useState(0);
   const [contactCount, setContactCount] = useState(0);
+  const [auditRunning, setAuditRunning] = useState(false);
+  const [auditResult, setAuditResult] = useState<SeoAuditResult | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
         const [blogResult, apiResult, adsResult, contactResult] = await Promise.all([
-          supabase
+          supabaseAdmin
             .from('blog_posts')
             .select('id', { count: 'exact', head: true })
             .eq('status', 'published'),
-          supabase
+          supabaseAdmin
             .from('api_usage')
             .select('id', { count: 'exact', head: true }),
-          supabase
+          supabaseAdmin
             .from('advertisements')
             .select('id', { count: 'exact', head: true })
             .eq('is_active', true),
-          supabase
+          supabaseAdmin
             .from('contact_messages')
             .select('id', { count: 'exact', head: true }),
         ]);
@@ -108,6 +124,25 @@ function OverviewContent() {
     }
 
     fetchData();
+  }, []);
+
+  const handleRunAudit = useCallback(async () => {
+    setAuditRunning(true);
+    setAuditError(null);
+    setAuditResult(null);
+
+    try {
+      const { data, error } = await runSeoAudit();
+      if (error) {
+        setAuditError(error);
+      } else {
+        setAuditResult(data);
+      }
+    } catch {
+      setAuditError('An unexpected error occurred while running the SEO audit.');
+    } finally {
+      setAuditRunning(false);
+    }
   }, []);
 
   if (loading) {
@@ -152,12 +187,134 @@ function OverviewContent() {
       </div>
 
       <GlassCard accent="purple" padding="28px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
-          SEO Health Score
-        </p>
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.6 }}>
-          SEO audit requires Edge Function. Current coverage:
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            SEO Health Score
+          </p>
+          <Button onClick={handleRunAudit} loading={auditRunning}>
+            {auditRunning ? 'Running Audit...' : 'Run Audit'}
+          </Button>
+        </div>
+
+        {auditError && (
+          <div
+            style={{
+              padding: '12px 16px',
+              marginBottom: '16px',
+              borderRadius: '8px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+            }}
+          >
+            <p style={{ fontSize: '14px', color: '#EF4444' }}>{auditError}</p>
+          </div>
+        )}
+
+        {auditResult && (
+          <div style={{ marginBottom: '16px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                marginBottom: '20px',
+                padding: '16px',
+                borderRadius: '8px',
+                background: 'var(--surface-row-hover)',
+              }}
+            >
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '22px',
+                  fontWeight: 700,
+                  color: auditResult.overall_score >= 80 ? '#34D399' : auditResult.overall_score >= 50 ? '#FBBF24' : '#EF4444',
+                  border: `3px solid ${auditResult.overall_score >= 80 ? '#34D399' : auditResult.overall_score >= 50 ? '#FBBF24' : '#EF4444'}`,
+                  flexShrink: 0,
+                }}
+              >
+                {auditResult.overall_score}
+              </div>
+              <div>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Overall Score: {auditResult.overall_score}/100
+                </p>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {auditResult.pages.length} {auditResult.pages.length === 1 ? 'page' : 'pages'} audited
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {auditResult.pages.map((page) => (
+                <GlassCard key={page.url} padding="20px">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span
+                      style={{
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                        fontFamily: 'monospace',
+                        wordBreak: 'break-all',
+                      }}
+                    >
+                      {page.url}
+                    </span>
+                    <Badge
+                      variant={page.score >= 80 ? 'success' : page.score >= 50 ? 'warning' : 'error'}
+                    >
+                      Score: {page.score}
+                    </Badge>
+                  </div>
+
+                  {page.issues.length > 0 && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#EF4444', marginBottom: '6px' }}>
+                        Issues
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {page.issues.map((issue, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <span style={{ color: '#EF4444', fontSize: '14px', lineHeight: '20px', flexShrink: 0 }}>{'\u2717'}</span>
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{issue}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {page.suggestions.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#FBBF24', marginBottom: '6px' }}>
+                        Suggestions
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {page.suggestions.map((suggestion, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <span style={{ color: '#FBBF24', fontSize: '14px', lineHeight: '20px', flexShrink: 0 }}>{'\u2022'}</span>
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{suggestion}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </GlassCard>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!auditResult && !auditError && (
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.6 }}>
+            Run an SEO audit to analyze your site and get a health score with per-page results.
+          </p>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {seoItems.map((item) => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -248,11 +405,12 @@ function RankingsTrafficContent() {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const { data } = await supabase
+        const { data } = await supabaseAdmin
           .from('api_usage')
           .select('created_at')
           .gte('created_at', thirtyDaysAgo.toISOString())
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: true })
+          .limit(500);
 
         const dayMap = new Map<string, number>();
         for (const row of data ?? []) {
@@ -334,7 +492,7 @@ function TechnicalSeoContent() {
   useEffect(() => {
     async function checkBlog() {
       try {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('blog_posts')
           .select('id', { count: 'exact', head: true });
         if (error) setBlogExists(false);
@@ -490,10 +648,11 @@ function ContentSeoContent() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('blog_posts')
           .select('id, title, slug, status, created_at, published_at')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
 
         if (error) {
           setBlogExists(false);
@@ -1387,10 +1546,11 @@ function Ga4AnalyticsContent() {
   useEffect(() => {
     async function fetchGa4Config() {
       try {
-        const { data } = await supabase
+        const { data } = await supabaseAdmin
           .from('admin_settings')
           .select('setting_key, setting_value')
-          .in('setting_key', ['ga4_measurement_id', 'ga4_api_secret']);
+          .in('setting_key', ['ga4_measurement_id', 'ga4_api_secret'])
+          .limit(500);
 
         const settings = (data ?? []) as AdminSettingRow[];
         const midSetting = settings.find((s) => s.setting_key === 'ga4_measurement_id');
@@ -1419,19 +1579,19 @@ function Ga4AnalyticsContent() {
 
     try {
       const upsertSettings = async (key: string, value: string) => {
-        const { data: existing } = await supabase
+        const { data: existing } = await supabaseAdmin
           .from('admin_settings')
           .select('id')
           .eq('setting_key', key)
           .limit(1);
 
         if (existing && existing.length > 0) {
-          await supabase
+          await supabaseAdmin
             .from('admin_settings')
             .update({ setting_value: value })
             .eq('setting_key', key);
         } else {
-          await supabase.from('admin_settings').insert({
+          await supabaseAdmin.from('admin_settings').insert({
             setting_key: key,
             setting_value: value,
             setting_type: 'analytics',

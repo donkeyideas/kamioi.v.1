@@ -24,6 +24,8 @@ export interface HeaderProps {
   searchPlaceholder?: string
   /** Callback for mobile menu button */
   onMenuToggle?: () => void
+  /** Optional action buttons rendered before the search bar */
+  headerActions?: React.ReactNode
 }
 
 /* -----------------------------------------------
@@ -141,6 +143,7 @@ export function Header({
   onSearch,
   searchPlaceholder = 'Search...',
   onMenuToggle,
+  headerActions,
 }: HeaderProps) {
   const { isDark, toggleTheme } = useTheme()
   const [searchValue, setSearchValue] = useState('')
@@ -174,8 +177,11 @@ export function Header({
       </div>
 
       <div className="aurora-header__right">
+        {/* Custom action buttons */}
+        {headerActions}
+
         {/* Search */}
-        <div className="aurora-search">
+        <div className="aurora-search" role="search">
           <span className="aurora-search__icon">
             <SearchIcon />
           </span>

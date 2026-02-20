@@ -1,16 +1,24 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
-import {
-  FamilyOverviewTab,
-  FamilyTransactionsTab,
-  FamilyMembersTab,
-  FamilyPortfolioTab,
-  FamilyGoalsTab,
-  FamilyAiInsightsTab,
-  FamilyNotificationsTab,
-  FamilySettingsTab,
-} from '@/components/family'
+import { BankSyncButton } from '@/components/common/BankSyncButton'
+
+const FamilyOverviewTab = lazy(() => import('@/components/family/FamilyOverviewTab').then(m => ({ default: m.FamilyOverviewTab })))
+const FamilyTransactionsTab = lazy(() => import('@/components/family/FamilyTransactionsTab').then(m => ({ default: m.FamilyTransactionsTab })))
+const FamilyMembersTab = lazy(() => import('@/components/family/FamilyMembersTab').then(m => ({ default: m.FamilyMembersTab })))
+const FamilyPortfolioTab = lazy(() => import('@/components/family/FamilyPortfolioTab').then(m => ({ default: m.FamilyPortfolioTab })))
+const FamilyGoalsTab = lazy(() => import('@/components/family/FamilyGoalsTab').then(m => ({ default: m.FamilyGoalsTab })))
+const FamilyAiInsightsTab = lazy(() => import('@/components/family/FamilyAiInsightsTab').then(m => ({ default: m.FamilyAiInsightsTab })))
+const FamilyNotificationsTab = lazy(() => import('@/components/family/FamilyNotificationsTab').then(m => ({ default: m.FamilyNotificationsTab })))
+const FamilySettingsTab = lazy(() => import('@/components/family/FamilySettingsTab').then(m => ({ default: m.FamilySettingsTab })))
+
+function TabLoading() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'var(--text-muted)' }}>
+      Loading...
+    </div>
+  )
+}
 
 const familyNavSections: NavSection[] = [
   {
@@ -80,6 +88,7 @@ export default function FamilyDashboard() {
       sidebarUser={{ name: userName, role: 'Family Member', initials }}
       greeting={`Welcome back, ${userName}`}
       userInitials={initials}
+      headerActions={<BankSyncButton onSyncComplete={() => setActiveTab('transactions')} />}
     >
       <h1 className="aurora-page-title">
         {activeTab === 'overview' ? 'Family Dashboard' : familyNavSections[0].items.find(i => i.id === activeTab)?.label || 'Family Dashboard'}
@@ -88,7 +97,9 @@ export default function FamilyDashboard() {
         {subtitleMap[activeTab] || 'Your family investment overview and activity'}
       </p>
 
-      {renderContent(activeTab)}
+      <Suspense fallback={<TabLoading />}>
+        {renderContent(activeTab)}
+      </Suspense>
     </DashboardLayout>
   )
 }

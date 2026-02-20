@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input, Select } from '@/components/ui'
 import type { SelectOption } from '@/components/ui'
 
@@ -111,7 +111,7 @@ function LoadingSpinner() {
 /* ------------------------------------------------------------------ */
 
 export function BusinessSettingsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
@@ -143,16 +143,16 @@ export function BusinessSettingsTab() {
   /* ---- Fetch ---- */
 
   const fetchData = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     setLoading(true)
 
     try {
-      const { data: bizData } = await supabase
+      const { data: bizData } = await supabaseAdmin
         .from('businesses')
         .select('*')
-        .eq('created_by', profile.id)
+        .eq('created_by', userId)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (bizData) {
         const biz = bizData as Business
@@ -163,10 +163,11 @@ export function BusinessSettingsTab() {
       }
 
       // Fetch user settings for notification prefs and round-up
-      const { data: settingsData } = await supabase
+      const { data: settingsData } = await supabaseAdmin
         .from('user_settings')
         .select('key, value')
-        .eq('user_id', profile.id)
+        .eq('user_id', userId)
+        .limit(20)
 
       if (settingsData) {
         for (const s of settingsData) {
@@ -190,11 +191,11 @@ export function BusinessSettingsTab() {
     } finally {
       setLoading(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    if (!userLoading) void fetchData()
+  }, [fetchData, userLoading])
 
   /* ---- Helpers ---- */
 
@@ -213,7 +214,7 @@ export function BusinessSettingsTab() {
     setProfileToast(null)
 
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('businesses')
         .update({
           name: companyName.trim(),
@@ -235,15 +236,15 @@ export function BusinessSettingsTab() {
   /* ---- Save round-up ---- */
 
   const saveRoundUp = async (amount: RoundUpOption) => {
-    if (!profile?.id) return
+    if (!userId) return
     setRoundUp(amount)
     setRoundUpSaving(true)
     setRoundUpToast(null)
 
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('user_settings')
-        .upsert({ user_id: profile.id, key: 'biz_round_up', value: String(amount) })
+        .upsert({ user_id: userId, key: 'biz_round_up', value: String(amount) })
 
       if (error) throw error
       setRoundUpToast({ type: 'success', message: `Company round-up set to ${ROUND_UP_LABELS[amount]}.` })
@@ -258,18 +259,18 @@ export function BusinessSettingsTab() {
   /* ---- Save notification prefs ---- */
 
   const saveNotifications = async () => {
-    if (!profile?.id) return
+    if (!userId) return
     setNotifSaving(true)
     setNotifToast(null)
 
     try {
       const updates = [
-        { user_id: profile.id, key: 'notify_transactions', value: String(notifyTransactions) },
-        { user_id: profile.id, key: 'notify_team', value: String(notifyTeam) },
-        { user_id: profile.id, key: 'notify_goals', value: String(notifyGoals) },
+        { user_id: userId, key: 'notify_transactions', value: String(notifyTransactions) },
+        { user_id: userId, key: 'notify_team', value: String(notifyTeam) },
+        { user_id: userId, key: 'notify_goals', value: String(notifyGoals) },
       ]
 
-      const { error } = await supabase.from('user_settings').upsert(updates)
+      const { error } = await supabaseAdmin.from('user_settings').upsert(updates)
       if (error) throw error
       setNotifToast({ type: 'success', message: 'Notification preferences saved.' })
     } catch {
@@ -284,7 +285,7 @@ export function BusinessSettingsTab() {
 
   const addDepartment = async () => {
     const trimmed = newDept.trim()
-    if (!trimmed || !profile?.id) return
+    if (!trimmed || !userId) return
     if (departments.includes(trimmed)) {
       setDeptToast({ type: 'error', message: 'Department already exists.' })
       clearToastAfterDelay(setDeptToast)
@@ -296,9 +297,9 @@ export function BusinessSettingsTab() {
     setNewDept('')
 
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('user_settings')
-        .upsert({ user_id: profile.id, key: 'biz_departments', value: JSON.stringify(updated) })
+        .upsert({ user_id: userId, key: 'biz_departments', value: JSON.stringify(updated) })
 
       if (error) throw error
       setDeptToast({ type: 'success', message: `${trimmed} added.` })
@@ -309,14 +310,14 @@ export function BusinessSettingsTab() {
   }
 
   const removeDepartment = async (dept: string) => {
-    if (!profile?.id) return
+    if (!userId) return
     const updated = departments.filter((d) => d !== dept)
     setDepartments(updated)
 
     try {
-      await supabase
+      await supabaseAdmin
         .from('user_settings')
-        .upsert({ user_id: profile.id, key: 'biz_departments', value: JSON.stringify(updated) })
+        .upsert({ user_id: userId, key: 'biz_departments', value: JSON.stringify(updated) })
     } catch {
       // silently fail - department already removed from local state
     }

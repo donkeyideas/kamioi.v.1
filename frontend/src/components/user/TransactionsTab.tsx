@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
-import { GlassCard, Table, Badge, Input, KpiCard } from '@/components/ui';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { supabaseAdmin } from '@/lib/supabase';
+import { useUserId } from '@/hooks/useUserId';
+import { GlassCard, Table, Badge, Input, KpiCard, Button, Select, Modal } from '@/components/ui';
 import type { Column } from '@/components/ui';
+import { COMPANY_LOOKUP, CompanyLogo } from '@/components/common/CompanyLogo';
 
 /* ---- Types ---- */
 
@@ -21,13 +22,13 @@ interface Transaction {
   shares: number | null;
   price_per_share: number | null;
   stock_price: number | null;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'mapped' | 'completed' | 'failed';
   fee: number | null;
   transaction_type: string | null;
   created_at: string;
 }
 
-type StatusFilter = 'all' | 'pending' | 'completed' | 'failed';
+type StatusFilter = 'all' | 'pending' | 'mapped' | 'completed' | 'failed';
 
 /* ---- Formatting helpers ---- */
 
@@ -100,97 +101,13 @@ const sortToggleStyle: React.CSSProperties = {
   marginLeft: 'auto',
 };
 
-/* ---- Table columns ---- */
-
-const columns: Column<Transaction>[] = [
-  {
-    key: 'date',
-    header: 'Date',
-    width: '130px',
-    render: (row) => (
-      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-        {row.date ? formatDate(row.date) : '--'}
-      </span>
-    ),
-  },
-  {
-    key: 'merchant',
-    header: 'Merchant',
-    render: (row) => (
-      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-        {row.merchant ?? '--'}
-      </span>
-    ),
-  },
-  {
-    key: 'category',
-    header: 'Category',
-    render: (row) =>
-      row.category ? (
-        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          {row.category}
-        </span>
-      ) : null,
-  },
-  {
-    key: 'amount',
-    header: 'Amount',
-    align: 'right',
-    width: '110px',
-    render: (row) => (
-      <span style={{ fontWeight: 500 }}>
-        {row.amount != null ? formatCurrency(row.amount) : '--'}
-      </span>
-    ),
-  },
-  {
-    key: 'round_up',
-    header: 'Round-Up',
-    align: 'right',
-    width: '100px',
-    render: (row) =>
-      row.round_up != null ? (
-        <span style={{ fontWeight: 500, color: '#06B6D4' }}>
-          {formatCurrency(row.round_up)}
-        </span>
-      ) : (
-        <span style={{ color: 'var(--text-muted)' }}>--</span>
-      ),
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    width: '120px',
-    render: (row) => {
-      const variantMap: Record<Transaction['status'], 'success' | 'warning' | 'error'> = {
-        completed: 'success',
-        pending: 'warning',
-        failed: 'error',
-      };
-      return (
-        <Badge variant={variantMap[row.status]}>
-          {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
-        </Badge>
-      );
-    },
-  },
-  {
-    key: 'ticker',
-    header: 'Ticker',
-    width: '90px',
-    render: (row) =>
-      row.ticker ? (
-        <span style={{ fontWeight: 600, color: '#A78BFA', fontSize: '13px' }}>
-          {row.ticker}
-        </span>
-      ) : null,
-  },
-];
+/* ---- Company logo (shared utility) ---- */
+// Imported from @/components/common/CompanyLogo
 
 /* ---- Component ---- */
 
 export function TransactionsTab() {
-  const { profile } = useAuth();
+  const { userId, loading: userLoading } = useUserId();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -200,21 +117,241 @@ export function TransactionsTab() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortNewest, setSortNewest] = useState(true);
 
+  /* ---- Mapping modal state ---- */
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [mapTransaction, setMapTransaction] = useState<Transaction | null>(null);
+  const [mapForm, setMapForm] = useState({ ticker: '', companyName: '', notes: '' });
+  const [mapSubmitting, setMapSubmitting] = useState(false);
+  const [mapSuccess, setMapSuccess] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  /* Build company lookup: merchant name → ticker */
+  const companyOptions = useMemo(() => {
+    const merchantEntries: { name: string; domain: string }[] = [];
+    const tickerByDomain = new Map<string, string>();
+    for (const [key, info] of Object.entries(COMPANY_LOOKUP)) {
+      if (key === key.toUpperCase() && key.length <= 5) {
+        tickerByDomain.set(info.domain, key);
+      } else {
+        merchantEntries.push({ name: key, domain: info.domain });
+      }
+    }
+    return merchantEntries
+      .map(m => ({ name: m.name, ticker: tickerByDomain.get(m.domain) ?? '' }))
+      .filter(m => m.ticker);
+  }, []);
+
+  const companySuggestions = useMemo(() => {
+    const q = mapForm.companyName.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return companyOptions.filter(c => c.name.toLowerCase().includes(q)).slice(0, 8);
+  }, [mapForm.companyName, companyOptions]);
+
+  /* ---- Mapping submit handler ---- */
+  const handleMapSubmit = useCallback(async () => {
+    if (!mapTransaction || !mapForm.ticker.trim()) return;
+    setMapSubmitting(true);
+    try {
+      const { error } = await supabaseAdmin.from('llm_mappings').insert({
+        merchant_name: mapTransaction.merchant ?? '',
+        ticker: mapForm.ticker.trim().toUpperCase(),
+        company_name: mapForm.companyName.trim() || null,
+        category: 'user_submitted',
+        status: 'pending',
+        user_id: userId ?? null,
+        transaction_id: mapTransaction.id,
+        confidence: null,
+        ai_processed: false,
+        admin_approved: null,
+      });
+      if (error) throw error;
+
+      // Update transaction status to 'pending' so the Map button disappears
+      await supabaseAdmin
+        .from('transactions')
+        .update({ status: 'pending' })
+        .eq('id', mapTransaction.id);
+
+      // Update local state immediately
+      const txId = mapTransaction.id;
+      setTransactions(prev => prev.map(t => t.id === txId ? { ...t, status: 'pending' as const } : t));
+
+      setMapSuccess(`Mapping submitted for "${mapTransaction.merchant}" → ${mapForm.ticker.trim().toUpperCase()}`);
+      setTimeout(() => {
+        setMapModalOpen(false);
+        setMapTransaction(null);
+        setMapForm({ ticker: '', companyName: '', notes: '' });
+        setMapSuccess(null);
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to submit mapping:', err);
+    } finally {
+      setMapSubmitting(false);
+    }
+  }, [mapTransaction, mapForm, userId]);
+
+  /* ---- Table columns ---- */
+  const columns: Column<Transaction>[] = [
+    {
+      key: 'date',
+      header: 'Date',
+      width: '120px',
+      render: (row) => (
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+          {row.date ? formatDate(row.date) : '--'}
+        </span>
+      ),
+    },
+    {
+      key: 'merchant',
+      header: 'Merchant',
+      render: (row) => {
+        const info = row.merchant ? COMPANY_LOOKUP[row.merchant] : null;
+        const content = (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {row.merchant && <CompanyLogo name={row.merchant} size={22} />}
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+              {row.merchant ?? '--'}
+            </span>
+          </div>
+        );
+        if (info) {
+          return (
+            <a
+              href={info.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none', color: 'inherit' }}
+              title={`Visit ${row.merchant}`}
+            >
+              {content}
+            </a>
+          );
+        }
+        return content;
+      },
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      render: (row) =>
+        row.category ? (
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            {row.category}
+          </span>
+        ) : null,
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'right',
+      width: '110px',
+      render: (row) => (
+        <span style={{ fontWeight: 500 }}>
+          {row.amount != null ? formatCurrency(row.amount) : '--'}
+        </span>
+      ),
+    },
+    {
+      key: 'round_up',
+      header: 'Round-Up',
+      align: 'right',
+      width: '100px',
+      render: (row) =>
+        row.round_up != null ? (
+          <span style={{ fontWeight: 500, color: '#06B6D4' }}>
+            {formatCurrency(row.round_up)}
+          </span>
+        ) : (
+          <span style={{ color: 'var(--text-muted)' }}>--</span>
+        ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '120px',
+      render: (row) => {
+        const variantMap: Record<Transaction['status'], 'success' | 'warning' | 'error' | 'default'> = {
+          completed: 'success',
+          mapped: 'default',
+          pending: 'warning',
+          failed: 'error',
+        };
+        return (
+          <Badge variant={variantMap[row.status] ?? 'default'}>
+            {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'ticker',
+      header: 'Ticker',
+      width: '110px',
+      render: (row) => {
+        if (!row.ticker) return null;
+        const info = COMPANY_LOOKUP[row.ticker];
+        const content = (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <CompanyLogo name={row.ticker} size={18} />
+            <span style={{ fontWeight: 600, color: '#A78BFA', fontSize: '13px' }}>
+              {row.ticker}
+            </span>
+          </div>
+        );
+        if (info) {
+          return (
+            <a
+              href={info.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none', color: 'inherit' }}
+              title={`Visit ${row.ticker} website`}
+            >
+              {content}
+            </a>
+          );
+        }
+        return content;
+      },
+    },
+    {
+      key: 'action',
+      header: '',
+      width: '90px',
+      render: (row) => row.status === 'failed' ? (
+        <Button variant="secondary" size="sm" onClick={() => { setMapTransaction(row); setMapForm({ ticker: '', companyName: '', notes: '' }); setMapModalOpen(true); }}>
+          Map
+        </Button>
+      ) : null,
+    },
+  ];
+
   /* ---- Data fetching ---- */
 
+  const fetchTransactions = useCallback(async () => {
+    if (!userId) { setLoading(false); return; }
+    setLoading(true);
+    const { data } = await supabaseAdmin
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(500);
+    setTransactions((data as Transaction[] | null) ?? []);
+    setLoading(false);
+  }, [userId]);
+
   useEffect(() => {
-    async function fetchTransactions() {
-      if (!profile?.id) { setLoading(false); return; }
-      const { data } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('date', { ascending: false });
-      setTransactions((data as Transaction[] | null) ?? []);
-      setLoading(false);
-    }
-    fetchTransactions();
-  }, [profile?.id]);
+    if (!userLoading) fetchTransactions();
+  }, [fetchTransactions, userLoading]);
+
+  // Listen for custom bankSyncComplete events to auto-refresh
+  useEffect(() => {
+    const handleRefresh = () => { fetchTransactions(); };
+    window.addEventListener('bankSyncComplete', handleRefresh);
+    return () => window.removeEventListener('bankSyncComplete', handleRefresh);
+  }, [fetchTransactions]);
 
   /* ---- Derived data ---- */
 
@@ -259,29 +396,54 @@ export function TransactionsTab() {
 
   /* ---- KPI calculations ---- */
 
-  const totalTransactions = filtered.length;
+  const kpis = useMemo(() => {
+    let count = 0;
+    let totalSpent = 0;
+    let totalRoundUps = 0;
+    let invested = 0;
 
-  const totalInvested = useMemo(
-    () =>
-      filtered
-        .filter((t) => t.status === 'completed' && t.amount != null)
-        .reduce((sum, t) => sum + (t.amount ?? 0), 0),
-    [filtered],
-  );
+    for (const t of filtered) {
+      count++;
+      totalSpent += t.amount ?? 0;
+      totalRoundUps += t.round_up ?? 0;
+      if (t.status === 'completed') {
+        invested += t.round_up ?? 0;
+      }
+    }
 
-  const totalRoundUps = useMemo(
-    () =>
-      filtered
-        .filter((t) => t.round_up != null)
-        .reduce((sum, t) => sum + (t.round_up ?? 0), 0),
-    [filtered],
-  );
+    return { count, totalSpent, totalRoundUps, invested  };
+  }, [filtered]);
+
+  /* ---- CSV Export ---- */
+
+  const handleExport = useCallback(() => {
+    if (filtered.length === 0) return;
+    const headers = ['Date', 'Merchant', 'Amount', 'Round-Up', 'Category', 'Ticker', 'Status'];
+    const rows = filtered.map((t) => [
+      t.date,
+      `"${(t.merchant ?? '').replace(/"/g, '""')}"`,
+      t.amount?.toFixed(2) ?? '',
+      t.round_up?.toFixed(2) ?? '',
+      t.category ?? '',
+      t.ticker ?? '',
+      t.status,
+    ]);
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filtered]);
 
   /* ---- Status pill options ---- */
 
   const statusOptions: { key: StatusFilter; label: string }[] = [
     { key: 'all', label: 'All' },
     { key: 'pending', label: 'Pending' },
+    { key: 'mapped', label: 'Mapped' },
     { key: 'completed', label: 'Completed' },
     { key: 'failed', label: 'Failed' },
   ];
@@ -319,24 +481,15 @@ export function TransactionsTab() {
 
           {/* Category filter */}
           {uniqueCategories.length > 0 && (
-            <div style={pillGroupStyle}>
-              <button
-                type="button"
-                style={categoryFilter === 'all' ? pillActiveStyle : pillBaseStyle}
-                onClick={() => setCategoryFilter('all')}
-              >
-                All Categories
-              </button>
-              {uniqueCategories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  style={categoryFilter === cat ? pillActiveStyle : pillBaseStyle}
-                  onClick={() => setCategoryFilter(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div style={{ width: '180px' }}>
+              <Select
+                options={[
+                  { value: 'all', label: 'All Categories' },
+                  ...uniqueCategories.map((cat) => ({ value: cat, label: cat })),
+                ]}
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              />
             </div>
           )}
 
@@ -348,6 +501,11 @@ export function TransactionsTab() {
           >
             {sortNewest ? 'Newest first' : 'Oldest first'}
           </button>
+
+          {/* Export CSV */}
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            Export CSV
+          </Button>
         </div>
       </GlassCard>
 
@@ -355,18 +513,23 @@ export function TransactionsTab() {
       <div style={kpiRowStyle}>
         <KpiCard
           label="Total Transactions"
-          value={totalTransactions.toLocaleString()}
+          value={kpis.count.toLocaleString()}
           accent="purple"
         />
         <KpiCard
-          label="Total Invested"
-          value={formatCurrency(totalInvested)}
+          label="Total Spent"
+          value={formatCurrency(kpis.totalSpent)}
           accent="blue"
         />
         <KpiCard
           label="Total Round-Ups"
-          value={formatCurrency(totalRoundUps)}
+          value={formatCurrency(kpis.totalRoundUps)}
           accent="teal"
+        />
+        <KpiCard
+          label="Total Invested"
+          value={formatCurrency(kpis.invested)}
+          accent="pink"
         />
       </div>
 
@@ -381,6 +544,179 @@ export function TransactionsTab() {
           rowKey={(row) => row.id}
         />
       </GlassCard>
+
+      {/* Merchant Mapping Modal */}
+      <Modal
+        open={mapModalOpen}
+        onClose={() => {
+          setMapModalOpen(false);
+          setMapTransaction(null);
+          setMapForm({ ticker: '', companyName: '', notes: '' });
+          setMapSuccess(null);
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '400px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+            Submit Merchant Mapping
+          </h3>
+
+          {mapSuccess ? (
+            <div style={{
+              padding: '16px',
+              background: 'rgba(52,211,153,0.12)',
+              border: '1px solid rgba(52,211,153,0.3)',
+              borderRadius: '10px',
+              color: '#34D399',
+              fontSize: '14px',
+              fontWeight: 600,
+              textAlign: 'center',
+            }}>
+              {mapSuccess}
+            </div>
+          ) : (
+            <>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+                  Merchant
+                </label>
+                <div style={{
+                  padding: '10px 14px',
+                  background: 'var(--surface-input)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                }}>
+                  {mapTransaction?.merchant ?? '--'}
+                </div>
+              </div>
+
+              {/* Company Name with autocomplete */}
+              <div>
+                <Input
+                  label="Company Name"
+                  placeholder="Start typing a company name..."
+                  value={mapForm.companyName}
+                  onChange={(e) => {
+                    setMapForm(prev => ({ ...prev, companyName: e.target.value, ticker: '' }));
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                />
+                {showSuggestions && companySuggestions.length > 0 && (
+                  <div style={{
+                    background: 'var(--surface-card)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '8px',
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    marginTop: '4px',
+                  }}>
+                    {companySuggestions.map(c => (
+                      <div
+                        key={c.ticker}
+                        onMouseDown={() => {
+                          setMapForm(prev => ({ ...prev, companyName: c.name, ticker: c.ticker }));
+                          setShowSuggestions(false);
+                        }}
+                        style={{
+                          padding: '10px 14px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          borderBottom: '1px solid var(--border-divider)',
+                          transition: 'background 150ms ease',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,58,237,0.1)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <CompanyLogo name={c.name} size={24} />
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>{c.name}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#A78BFA', fontWeight: 600 }}>{c.ticker}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Stock Ticker (read-only, auto-populated) */}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+                  Stock Ticker
+                </label>
+                <div style={{
+                  padding: '10px 14px',
+                  background: 'var(--surface-input)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  minHeight: '40px',
+                }}>
+                  {mapForm.ticker ? (
+                    <>
+                      <CompanyLogo name={mapForm.ticker} size={22} />
+                      <span style={{ fontWeight: 600, color: '#A78BFA', fontSize: '14px' }}>{mapForm.ticker}</span>
+                    </>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Select a company above</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+                  Notes
+                </label>
+                <textarea
+                  placeholder="Explain what this merchant is..."
+                  value={mapForm.notes}
+                  onChange={(e) => setMapForm(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    background: 'var(--surface-input)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setMapModalOpen(false);
+                    setMapTransaction(null);
+                    setMapForm({ ticker: '', companyName: '', notes: '' });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={mapSubmitting}
+                  disabled={!mapForm.ticker.trim()}
+                  onClick={handleMapSubmit}
+                >
+                  Submit Mapping
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

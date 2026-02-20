@@ -23,6 +23,7 @@ interface BarChartProps<T extends Record<string, unknown>> {
   color?: string;
   height?: number;
   legend?: LegendItem[];
+  yTickFormatter?: (value: number) => string;
 }
 
 const AXIS_STROKE = 'var(--text-muted)';
@@ -58,6 +59,7 @@ export default function BarChart<T extends Record<string, unknown>>({
   color = '#7C3AED',
   height = 220,
   legend,
+  yTickFormatter,
 }: BarChartProps<T>) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -157,6 +159,7 @@ export default function BarChart<T extends Record<string, unknown>>({
               tick={{ fill: TICK_FILL, fontSize: 12 }}
               axisLine={false}
               tickLine={false}
+              tickFormatter={yTickFormatter}
             />
             <Tooltip
               contentStyle={tooltipStyle}

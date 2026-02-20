@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react'
+import { useState, useCallback, type ReactNode, type ReactElement } from 'react'
 import { AuroraBackground } from './AuroraBackground'
 import { Sidebar, type NavSection, type NavItem, type SidebarUserProfile } from './Sidebar'
 import { Header } from './Header'
@@ -52,6 +52,8 @@ export interface DashboardLayoutProps {
   onSearch?: (query: string) => void
   /** Placeholder for the search input */
   searchPlaceholder?: string
+  /** Custom action buttons in the header toolbar */
+  headerActions?: React.ReactNode
 }
 
 /* -----------------------------------------------
@@ -78,6 +80,7 @@ export function DashboardLayout({
   onAvatarClick,
   onSearch,
   searchPlaceholder,
+  headerActions,
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -86,6 +89,11 @@ export function DashboardLayout({
 
   return (
     <div className="aurora-layout">
+      {/* Skip to content (a11y) */}
+      <a href="#main-content" className="aurora-skip-link">
+        Skip to main content
+      </a>
+
       {/* Animated background blobs */}
       <AuroraBackground />
 
@@ -118,10 +126,11 @@ export function DashboardLayout({
           onSearch={onSearch}
           searchPlaceholder={searchPlaceholder}
           onMenuToggle={openSidebar}
+          headerActions={headerActions}
         />
 
         {/* Main scrollable content */}
-        <main className="aurora-layout__main">
+        <main id="main-content" className="aurora-layout__main">
           {children}
         </main>
       </div>

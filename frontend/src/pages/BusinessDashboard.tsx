@@ -1,17 +1,26 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
-import {
-  BusinessOverviewTab,
-  BusinessTransactionsTab,
-  BusinessTeamTab,
-  BusinessGoalsTab,
-  BusinessAiInsightsTab,
-  BusinessAnalyticsTab,
-  BusinessReportsTab,
-  BusinessSettingsTab,
-  BusinessNotificationsTab,
-} from '@/components/business'
+import { BankSyncButton } from '@/components/common/BankSyncButton'
+
+const BusinessOverviewTab = lazy(() => import('@/components/business/BusinessOverviewTab').then(m => ({ default: m.BusinessOverviewTab })))
+const BusinessPortfolioTab = lazy(() => import('@/components/business/BusinessPortfolioTab').then(m => ({ default: m.BusinessPortfolioTab })))
+const BusinessTransactionsTab = lazy(() => import('@/components/business/BusinessTransactionsTab').then(m => ({ default: m.BusinessTransactionsTab })))
+const BusinessTeamTab = lazy(() => import('@/components/business/BusinessTeamTab').then(m => ({ default: m.BusinessTeamTab })))
+const BusinessGoalsTab = lazy(() => import('@/components/business/BusinessGoalsTab').then(m => ({ default: m.BusinessGoalsTab })))
+const BusinessAiInsightsTab = lazy(() => import('@/components/business/BusinessAiInsightsTab').then(m => ({ default: m.BusinessAiInsightsTab })))
+const BusinessAnalyticsTab = lazy(() => import('@/components/business/BusinessAnalyticsTab').then(m => ({ default: m.BusinessAnalyticsTab })))
+const BusinessReportsTab = lazy(() => import('@/components/business/BusinessReportsTab').then(m => ({ default: m.BusinessReportsTab })))
+const BusinessSettingsTab = lazy(() => import('@/components/business/BusinessSettingsTab').then(m => ({ default: m.BusinessSettingsTab })))
+const BusinessNotificationsTab = lazy(() => import('@/components/business/BusinessNotificationsTab').then(m => ({ default: m.BusinessNotificationsTab })))
+
+function TabLoading() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'var(--text-muted)' }}>
+      Loading...
+    </div>
+  )
+}
 
 const businessNavSections: NavSection[] = [
   {
@@ -25,6 +34,16 @@ const businessNavSections: NavSection[] = [
             <rect x="14" y="3" width="7" height="7" rx="1" />
             <rect x="3" y="14" width="7" height="7" rx="1" />
             <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+        ),
+      },
+      {
+        id: 'portfolio',
+        label: 'Portfolio',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
           </svg>
         ),
       },
@@ -120,6 +139,7 @@ const businessNavSections: NavSection[] = [
 
 const subtitleMap: Record<string, string> = {
   overview: 'Your business overview and activity',
+  portfolio: 'Company investment holdings and performance',
   transactions: 'Team transactions and round-ups',
   team: 'Manage your team members',
   goals: 'Track company investment goals',
@@ -134,6 +154,8 @@ function renderContent(activeTab: string) {
   switch (activeTab) {
     case 'overview':
       return <BusinessOverviewTab />
+    case 'portfolio':
+      return <BusinessPortfolioTab />
     case 'transactions':
       return <BusinessTransactionsTab />
     case 'team':
@@ -174,6 +196,7 @@ export default function BusinessDashboard() {
       sidebarUser={{ name: userName, role: 'Business Admin', initials }}
       greeting={`Welcome back, ${userName}`}
       userInitials={initials}
+      headerActions={<BankSyncButton onSyncComplete={() => setActiveTab('transactions')} />}
     >
       <h1 className="aurora-page-title">
         {activeTab === 'overview' ? 'Dashboard Overview' : businessNavSections[0].items.find(i => i.id === activeTab)?.label || 'Dashboard'}
@@ -182,7 +205,9 @@ export default function BusinessDashboard() {
         {subtitleMap[activeTab] || 'Your business overview and activity'}
       </p>
 
-      {renderContent(activeTab)}
+      <Suspense fallback={<TabLoading />}>
+        {renderContent(activeTab)}
+      </Suspense>
     </DashboardLayout>
   )
 }

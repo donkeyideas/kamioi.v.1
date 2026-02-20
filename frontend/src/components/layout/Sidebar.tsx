@@ -70,7 +70,7 @@ export function Sidebar({
   user,
   onUserClick,
   logoText = 'Kamioi',
-  logoIcon = 'K',
+  logoIcon = <img src="/favicon.png" alt="Kamioi" width="28" height="28" style={{ borderRadius: '4px' }} />,
   showViewToggle = false,
   viewMode = 'user',
   onViewModeChange,

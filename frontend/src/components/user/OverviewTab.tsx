@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { Badge } from '@/components/ui/Badge'
 import { Table } from '@/components/ui/Table'
 import type { Column } from '@/components/ui/Table'
 import AreaChart from '@/components/charts/AreaChart'
+import { CompanyLogo } from '@/components/common/CompanyLogo'
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
 import type { Database } from '@/types/database'
 
 /* ---- Types ---- */
@@ -36,12 +39,11 @@ function ArrowsIcon() {
   )
 }
 
-function TargetIcon() {
+function StocksIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
     </svg>
   )
 }
@@ -96,95 +98,57 @@ const sectionTitleStyle: React.CSSProperties = {
   marginBottom: '16px',
 }
 
-const progressBarBgStyle: React.CSSProperties = {
-  width: '100%',
-  height: '8px',
-  borderRadius: '4px',
-  background: 'var(--surface-input)',
-  overflow: 'hidden',
-}
-
-/* ---- Mini-table columns ---- */
-
-const recentTxColumns: Column<Transaction>[] = [
-  {
-    key: 'date',
-    header: 'Date',
-    width: '80px',
-    render: (row) => (
-      <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-        {formatDate(row.date)}
-      </span>
-    ),
-  },
-  {
-    key: 'merchant',
-    header: 'Merchant',
-    render: (row) => (
-      <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>{row.merchant}</span>
-    ),
-  },
-  {
-    key: 'amount',
-    header: 'Amount',
-    align: 'right' as const,
-    render: (row) => (
-      <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
-        {formatCurrency(row.amount)}
-      </span>
-    ),
-  },
-  {
-    key: 'round_up',
-    header: 'Round-Up',
-    align: 'right' as const,
-    render: (row) => (
-      <span style={{ color: '#7C3AED', fontWeight: 600, fontSize: '13px' }}>
-        {formatCurrency(row.round_up)}
-      </span>
-    ),
-  },
-]
-
 /* ---- Component ---- */
 
 export function OverviewTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
+  const [prices, setPrices] = useState<Map<string, StockQuote>>(new Map())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchAll() {
-      if (!profile?.id) { setLoading(false); return }
+      if (!userId) { setLoading(false); return }
 
       const [txRes, pfRes, glRes] = await Promise.all([
-        supabase
+        supabaseAdmin
           .from('transactions')
           .select('*')
-          .eq('user_id', profile.id)
-          .order('created_at', { ascending: false }),
-        supabase
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(200),
+        supabaseAdmin
           .from('portfolios')
           .select('*')
-          .eq('user_id', profile.id)
-          .order('created_at', { ascending: false }),
-        supabase
+          .eq('user_id', userId)
+          .order('total_value', { ascending: false })
+          .limit(100),
+        supabaseAdmin
           .from('goals')
           .select('*')
-          .eq('user_id', profile.id)
-          .order('created_at', { ascending: false }),
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(50),
       ])
 
+      const pf = pfRes.data ?? []
       setTransactions(txRes.data ?? [])
-      setPortfolios(pfRes.data ?? [])
+      setPortfolios(pf)
       setGoals(glRes.data ?? [])
       setLoading(false)
+
+      // Fetch live stock prices for portfolio tickers
+      if (pf.length > 0) {
+        const tickers = pf.map((p) => p.ticker)
+        const quotes = await fetchStockPrices(tickers)
+        if (quotes.size > 0) setPrices(quotes)
+      }
     }
-    fetchAll()
-  }, [profile?.id])
+    if (!userLoading) fetchAll()
+  }, [userId, userLoading])
 
   /* ---- Computed KPIs ---- */
 
@@ -206,29 +170,86 @@ export function OverviewTab() {
     [transactions],
   )
 
-  /* ---- Chart data: portfolio value grouped by date ---- */
+  /* ---- Recent Transactions columns (with logos) ---- */
+
+  const recentTxColumns: Column<Transaction>[] = useMemo(
+    () => [
+      {
+        key: 'date',
+        header: 'Date',
+        width: '80px',
+        render: (row) => (
+          <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+            {formatDate(row.date)}
+          </span>
+        ),
+      },
+      {
+        key: 'merchant',
+        header: 'Merchant',
+        render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CompanyLogo name={row.merchant} size={20} />
+            <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
+              {row.merchant}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'amount',
+        header: 'Amount',
+        align: 'right' as const,
+        render: (row) => (
+          <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
+            {formatCurrency(row.amount)}
+          </span>
+        ),
+      },
+      {
+        key: 'round_up',
+        header: 'Round-Up',
+        align: 'right' as const,
+        render: (row) => (
+          <span style={{ color: '#7C3AED', fontWeight: 600, fontSize: '13px' }}>
+            {formatCurrency(row.round_up)}
+          </span>
+        ),
+      },
+    ],
+    [],
+  )
+
+  /* ---- Chart data: cumulative round-ups by month ---- */
 
   const chartData = useMemo(() => {
-    if (portfolios.length === 0) return []
+    if (transactions.length === 0) return []
 
-    const grouped = new Map<string, number>()
-    for (const p of portfolios) {
-      const dateKey = new Date(p.updated_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      })
-      grouped.set(dateKey, (grouped.get(dateKey) ?? 0) + p.total_value)
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const map = new Map<string, { sortKey: string; total: number }>()
+
+    for (const tx of transactions) {
+      const d = new Date(tx.date)
+      const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`
+      const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const existing = map.get(label)
+      if (existing) {
+        existing.total += tx.round_up
+      } else {
+        map.set(label, { sortKey, total: tx.round_up })
+      }
     }
 
-    return Array.from(grouped.entries()).map(([name, value]) => ({
-      name,
-      value: Math.round(value * 100) / 100,
-    }))
-  }, [portfolios])
+    const sorted = Array.from(map.entries())
+      .map(([name, { sortKey, total }]) => ({ name, sortKey, total }))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
 
-  /* ---- Goal accent colors ---- */
-
-  const goalColors = ['#7C3AED', '#3B82F6', '#06B6D4', '#EC4899']
+    let cumulative = 0
+    return sorted.map(({ name, total }) => {
+      cumulative += total
+      return { name, value: Math.round(cumulative * 100) / 100 }
+    })
+  }, [transactions])
 
   /* ---- Loading state ---- */
 
@@ -266,10 +287,10 @@ export function OverviewTab() {
           icon={<ArrowsIcon />}
         />
         <KpiCard
-          label="Active Goals"
-          value={goals.length}
+          label="Unique Stocks"
+          value={portfolios.length}
           accent="teal"
-          icon={<TargetIcon />}
+          icon={<StocksIcon />}
         />
         <KpiCard
           label="Transactions"
@@ -311,10 +332,10 @@ export function OverviewTab() {
         </GlassCard>
       </div>
 
-      {/* Active Goals */}
+      {/* Top Holdings */}
       <div style={{ marginTop: '20px' }}>
         <GlassCard accent="teal" padding="24px">
-          <p style={sectionTitleStyle}>Active Goals</p>
+          <p style={sectionTitleStyle}>Top Holdings</p>
           <div
             style={{
               height: '1px',
@@ -323,7 +344,7 @@ export function OverviewTab() {
             }}
           />
 
-          {goals.length === 0 ? (
+          {portfolios.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',
@@ -332,76 +353,102 @@ export function OverviewTab() {
                 fontSize: '14px',
               }}
             >
-              No active goals yet
+              No holdings yet — sync your bank to start investing
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {goals.map((goal, idx) => {
-                const pct = Math.min(goal.progress, 100)
-                const barColor = goalColors[idx % goalColors.length]
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: '12px',
+              }}
+            >
+              {portfolios.slice(0, 6).map((holding) => {
+                const quote = prices.get(holding.ticker)
+                const currentPrice = quote?.price ?? holding.current_price
+                const dayChange = quote?.change ?? 0
+                const dayChangePct = quote?.changePercent ?? 0
+                const isUp = dayChange >= 0
 
                 return (
-                  <div key={goal.id}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '8px',
-                      }}
-                    >
-                      <div>
+                  <div
+                    key={holding.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      padding: '14px 16px',
+                      background: 'var(--surface-input)',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-divider)',
+                    }}
+                  >
+                    {/* Logo */}
+                    <CompanyLogo name={holding.ticker} size={36} />
+
+                    {/* Ticker + Status */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span
                           style={{
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            color: 'var(--text-primary)',
+                            fontSize: '15px',
+                            fontWeight: 700,
+                            color: '#7C3AED',
+                            letterSpacing: '0.02em',
                           }}
                         >
-                          {goal.title}
+                          {holding.ticker}
                         </span>
-                        <span
-                          style={{
-                            fontSize: '12px',
-                            color: 'var(--text-muted)',
-                            marginLeft: '8px',
-                          }}
-                        >
-                          {goal.goal_type}
-                        </span>
+                        {holding.shares === 0 && (
+                          <Badge variant="warning">Pending</Badge>
+                        )}
                       </div>
-                      <div
+                      <span
                         style={{
-                          fontSize: '13px',
+                          fontSize: '12px',
                           color: 'var(--text-muted)',
                         }}
                       >
-                        {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
-                      </div>
+                        Allocated: {formatCurrency(holding.total_value)}
+                      </span>
                     </div>
 
-                    <div style={progressBarBgStyle}>
-                      <div
-                        style={{
-                          width: `${pct}%`,
-                          height: '100%',
-                          borderRadius: '4px',
-                          background: `linear-gradient(90deg, ${barColor}, ${barColor}cc)`,
-                          transition: 'width 0.6s ease',
-                        }}
-                      />
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: '12px',
-                        color: barColor,
-                        fontWeight: 600,
-                        marginTop: '4px',
-                        textAlign: 'right',
-                      }}
-                    >
-                      {pct.toFixed(1)}%
+                    {/* Price + Change */}
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      {currentPrice > 0 ? (
+                        <>
+                          <div
+                            style={{
+                              fontSize: '15px',
+                              fontWeight: 600,
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {formatCurrency(currentPrice)}
+                          </div>
+                          {quote && (
+                            <div
+                              style={{
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: isUp ? '#34D399' : '#F87171',
+                              }}
+                            >
+                              {isUp ? '+' : ''}{dayChange.toFixed(2)} ({isUp ? '+' : ''}{dayChangePct.toFixed(2)}%)
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            color: '#FBBF24',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Awaiting
+                        </span>
+                      )}
                     </div>
                   </div>
                 )

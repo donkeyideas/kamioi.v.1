@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Tabs } from '@/components/ui';
 import type { Column, TabItem } from '@/components/ui';
 import LineChart from '@/components/charts/LineChart';
@@ -167,15 +167,16 @@ function RevenueTab() {
     async function fetchData() {
       try {
         const [subsResult, renewalResult, txResult, ruResult, userCountResult] = await Promise.all([
-          supabase.from('user_subscriptions').select('amount, status'),
-          supabase
+          supabaseAdmin.from('user_subscriptions').select('amount, status').limit(1000),
+          supabaseAdmin
             .from('renewal_history')
             .select('amount, renewal_date, status')
             .eq('status', 'success')
-            .order('renewal_date', { ascending: true }),
-          supabase.from('transactions').select('fee').gt('fee', 0),
-          supabase.from('roundup_ledger').select('round_up_amount'),
-          supabase
+            .order('renewal_date', { ascending: true })
+            .limit(1000),
+          supabaseAdmin.from('transactions').select('fee').gt('fee', 0).limit(1000),
+          supabaseAdmin.from('roundup_ledger').select('round_up_amount').limit(1000),
+          supabaseAdmin
             .from('user_subscriptions')
             .select('id', { count: 'exact', head: true })
             .eq('status', 'active'),
@@ -318,17 +319,19 @@ function ProfitLossTab() {
     async function fetchData() {
       try {
         const [subsResult, ruResult, apiResult, renewalResult] = await Promise.all([
-          supabase
+          supabaseAdmin
             .from('user_subscriptions')
             .select('amount, status')
-            .eq('status', 'active'),
-          supabase.from('roundup_ledger').select('round_up_amount, fee_amount, created_at'),
-          supabase.from('api_usage').select('cost, created_at'),
-          supabase
+            .eq('status', 'active')
+            .limit(1000),
+          supabaseAdmin.from('roundup_ledger').select('round_up_amount, fee_amount, created_at').limit(1000),
+          supabaseAdmin.from('api_usage').select('cost, created_at').limit(1000),
+          supabaseAdmin
             .from('renewal_history')
             .select('amount, renewal_date, status')
             .eq('status', 'success')
-            .order('renewal_date', { ascending: true }),
+            .order('renewal_date', { ascending: true })
+            .limit(1000),
         ]);
 
         const subs = (subsResult.data ?? []) as UserSubscriptionRow[];
@@ -500,19 +503,22 @@ function BalanceSheetTab() {
     async function fetchData() {
       try {
         const [subsResult, renewalQueueResult, ruResult, marketQueueResult] = await Promise.all([
-          supabase
+          supabaseAdmin
             .from('user_subscriptions')
             .select('amount, status')
-            .eq('status', 'active'),
-          supabase
+            .eq('status', 'active')
+            .limit(1000),
+          supabaseAdmin
             .from('renewal_queue')
             .select('amount, status')
-            .eq('status', 'pending'),
-          supabase.from('roundup_ledger').select('round_up_amount'),
-          supabase
+            .eq('status', 'pending')
+            .limit(1000),
+          supabaseAdmin.from('roundup_ledger').select('round_up_amount').limit(1000),
+          supabaseAdmin
             .from('market_queue')
             .select('amount, status')
-            .eq('status', 'pending'),
+            .eq('status', 'pending')
+            .limit(1000),
         ]);
 
         const subs = (subsResult.data ?? []) as UserSubscriptionRow[];
@@ -679,24 +685,28 @@ function CashFlowTab() {
     async function fetchData() {
       try {
         const [renewalResult, ruResult, apiResult, marketResult] = await Promise.all([
-          supabase
+          supabaseAdmin
             .from('renewal_history')
             .select('amount, renewal_date, status')
             .eq('status', 'success')
-            .order('renewal_date', { ascending: true }),
-          supabase
+            .order('renewal_date', { ascending: true })
+            .limit(1000),
+          supabaseAdmin
             .from('roundup_ledger')
             .select('id, user_id, round_up_amount, fee_amount, status, created_at')
-            .order('created_at', { ascending: true }),
-          supabase
+            .order('created_at', { ascending: true })
+            .limit(1000),
+          supabaseAdmin
             .from('api_usage')
             .select('cost, created_at')
-            .order('created_at', { ascending: true }),
-          supabase
+            .order('created_at', { ascending: true })
+            .limit(1000),
+          supabaseAdmin
             .from('market_queue')
             .select('amount, status, created_at')
             .eq('status', 'completed')
-            .order('created_at', { ascending: true }),
+            .order('created_at', { ascending: true })
+            .limit(1000),
         ]);
 
         const rens = (renewalResult.data ?? []) as RenewalHistoryRow[];
@@ -863,7 +873,7 @@ function RoundUpsTab() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('roundup_ledger')
           .select('*')
           .order('created_at', { ascending: false })
@@ -1002,8 +1012,8 @@ function AccountingTab() {
     async function fetchData() {
       try {
         const [txResult, ruResult] = await Promise.all([
-          supabase.from('transactions').select('amount, fee'),
-          supabase.from('roundup_ledger').select('round_up_amount, fee_amount'),
+          supabaseAdmin.from('transactions').select('amount, fee').limit(1000),
+          supabaseAdmin.from('roundup_ledger').select('round_up_amount, fee_amount').limit(1000),
         ]);
 
         const txData = (txResult.data ?? []) as Array<{ amount: number; fee: number }>;

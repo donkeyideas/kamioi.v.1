@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Modal, Input, Select, Badge } from '@/components/ui'
 import type { SelectOption } from '@/components/ui'
 
@@ -128,7 +128,7 @@ function EmptyState() {
 /* ------------------------------------------------------------------ */
 
 export function BusinessGoalsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [goals, setGoals] = useState<Goal[]>([])
   const [members, setMembers] = useState<BusinessMember[]>([])
@@ -147,23 +147,24 @@ export function BusinessGoalsTab() {
   /* ---- Fetch ---- */
 
   const fetchData = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     setLoading(true)
 
     try {
-      const { data: bizData } = await supabase
+      const { data: bizData } = await supabaseAdmin
         .from('businesses')
         .select('id')
-        .eq('created_by', profile.id)
+        .eq('created_by', userId)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (!bizData) { setLoading(false); return }
 
-      const { data: memberData } = await supabase
+      const { data: memberData } = await supabaseAdmin
         .from('business_members')
         .select('id, user_id, department')
         .eq('business_id', bizData.id)
+        .limit(100)
 
       const memberList = (memberData as BusinessMember[] | null) ?? []
       setMembers(memberList)
@@ -172,11 +173,12 @@ export function BusinessGoalsTab() {
       setMemberUserIds(userIds)
 
       if (userIds.length > 0) {
-        const { data: goalsData } = await supabase
+        const { data: goalsData } = await supabaseAdmin
           .from('goals')
           .select('*')
           .in('user_id', userIds)
           .order('created_at', { ascending: false })
+          .limit(50)
 
         setGoals((goalsData as Goal[] | null) ?? [])
       }
@@ -185,11 +187,11 @@ export function BusinessGoalsTab() {
     } finally {
       setLoading(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    if (!userLoading) void fetchData()
+  }, [fetchData, userLoading])
 
   /* ---- Department breakdown ---- */
 
@@ -248,7 +250,7 @@ export function BusinessGoalsTab() {
 
     try {
       // Create goal for the business owner (as business-level goal)
-      const { error } = await supabase.from('goals').insert({
+      const { error } = await supabaseAdmin.from('goals').insert({
         user_id: memberUserIds[0],
         name: trimmedName,
         target_amount: parsedTarget,

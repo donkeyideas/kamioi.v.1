@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input } from '@/components/ui'
 
 /* ------------------------------------------------------------------ */
@@ -68,6 +69,7 @@ function ToastBanner({ toast }: { toast: Toast }) {
 
 export function SettingsTab() {
   const { profile, signOut } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
   const navigate = useNavigate()
 
   /* ---- Profile form ---- */
@@ -104,14 +106,15 @@ export function SettingsTab() {
   /* ---- Load profile data from Supabase ---- */
 
   useEffect(() => {
-    if (!profile) { setProfileLoading(false); return }
+    if (userLoading) return
+    if (!userId) { setProfileLoading(false); return }
     const load = async () => {
       setProfileLoading(true)
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('users')
           .select('name, phone, city, state, zip_code, round_up_amount')
-          .eq('id', profile.id)
+          .eq('id', userId)
           .single()
 
         if (error) throw error
@@ -135,7 +138,7 @@ export function SettingsTab() {
       }
     }
     void load()
-  }, [profile])
+  }, [userId, userLoading])
 
   /* ---- Helpers ---- */
 
@@ -157,11 +160,11 @@ export function SettingsTab() {
   /* ---- Save profile ---- */
 
   const saveProfile = useCallback(async () => {
-    if (!profile) return
+    if (!userId) return
     setProfileSaving(true)
     setProfileToast(null)
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('users')
         .update({
           name: form.name.trim(),
@@ -170,7 +173,7 @@ export function SettingsTab() {
           state: form.state.trim() || null,
           zip_code: form.zip_code.trim() || null,
         })
-        .eq('id', profile.id)
+        .eq('id', userId)
 
       if (error) throw error
       setProfileToast({ type: 'success', message: 'Profile updated successfully.' })
@@ -180,21 +183,21 @@ export function SettingsTab() {
       setProfileSaving(false)
       clearToastAfterDelay(setProfileToast)
     }
-  }, [profile, form, clearToastAfterDelay])
+  }, [userId, form, clearToastAfterDelay])
 
   /* ---- Save round-up ---- */
 
   const saveRoundUp = useCallback(
     async (amount: RoundUpOption) => {
-      if (!profile) return
+      if (!userId) return
       setRoundUp(amount)
       setRoundUpSaving(true)
       setRoundUpToast(null)
       try {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('users')
           .update({ round_up_amount: amount })
-          .eq('id', profile.id)
+          .eq('id', userId)
 
         if (error) throw error
         setRoundUpToast({ type: 'success', message: `Round-up amount set to ${ROUND_UP_LABELS[amount]}.` })
@@ -205,7 +208,7 @@ export function SettingsTab() {
         clearToastAfterDelay(setRoundUpToast)
       }
     },
-    [profile, clearToastAfterDelay],
+    [userId, clearToastAfterDelay],
   )
 
   /* ---- Change password ---- */

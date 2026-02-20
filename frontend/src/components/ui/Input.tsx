@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useState,
+  useId,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react';
@@ -49,14 +50,20 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, className, style, ...rest }, ref) => {
+  ({ label, error, className, style, id: propId, ...rest }, ref) => {
+    const generatedId = useId();
+    const inputId = propId || generatedId;
+    const errorId = `${inputId}-error`;
     const [focused, setFocused] = useState(false);
 
     return (
       <div className={clsx('aurora-input-wrapper', className)}>
-        {label && <label style={labelStyles}>{label}</label>}
+        {label && <label htmlFor={inputId} style={labelStyles}>{label}</label>}
         <input
           ref={ref}
+          id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           style={{
             ...baseFieldStyles,
             ...(focused ? focusStyles : {}),
@@ -73,7 +80,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           }}
           {...rest}
         />
-        {error && <p style={errorTextStyles}>{error}</p>}
+        {error && <p id={errorId} role="alert" style={errorTextStyles}>{error}</p>}
       </div>
     );
   },
@@ -89,14 +96,20 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, error, className, style, ...rest }, ref) => {
+  ({ label, error, className, style, id: propId, ...rest }, ref) => {
+    const generatedId = useId();
+    const textareaId = propId || generatedId;
+    const errorId = `${textareaId}-error`;
     const [focused, setFocused] = useState(false);
 
     return (
       <div className={clsx('aurora-textarea-wrapper', className)}>
-        {label && <label style={labelStyles}>{label}</label>}
+        {label && <label htmlFor={textareaId} style={labelStyles}>{label}</label>}
         <textarea
           ref={ref}
+          id={textareaId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           style={{
             ...baseFieldStyles,
             minHeight: '100px',
@@ -115,7 +128,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           }}
           {...rest}
         />
-        {error && <p style={errorTextStyles}>{error}</p>}
+        {error && <p id={errorId} role="alert" style={errorTextStyles}>{error}</p>}
       </div>
     );
   },

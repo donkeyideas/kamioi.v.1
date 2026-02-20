@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Table, Badge, Button, Input, Select, Modal } from '@/components/ui'
 import type { Column } from '@/components/ui'
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
 
 /* ---- Types ---- */
 
@@ -22,6 +23,7 @@ interface FamilyMember {
 
 interface Holding {
   user_id: number
+  ticker: string
   shares: number
   current_price: number
 }
@@ -152,9 +154,11 @@ const buildColumns = (
 /* ---- Component ---- */
 
 export function FamilyMembersTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
-  const [memberRows, setMemberRows] = useState<MemberRow[]>([])
+  const [rawMembers, setRawMembers] = useState<FamilyMember[]>([])
+  const [rawHoldings, setRawHoldings] = useState<Holding[]>([])
+  const [prices, setPrices] = useState<Map<string, StockQuote>>(new Map())
   const [familyId, setFamilyId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -174,22 +178,23 @@ export function FamilyMembersTab() {
   /* ---- Data fetching ---- */
 
   const fetchMembers = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
 
-    const { data: memberRecord } = await supabase
+    const { data: memberRecord } = await supabaseAdmin
       .from('family_members')
       .select('family_id')
-      .eq('user_id', profile.id)
-      .single()
+      .eq('user_id', userId)
+      .maybeSingle()
 
     if (!memberRecord) { setLoading(false); return }
 
     setFamilyId(memberRecord.family_id)
 
-    const { data: familyMembers } = await supabase
+    const { data: familyMembers } = await supabaseAdmin
       .from('family_members')
       .select('*, users(id, name, email)')
       .eq('family_id', memberRecord.family_id)
+      .limit(50)
 
     const membersData = (familyMembers ?? []) as FamilyMember[]
     const memberUserIds = membersData.map((m) => m.user_id)
@@ -197,21 +202,42 @@ export function FamilyMembersTab() {
     // Fetch holdings for portfolio values
     let holdingsData: Holding[] = []
     if (memberUserIds.length > 0) {
-      const { data } = await supabase
+      const { data } = await supabaseAdmin
         .from('holdings')
-        .select('user_id, shares, current_price')
+        .select('user_id, shares, current_price, ticker')
         .in('user_id', memberUserIds)
+        .limit(200)
       holdingsData = (data ?? []) as Holding[]
     }
 
-    // Calculate portfolio value per user
+    setRawMembers(membersData)
+    setRawHoldings(holdingsData)
+    setLoading(false)
+
+    // Fetch live stock prices
+    if (holdingsData.length > 0) {
+      const tickers = [...new Set(holdingsData.map(h => h.ticker))]
+      const quotes = await fetchStockPrices(tickers)
+      if (quotes.size > 0) setPrices(quotes)
+    }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userLoading) fetchMembers()
+  }, [fetchMembers, userLoading])
+
+  /* ---- Derive memberRows from raw data + live prices ---- */
+
+  const memberRows = useMemo<MemberRow[]>(() => {
+    // Calculate portfolio value per user using live prices
     const portfolioMap = new Map<number, number>()
-    for (const h of holdingsData) {
+    for (const h of rawHoldings) {
+      const livePrice = prices.get(h.ticker)?.price ?? h.current_price
       const current = portfolioMap.get(h.user_id) ?? 0
-      portfolioMap.set(h.user_id, current + h.shares * h.current_price)
+      portfolioMap.set(h.user_id, current + h.shares * livePrice)
     }
 
-    const rows: MemberRow[] = membersData.map((m) => ({
+    return rawMembers.map((m) => ({
       id: m.id,
       family_id: m.family_id,
       user_id: m.user_id,
@@ -222,14 +248,7 @@ export function FamilyMembersTab() {
       portfolioValue: portfolioMap.get(m.user_id) ?? 0,
       joined_at: m.joined_at,
     }))
-
-    setMemberRows(rows)
-    setLoading(false)
-  }, [profile?.id])
-
-  useEffect(() => {
-    fetchMembers()
-  }, [fetchMembers])
+  }, [rawMembers, rawHoldings, prices])
 
   /* ---- Add Member ---- */
 
@@ -248,7 +267,7 @@ export function FamilyMembersTab() {
 
     try {
       // Look up user by email
-      const { data: userData, error: userError } = await supabase
+      const { data: userData, error: userError } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', trimmedEmail)
@@ -261,7 +280,7 @@ export function FamilyMembersTab() {
       }
 
       // Add to family_members
-      const { error } = await supabase.from('family_members').insert({
+      const { error } = await supabaseAdmin.from('family_members').insert({
         family_id: familyId,
         user_id: userData.id,
         role: addRole,
@@ -295,7 +314,7 @@ export function FamilyMembersTab() {
     setEditSubmitting(true)
 
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('family_members')
         .update({ role: editRole })
         .eq('id', editMember.id)

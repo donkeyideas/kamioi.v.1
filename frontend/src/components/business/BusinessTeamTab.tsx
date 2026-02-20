@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
 import { GlassCard, Table, Badge, Button, Modal, Input, Select } from '@/components/ui'
 import type { Column, SelectOption } from '@/components/ui'
 
@@ -33,6 +34,7 @@ interface MemberRow {
 
 interface Holding {
   user_id: number
+  ticker: string
   shares: number
   current_price: number
 }
@@ -105,11 +107,12 @@ function LoadingSpinner() {
 /* ------------------------------------------------------------------ */
 
 export function BusinessTeamTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [businessId, setBusinessId] = useState<number | null>(null)
   const [members, setMembers] = useState<BusinessMember[]>([])
   const [holdings, setHoldings] = useState<Holding[]>([])
+  const [prices, setPrices] = useState<Map<string, StockQuote>>(new Map())
   const [userMap, setUserMap] = useState<Map<number, { name: string; email: string }>>(new Map())
   const [loading, setLoading] = useState(true)
   const [departmentFilter, setDepartmentFilter] = useState('all')
@@ -132,25 +135,26 @@ export function BusinessTeamTab() {
   /* ---- Fetch ---- */
 
   const fetchData = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     setLoading(true)
 
     try {
-      const { data: bizData } = await supabase
+      const { data: bizData } = await supabaseAdmin
         .from('businesses')
         .select('id')
-        .eq('created_by', profile.id)
+        .eq('created_by', userId)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (!bizData) { setLoading(false); return }
       setBusinessId(bizData.id)
 
-      const { data: memberData } = await supabase
+      const { data: memberData } = await supabaseAdmin
         .from('business_members')
         .select('*')
         .eq('business_id', bizData.id)
         .order('joined_at', { ascending: false })
+        .limit(100)
 
       const memberList = (memberData as BusinessMember[] | null) ?? []
       setMembers(memberList)
@@ -158,8 +162,8 @@ export function BusinessTeamTab() {
       const userIds = memberList.map((m) => m.user_id)
       if (userIds.length > 0) {
         const [usersRes, holdingsRes] = await Promise.all([
-          supabase.from('users').select('id, name, email').in('id', userIds),
-          supabase.from('holdings').select('user_id, shares, current_price').in('user_id', userIds),
+          supabaseAdmin.from('users').select('id, name, email').in('id', userIds).limit(100),
+          supabaseAdmin.from('holdings').select('user_id, shares, current_price, ticker').in('user_id', userIds).limit(200),
         ])
 
         const uMap = new Map<number, { name: string; email: string }>()
@@ -167,28 +171,41 @@ export function BusinessTeamTab() {
           uMap.set(u.id, { name: u.name ?? 'Unknown', email: u.email ?? '' })
         }
         setUserMap(uMap)
-        setHoldings((holdingsRes.data as Holding[] | null) ?? [])
+        const holdingsArr = (holdingsRes.data as Holding[] | null) ?? []
+        setHoldings(holdingsArr)
+
+        // Fetch live stock prices
+        if (holdingsArr.length > 0) {
+          const tickers = [...new Set(holdingsArr.map(h => h.ticker))]
+          fetchStockPrices(tickers).then(quotes => {
+            if (quotes.size > 0) setPrices(quotes)
+          })
+        }
       }
     } catch (err) {
       console.error('Failed to fetch team data:', err)
     } finally {
       setLoading(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    if (!userLoading) void fetchData()
+  }, [fetchData, userLoading])
+
+  /* ---- Live price helper ---- */
+
+  const getPrice = useCallback((h: Holding) => prices.get(h.ticker)?.price ?? h.current_price, [prices])
 
   /* ---- Derived ---- */
 
   const portfolioByUser = useMemo(() => {
     const map = new Map<number, number>()
     for (const h of holdings) {
-      map.set(h.user_id, (map.get(h.user_id) ?? 0) + h.shares * h.current_price)
+      map.set(h.user_id, (map.get(h.user_id) ?? 0) + h.shares * getPrice(h))
     }
     return map
-  }, [holdings])
+  }, [holdings, getPrice])
 
   const memberRows = useMemo<MemberRow[]>(() => {
     return members.map((m) => {
@@ -321,7 +338,7 @@ export function BusinessTeamTab() {
 
     try {
       // Look up user by email
-      const { data: userData } = await supabase
+      const { data: userData } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', trimmedEmail)
@@ -333,7 +350,7 @@ export function BusinessTeamTab() {
         return
       }
 
-      const { error } = await supabase.from('business_members').insert({
+      const { error } = await supabaseAdmin.from('business_members').insert({
         business_id: businessId,
         user_id: userData.id,
         role: addRole,
@@ -368,7 +385,7 @@ export function BusinessTeamTab() {
 
     setEditSubmitting(true)
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('business_members')
         .update({ role: editRole, department: editDepartment })
         .eq('id', editMember.id)

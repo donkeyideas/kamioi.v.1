@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Badge } from '@/components/ui'
 
 /* ------------------------------------------------------------------ */
@@ -60,7 +60,7 @@ const typeDotColors: Record<NotificationType, string> = {
 /* ------------------------------------------------------------------ */
 
 export function NotificationsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,28 +70,28 @@ export function NotificationsTab() {
   /* ---- Fetch ---- */
 
   const fetchNotifications = useCallback(async () => {
-    if (!profile) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('notifications')
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
+        .limit(200)
 
       if (error) throw error
       setNotifications((data as Notification[]) ?? [])
     } catch {
-      // Silently handle — empty list shown
       setNotifications([])
     } finally {
       setLoading(false)
     }
-  }, [profile])
+  }, [userId])
 
   useEffect(() => {
-    void fetchNotifications()
-  }, [fetchNotifications])
+    if (!userLoading) void fetchNotifications()
+  }, [fetchNotifications, userLoading])
 
   /* ---- Derived data ---- */
 
@@ -118,13 +118,13 @@ export function NotificationsTab() {
   /* ---- Actions ---- */
 
   const markAllRead = useCallback(async () => {
-    if (!profile) return
+    if (!userId) return
     setMarkingAll(true)
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('notifications')
         .update({ read: true })
-        .eq('user_id', profile.id)
+        .eq('user_id', userId)
         .eq('read', false)
 
       if (error) throw error
@@ -134,11 +134,11 @@ export function NotificationsTab() {
     } finally {
       setMarkingAll(false)
     }
-  }, [profile])
+  }, [userId])
 
   const markSingleRead = useCallback(async (id: number) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('notifications')
         .update({ read: true })
         .eq('id', id)

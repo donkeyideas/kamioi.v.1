@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Modal } from '@/components/ui';
 import type { Column, TabItem } from '@/components/ui';
 
@@ -64,10 +64,11 @@ function BadgeDefinitionsContent() {
 
   const fetchBadges = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('badges')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) {
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
@@ -120,7 +121,7 @@ function BadgeDefinitionsContent() {
 
     try {
       if (editingBadge) {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('badges')
           .update({
             name: formName.trim(),
@@ -136,7 +137,7 @@ function BadgeDefinitionsContent() {
           return;
         }
       } else {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('badges')
           .insert({
             name: formName.trim(),
@@ -163,7 +164,7 @@ function BadgeDefinitionsContent() {
 
   async function handleDelete(id: number) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('badges')
         .delete()
         .eq('id', id);
@@ -373,10 +374,11 @@ function AwardQueueContent() {
 
   const fetchUserBadges = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('user_badges')
         .select('*')
-        .order('awarded_at', { ascending: false });
+        .order('awarded_at', { ascending: false })
+        .limit(200);
 
       if (error) {
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
@@ -410,7 +412,7 @@ function AwardQueueContent() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('user_badges')
         .insert({
           user_id: userId,
@@ -608,7 +610,7 @@ function AnalyticsContent() {
     async function fetchAnalytics() {
       try {
         // Total badges awarded
-        const { count: total, error: totalErr } = await supabase
+        const { count: total, error: totalErr } = await supabaseAdmin
           .from('user_badges')
           .select('*', { count: 'exact', head: true });
 
@@ -624,9 +626,10 @@ function AnalyticsContent() {
         setTotalAwarded(total ?? 0);
 
         // Fetch all user_badges for aggregation
-        const { data: allAwards, error: awardsErr } = await supabase
+        const { data: allAwards, error: awardsErr } = await supabaseAdmin
           .from('user_badges')
-          .select('user_id, badge_id');
+          .select('user_id, badge_id')
+          .limit(200);
 
         if (awardsErr) {
           console.error('Failed to fetch user badges for analytics:', awardsErr.message);

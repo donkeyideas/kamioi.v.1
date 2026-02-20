@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input, Modal, Badge } from '@/components/ui'
 
 /* ---- Types ---- */
@@ -183,7 +183,7 @@ function GoalCard({ goal }: GoalCardProps) {
 /* ---- Component ---- */
 
 export function FamilyGoalsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [goals, setGoals] = useState<GoalWithMember[]>([])
   const [familyId, setFamilyId] = useState<number | null>(null)
@@ -200,33 +200,35 @@ export function FamilyGoalsTab() {
   /* ---- Data fetching ---- */
 
   const fetchGoals = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
 
-    const { data: memberRecord } = await supabase
+    const { data: memberRecord } = await supabaseAdmin
       .from('family_members')
       .select('family_id')
-      .eq('user_id', profile.id)
-      .single()
+      .eq('user_id', userId)
+      .maybeSingle()
 
     if (!memberRecord) { setLoading(false); return }
 
     setFamilyId(memberRecord.family_id)
 
-    const { data: familyMembers } = await supabase
+    const { data: familyMembers } = await supabaseAdmin
       .from('family_members')
       .select('*, users(id, name)')
       .eq('family_id', memberRecord.family_id)
+      .limit(50)
 
     const membersData = (familyMembers ?? []) as FamilyMember[]
     const memberUserIds = membersData.map((m) => m.user_id)
 
     if (memberUserIds.length === 0) { setLoading(false); return }
 
-    const { data: goalsData, error } = await supabase
+    const { data: goalsData, error } = await supabaseAdmin
       .from('goals')
       .select('*')
       .in('user_id', memberUserIds)
       .order('created_at', { ascending: false })
+      .limit(100)
 
     if (error) {
       console.error('Failed to fetch goals:', error)
@@ -246,11 +248,11 @@ export function FamilyGoalsTab() {
 
     setGoals(mapped)
     setLoading(false)
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    fetchGoals()
-  }, [fetchGoals])
+    if (!userLoading) fetchGoals()
+  }, [fetchGoals, userLoading])
 
   /* ---- Create Goal ---- */
 
@@ -273,7 +275,7 @@ export function FamilyGoalsTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!profile?.id || !familyId) return
+    if (!userId || !familyId) return
 
     const trimmedName = goalName.trim()
     const parsedAmount = parseFloat(targetAmount)
@@ -291,8 +293,8 @@ export function FamilyGoalsTab() {
     setFormError(null)
 
     try {
-      const { error } = await supabase.from('goals').insert({
-        user_id: profile.id,
+      const { error } = await supabaseAdmin.from('goals').insert({
+        user_id: userId,
         name: trimmedName,
         target_amount: parsedAmount,
         current_amount: 0,

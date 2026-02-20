@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Input, Select, Modal } from '@/components/ui';
 import type { Column, SelectOption } from '@/components/ui';
 import type { Database } from '@/types/database';
@@ -68,11 +68,12 @@ export function EmployeeManagementTab() {
 
   const fetchAdminUsers = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('account_type', 'admin')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) {
         console.error('Failed to fetch admin users:', error.message);

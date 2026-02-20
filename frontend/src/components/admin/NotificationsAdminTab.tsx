@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select, Modal, Textarea } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 
@@ -199,10 +199,11 @@ function NotificationsListTab() {
   useEffect(() => {
     async function fetchNotifications() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('notifications')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
         if (error) {
           console.error('Failed to fetch notifications:', error.message);
           setNotifications([]);
@@ -358,7 +359,7 @@ function MessagingTab() {
         type: form.type,
         read: false,
       };
-      const { error } = await supabase.from('notifications').insert(payload);
+      const { error } = await supabaseAdmin.from('notifications').insert(payload);
       if (error) {
         console.error('Failed to send notification:', error.message);
         return;
@@ -446,10 +447,11 @@ function ContactInboxTab() {
   const fetchMessages = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('contact_messages')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
       if (error) {
         console.error('Failed to fetch contact messages:', error.message);
         setMessages([]);
@@ -475,7 +477,7 @@ function ContactInboxTab() {
 
   async function updateStatus(id: number, status: string) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('contact_messages')
         .update({ status })
         .eq('id', id);
@@ -624,7 +626,7 @@ function TemplatesTab() {
         type: form.type,
         read: false,
       };
-      const { error } = await supabase.from('notifications').insert(payload);
+      const { error } = await supabaseAdmin.from('notifications').insert(payload);
       if (error) {
         console.error('Failed to send notification:', error.message);
         return;

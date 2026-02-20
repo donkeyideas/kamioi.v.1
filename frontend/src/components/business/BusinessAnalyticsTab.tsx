@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
 import { KpiCard, GlassCard } from '@/components/ui'
 import LineChart from '@/components/charts/LineChart'
 import BarChart from '@/components/charts/BarChart'
@@ -22,11 +23,13 @@ interface Transaction {
   round_up: number
   category: string | null
   status: string
+  date: string
   created_at: string
 }
 
 interface Holding {
   user_id: number
+  ticker: string
   shares: number
   avg_price: number
   current_price: number
@@ -118,33 +121,35 @@ function LoadingSpinner() {
 /* ------------------------------------------------------------------ */
 
 export function BusinessAnalyticsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [members, setMembers] = useState<BusinessMember[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [holdings, setHoldings] = useState<Holding[]>([])
+  const [prices, setPrices] = useState<Map<string, StockQuote>>(new Map())
   const [loading, setLoading] = useState(true)
 
   /* ---- Fetch ---- */
 
   const fetchData = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     setLoading(true)
 
     try {
-      const { data: bizData } = await supabase
+      const { data: bizData } = await supabaseAdmin
         .from('businesses')
         .select('id')
-        .eq('created_by', profile.id)
+        .eq('created_by', userId)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (!bizData) { setLoading(false); return }
 
-      const { data: memberData } = await supabase
+      const { data: memberData } = await supabaseAdmin
         .from('business_members')
         .select('user_id, department')
         .eq('business_id', bizData.id)
+        .limit(50)
 
       const memberList = (memberData as BusinessMember[] | null) ?? []
       setMembers(memberList)
@@ -153,36 +158,51 @@ export function BusinessAnalyticsTab() {
 
       if (userIds.length > 0) {
         const [txRes, holdRes] = await Promise.all([
-          supabase
+          supabaseAdmin
             .from('transactions')
             .select('*')
             .in('user_id', userIds)
-            .order('created_at', { ascending: true }),
-          supabase
+            .order('created_at', { ascending: true })
+            .limit(500),
+          supabaseAdmin
             .from('holdings')
-            .select('user_id, shares, avg_price, current_price')
-            .in('user_id', userIds),
+            .select('user_id, shares, avg_price, current_price, ticker')
+            .in('user_id', userIds)
+            .limit(200),
         ])
 
         setTransactions((txRes.data as Transaction[] | null) ?? [])
-        setHoldings((holdRes.data as Holding[] | null) ?? [])
+        const holdingsArr = (holdRes.data as Holding[] | null) ?? []
+        setHoldings(holdingsArr)
+
+        // Fetch live stock prices
+        if (holdingsArr.length > 0) {
+          const tickers = [...new Set(holdingsArr.map(h => h.ticker))]
+          fetchStockPrices(tickers).then(quotes => {
+            if (quotes.size > 0) setPrices(quotes)
+          })
+        }
       }
     } catch (err) {
       console.error('Failed to fetch analytics data:', err)
     } finally {
       setLoading(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    if (!userLoading) void fetchData()
+  }, [fetchData, userLoading])
+
+  /* ---- Live price helper ---- */
+
+  const getPrice = useCallback((h: Holding) => prices.get(h.ticker)?.price ?? h.current_price, [prices])
 
   /* ---- KPI: Total Invested ---- */
 
   const totalInvested = useMemo(
-    () => holdings.reduce((sum, h) => sum + h.shares * h.current_price, 0),
-    [holdings],
+    () => holdings.reduce((sum, h) => sum + h.shares * getPrice(h), 0),
+    [holdings, getPrice],
   )
 
   /* ---- KPI: Average Round-Up ---- */
@@ -228,13 +248,13 @@ export function BusinessAnalyticsTab() {
     const holdingsByDept = new Map<string, number>()
     for (const h of holdings) {
       const dept = memberDeptMap.get(h.user_id) ?? 'Unassigned'
-      holdingsByDept.set(dept, (holdingsByDept.get(dept) ?? 0) + h.shares * h.current_price)
+      holdingsByDept.set(dept, (holdingsByDept.get(dept) ?? 0) + h.shares * getPrice(h))
     }
 
     return Array.from(holdingsByDept.entries())
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .sort((a, b) => b.value - a.value)
-  }, [members, holdings])
+  }, [members, holdings, getPrice])
 
   /* ---- Monthly spending trends (LineChart) ---- */
 
@@ -242,8 +262,9 @@ export function BusinessAnalyticsTab() {
     const map = new Map<string, { sortKey: string; total: number }>()
 
     for (const tx of transactions) {
-      const monthLabel = getMonthKey(tx.created_at)
-      const sortKey = getMonthSortKey(tx.created_at)
+      const dateField = tx.date ?? tx.created_at
+      const monthLabel = getMonthKey(dateField)
+      const sortKey = getMonthSortKey(dateField)
       const existing = map.get(monthLabel)
       if (existing) {
         existing.total += tx.amount

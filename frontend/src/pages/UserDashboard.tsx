@@ -1,16 +1,26 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
-import {
-  OverviewTab,
-  PortfolioTab,
-  TransactionsTab,
-  GoalsTab,
-  AiInsightsTab,
-  AnalyticsTab,
-  NotificationsTab,
-  SettingsTab,
-} from '@/components/user'
+import { BankSyncButton } from '@/components/common/BankSyncButton'
+
+const OverviewTab = lazy(() => import('@/components/user/OverviewTab').then(m => ({ default: m.OverviewTab })))
+const PortfolioTab = lazy(() => import('@/components/user/PortfolioTab').then(m => ({ default: m.PortfolioTab })))
+const TransactionsTab = lazy(() => import('@/components/user/TransactionsTab').then(m => ({ default: m.TransactionsTab })))
+const GoalsTab = lazy(() => import('@/components/user/GoalsTab').then(m => ({ default: m.GoalsTab })))
+const AiInsightsTab = lazy(() => import('@/components/user/AiInsightsTab').then(m => ({ default: m.AiInsightsTab })))
+const AnalyticsTab = lazy(() => import('@/components/user/AnalyticsTab').then(m => ({ default: m.AnalyticsTab })))
+const NotificationsTab = lazy(() => import('@/components/user/NotificationsTab').then(m => ({ default: m.NotificationsTab })))
+const SettingsTab = lazy(() => import('@/components/user/SettingsTab').then(m => ({ default: m.SettingsTab })))
+
+function TabLoading() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'var(--text-muted)' }}>
+      Loading...
+    </div>
+  )
+}
+
+/* ---- Navigation config ---- */
 
 const userNavSections: NavSection[] = [
   {
@@ -80,6 +90,7 @@ export default function UserDashboard() {
       sidebarUser={{ name: userName, role: 'Investor', initials }}
       greeting={`Welcome back, ${userName}`}
       userInitials={initials}
+      headerActions={<BankSyncButton onSyncComplete={() => setActiveTab('transactions')} />}
     >
       <h1 className="aurora-page-title">
         {activeTab === 'overview' ? 'Dashboard Overview' : userNavSections[0].items.find(i => i.id === activeTab)?.label || 'Dashboard'}
@@ -88,7 +99,9 @@ export default function UserDashboard() {
         {subtitleMap[activeTab] || 'Your investment overview and activity'}
       </p>
 
-      {renderContent(activeTab)}
+      <Suspense fallback={<TabLoading />}>
+        {renderContent(activeTab)}
+      </Suspense>
     </DashboardLayout>
   )
 }

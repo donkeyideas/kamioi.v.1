@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input, Select, Badge } from '@/components/ui'
 
 /* ---- Types ---- */
@@ -88,7 +88,7 @@ const sectionTitleStyle: React.CSSProperties = {
 /* ---- Component ---- */
 
 export function FamilySettingsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [family, setFamily] = useState<Family | null>(null)
   const [members, setMembers] = useState<FamilyMember[]>([])
@@ -118,22 +118,22 @@ export function FamilySettingsTab() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!profile?.id) { setLoading(false); return }
+      if (!userId) { setLoading(false); return }
 
-      const { data: memberRecord } = await supabase
+      const { data: memberRecord } = await supabaseAdmin
         .from('family_members')
         .select('family_id')
-        .eq('user_id', profile.id)
-        .single()
+        .eq('user_id', userId)
+        .maybeSingle()
 
       if (!memberRecord) { setLoading(false); return }
 
       // Fetch family info
-      const { data: familyData } = await supabase
+      const { data: familyData } = await supabaseAdmin
         .from('families')
         .select('*')
         .eq('id', memberRecord.family_id)
-        .single()
+        .maybeSingle()
 
       if (familyData) {
         setFamily(familyData as Family)
@@ -141,18 +141,20 @@ export function FamilySettingsTab() {
       }
 
       // Fetch members
-      const { data: familyMembers } = await supabase
+      const { data: familyMembers } = await supabaseAdmin
         .from('family_members')
         .select('*, users(id, name, email)')
         .eq('family_id', memberRecord.family_id)
+        .limit(50)
 
       setMembers((familyMembers ?? []) as FamilyMember[])
 
       // Fetch user settings for preferences
-      const { data: settings } = await supabase
+      const { data: settings } = await supabaseAdmin
         .from('user_settings')
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', userId)
+        .limit(20)
 
       const settingsData = (settings ?? []) as UserSetting[]
       for (const s of settingsData) {
@@ -162,8 +164,8 @@ export function FamilySettingsTab() {
 
       setLoading(false)
     }
-    fetchData()
-  }, [profile?.id])
+    if (!userLoading) fetchData()
+  }, [userId, userLoading])
 
   /* ---- Save family name ---- */
 
@@ -181,7 +183,7 @@ export function FamilySettingsTab() {
         return
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('families')
         .update({ name: trimmed })
         .eq('id', family.id)
@@ -199,25 +201,25 @@ export function FamilySettingsTab() {
   /* ---- Save preferences ---- */
 
   const savePreferences = useCallback(async () => {
-    if (!profile?.id) return
+    if (!userId) return
     setPrefSaving(true)
     setPrefToast(null)
 
     try {
       // Upsert round-up setting
-      const { error: ruError } = await supabase
+      const { error: ruError } = await supabaseAdmin
         .from('user_settings')
         .upsert(
-          { user_id: profile.id, key: 'family_round_up', value: roundUpAmount },
+          { user_id: userId, key: 'family_round_up', value: roundUpAmount },
           { onConflict: 'user_id,key' },
         )
       if (ruError) throw ruError
 
       // Upsert notification setting
-      const { error: nError } = await supabase
+      const { error: nError } = await supabaseAdmin
         .from('user_settings')
         .upsert(
-          { user_id: profile.id, key: 'family_notifications', value: notifPref },
+          { user_id: userId, key: 'family_notifications', value: notifPref },
           { onConflict: 'user_id,key' },
         )
       if (nError) throw nError
@@ -229,7 +231,7 @@ export function FamilySettingsTab() {
       setPrefSaving(false)
       clearToastAfterDelay(setPrefToast)
     }
-  }, [profile?.id, roundUpAmount, notifPref, clearToastAfterDelay])
+  }, [userId, roundUpAmount, notifPref, clearToastAfterDelay])
 
   /* ---- Loading state ---- */
 

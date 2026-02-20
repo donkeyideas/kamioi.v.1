@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { useUserId } from '@/hooks/useUserId';
 import { GlassCard, Button, Input, Modal, Badge, Select } from '@/components/ui';
 import type { Database } from '@/types/database';
 
@@ -156,7 +156,7 @@ function GoalCard({ goal, onDelete, deleting }: GoalCardProps) {
 }
 
 export function GoalsTab() {
-  const { profile } = useAuth();
+  const { userId, loading: userLoading } = useUserId();
 
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,14 +171,15 @@ export function GoalsTab() {
   const [goalType, setGoalType] = useState<GoalType>('savings');
 
   const fetchGoals = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return; }
+    if (!userId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('goals')
         .select('*')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       setGoals(data ?? []);
@@ -187,11 +188,11 @@ export function GoalsTab() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.id]);
+  }, [userId]);
 
   useEffect(() => {
-    fetchGoals();
-  }, [fetchGoals]);
+    if (!userLoading) fetchGoals();
+  }, [fetchGoals, userLoading]);
 
   const resetForm = () => {
     setTitle('');
@@ -212,7 +213,7 @@ export function GoalsTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.id) return;
+    if (!userId) return;
 
     const trimmedTitle = title.trim();
     const parsedAmount = parseFloat(targetAmount);
@@ -230,8 +231,8 @@ export function GoalsTab() {
     setFormError(null);
 
     try {
-      const { error } = await supabase.from('goals').insert({
-        user_id: profile.id,
+      const { error } = await supabaseAdmin.from('goals').insert({
+        user_id: userId,
         title: trimmedTitle,
         target_amount: parsedAmount,
         current_amount: 0,
@@ -252,15 +253,15 @@ export function GoalsTab() {
   };
 
   const handleDelete = async (goalId: number) => {
-    if (!profile?.id) return;
+    if (!userId) return;
     setDeleting(goalId);
 
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('goals')
         .delete()
         .eq('id', goalId)
-        .eq('user_id', profile.id);
+        .eq('user_id', userId);
 
       if (error) throw error;
       setGoals((prev) => prev.filter((g) => g.id !== goalId));

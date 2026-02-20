@@ -116,12 +116,6 @@ export default function App() {
             <AdminRoute><AdminDashboard /></AdminRoute>
           } />
 
-          {/* Preview routes (no auth required — remove after Supabase setup) */}
-          <Route path="/preview/dashboard" element={<UserDashboard />} />
-          <Route path="/preview/family" element={<FamilyDashboard />} />
-          <Route path="/preview/business" element={<BusinessDashboard />} />
-          <Route path="/preview/admin" element={<AdminDashboard />} />
-
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

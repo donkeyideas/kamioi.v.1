@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
-import { GlassCard } from '@/components/ui'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
+import { GlassCard, Table, Badge } from '@/components/ui'
+import type { Column } from '@/components/ui'
+import { CompanyLogo } from '@/components/common/CompanyLogo'
 import BarChart from '@/components/charts/BarChart'
 
 /* ---- Types ---- */
@@ -34,6 +36,18 @@ interface AiResponse {
   prompt: string
   response: string
   model: string
+  created_at: string
+}
+
+interface SubmittedMapping {
+  id: number
+  merchant_name: string
+  ticker: string | null
+  company_name: string | null
+  confidence: number | null
+  status: string
+  admin_approved: boolean | null
+  ai_processed: boolean
   created_at: string
 }
 
@@ -140,31 +154,46 @@ function RecommendationIcon() {
   )
 }
 
+function MappingIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 3 21 3 21 8" />
+      <line x1="4" y1="20" x2="21" y2="3" />
+      <polyline points="21 16 21 21 16 21" />
+      <line x1="15" y1="15" x2="21" y2="21" />
+      <line x1="4" y1="4" x2="9" y2="9" />
+    </svg>
+  )
+}
+
 /* ---- Component ---- */
 
 export function FamilyAiInsightsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [aiResponses, setAiResponses] = useState<AiResponse[]>([])
   const [memberNameMap, setMemberNameMap] = useState<Map<number, string>>(new Map())
+  const [mappings, setMappings] = useState<SubmittedMapping[]>([])
+  const [mappingsLoading, setMappingsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
 
-    const { data: memberRecord } = await supabase
+    const { data: memberRecord } = await supabaseAdmin
       .from('family_members')
       .select('family_id')
-      .eq('user_id', profile.id)
-      .single()
+      .eq('user_id', userId)
+      .maybeSingle()
 
     if (!memberRecord) { setLoading(false); return }
 
-    const { data: familyMembers } = await supabase
+    const { data: familyMembers } = await supabaseAdmin
       .from('family_members')
       .select('*, users(id, name)')
       .eq('family_id', memberRecord.family_id)
+      .limit(50)
 
     const membersData = (familyMembers ?? []) as FamilyMember[]
     const memberUserIds = membersData.map((m) => m.user_id)
@@ -178,12 +207,13 @@ export function FamilyAiInsightsTab() {
     if (memberUserIds.length === 0) { setLoading(false); return }
 
     const [txRes, aiRes] = await Promise.all([
-      supabase
+      supabaseAdmin
         .from('transactions')
         .select('*')
         .in('user_id', memberUserIds)
-        .order('created_at', { ascending: false }),
-      supabase
+        .order('created_at', { ascending: false })
+        .limit(200),
+      supabaseAdmin
         .from('ai_responses')
         .select('*')
         .in('user_id', memberUserIds)
@@ -193,12 +223,27 @@ export function FamilyAiInsightsTab() {
 
     setTransactions((txRes.data ?? []) as Transaction[])
     setAiResponses((aiRes.data ?? []) as AiResponse[])
+
+    // Fetch user-submitted mappings for all family members (include orphaned null user_id)
+    if (memberUserIds.length > 0) {
+      const userIdList = memberUserIds.map(id => `user_id.eq.${id}`).join(',')
+      const { data: mappingData } = await supabaseAdmin
+        .from('llm_mappings')
+        .select('id, merchant_name, ticker, company_name, confidence, status, admin_approved, ai_processed, created_at')
+        .eq('category', 'family_submitted')
+        .or(`${userIdList},user_id.is.null`)
+        .order('created_at', { ascending: false })
+        .limit(200)
+      setMappings((mappingData ?? []) as SubmittedMapping[])
+    }
+    setMappingsLoading(false)
+
     setLoading(false)
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (!userLoading) fetchData()
+  }, [fetchData, userLoading])
 
   /* ---- Computed: spending by category ---- */
 
@@ -258,6 +303,58 @@ export function FamilyAiInsightsTab() {
     })),
     [categorySpend],
   )
+
+  const mappingColumns: Column<SubmittedMapping>[] = useMemo(() => [
+    {
+      key: 'merchant_name',
+      header: 'Merchant',
+      sortable: true,
+      render: (row: SubmittedMapping) => (
+        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.merchant_name}</span>
+      ),
+    },
+    {
+      key: 'ticker',
+      header: 'Ticker',
+      sortable: true,
+      width: '110px',
+      render: (row: SubmittedMapping) => row.ticker ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <CompanyLogo name={row.ticker} size={18} />
+          <span style={{ fontWeight: 600, color: '#A78BFA' }}>{row.ticker}</span>
+        </div>
+      ) : <span style={{ color: 'var(--text-muted)' }}>--</span>,
+    },
+    {
+      key: 'confidence',
+      header: 'Confidence',
+      sortable: true,
+      width: '110px',
+      align: 'right',
+      render: (row: SubmittedMapping) => row.confidence != null ? (
+        <span style={{ color: row.confidence > 0.8 ? '#34D399' : row.confidence > 0.5 ? '#FBBF24' : '#EF4444', fontWeight: 600 }}>
+          {(row.confidence * 100).toFixed(1)}%
+        </span>
+      ) : <span style={{ color: 'var(--text-muted)' }}>--</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      width: '120px',
+      render: (row: SubmittedMapping) => {
+        const variant = row.status === 'approved' ? 'success' : row.status === 'rejected' ? 'error' : 'warning'
+        return <Badge variant={variant}>{row.status.charAt(0).toUpperCase() + row.status.slice(1)}</Badge>
+      },
+    },
+    {
+      key: 'created_at',
+      header: 'Submitted',
+      sortable: true,
+      width: '130px',
+      render: (row: SubmittedMapping) => new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    },
+  ], [])
 
   if (loading) {
     return <LoadingSpinner />
@@ -434,6 +531,26 @@ export function FamilyAiInsightsTab() {
                   </li>
                 </ul>
               </div>
+            </div>
+          )}
+        </InsightCard>
+
+        {/* My Submitted Mappings */}
+        <InsightCard title="My Submitted Mappings" accent="teal" icon={<MappingIcon />}>
+          {mappings.length === 0 && !mappingsLoading ? (
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>
+              No mappings submitted yet. When a transaction fails to match, use the "Map" button on the Transactions page to submit your own mapping.
+            </p>
+          ) : (
+            <div style={{ margin: '0 -24px -24px', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
+              <Table<SubmittedMapping>
+                columns={mappingColumns}
+                data={mappings}
+                loading={mappingsLoading}
+                emptyMessage="No submitted mappings"
+                pageSize={10}
+                rowKey={(row) => row.id}
+              />
             </div>
           )}
         </InsightCard>

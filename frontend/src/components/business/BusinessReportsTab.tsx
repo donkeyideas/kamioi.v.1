@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Table, Badge, Button, Select } from '@/components/ui'
 import type { Column, SelectOption } from '@/components/ui'
 
@@ -74,7 +74,7 @@ function LoadingSpinner() {
 /* ------------------------------------------------------------------ */
 
 export function BusinessReportsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
@@ -83,24 +83,25 @@ export function BusinessReportsTab() {
   /* ---- Fetch ---- */
 
   const fetchReports = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     setLoading(true)
 
     try {
-      const { data: bizData } = await supabase
+      const { data: bizData } = await supabaseAdmin
         .from('businesses')
         .select('id')
-        .eq('created_by', profile.id)
+        .eq('created_by', userId)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (!bizData) { setLoading(false); return }
 
-      const { data: reportsData } = await supabase
+      const { data: reportsData } = await supabaseAdmin
         .from('reports')
         .select('*')
         .eq('business_id', bizData.id)
         .order('created_at', { ascending: false })
+        .limit(500)
 
       setReports((reportsData as Report[] | null) ?? [])
     } catch (err) {
@@ -108,11 +109,11 @@ export function BusinessReportsTab() {
     } finally {
       setLoading(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    void fetchReports()
-  }, [fetchReports])
+    if (!userLoading) void fetchReports()
+  }, [fetchReports, userLoading])
 
   /* ---- Filtered ---- */
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Modal } from '@/components/ui';
 import type { Column, TabItem } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
@@ -120,10 +120,10 @@ function ApiUsageContent() {
     async function fetchUsage() {
       try {
         const [totalResult, successResult, failedResult, dataResult] = await Promise.all([
-          supabase.from('api_usage').select('*', { count: 'exact', head: true }),
-          supabase.from('api_usage').select('*', { count: 'exact', head: true }).eq('success', true),
-          supabase.from('api_usage').select('*', { count: 'exact', head: true }).eq('success', false),
-          supabase.from('api_usage').select('*').order('created_at', { ascending: false }).limit(200),
+          supabaseAdmin.from('api_usage').select('*', { count: 'exact', head: true }),
+          supabaseAdmin.from('api_usage').select('*', { count: 'exact', head: true }).eq('success', true),
+          supabaseAdmin.from('api_usage').select('*', { count: 'exact', head: true }).eq('success', false),
+          supabaseAdmin.from('api_usage').select('*').order('created_at', { ascending: false }).limit(200),
         ]);
 
         setTotalCalls(totalResult.count ?? 0);
@@ -320,13 +320,13 @@ function ErrorLogContent() {
         twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
         const [totalResult, recentResult, dataResult] = await Promise.all([
-          supabase.from('api_usage').select('*', { count: 'exact', head: true }).eq('success', false),
-          supabase
+          supabaseAdmin.from('api_usage').select('*', { count: 'exact', head: true }).eq('success', false),
+          supabaseAdmin
             .from('api_usage')
             .select('*', { count: 'exact', head: true })
             .eq('success', false)
             .gte('created_at', twentyFourHoursAgo.toISOString()),
-          supabase
+          supabaseAdmin
             .from('api_usage')
             .select('*')
             .eq('success', false)
@@ -575,7 +575,7 @@ function PerformanceContent() {
   useEffect(() => {
     async function fetchUsage() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('api_usage')
           .select('*')
           .order('created_at', { ascending: false })
@@ -760,7 +760,7 @@ function LoadingReportContent() {
       const start = performance.now();
 
       try {
-        const { count } = await supabase
+        const { count } = await supabaseAdmin
           .from(endpoint.table)
           .select('id', { count: 'exact', head: true });
 
@@ -893,8 +893,8 @@ function SystemEventsContent() {
       today.setHours(0, 0, 0, 0);
 
       const [totalResult, todayResult] = await Promise.all([
-        supabase.from('system_events').select('*', { count: 'exact', head: true }),
-        supabase
+        supabaseAdmin.from('system_events').select('*', { count: 'exact', head: true }),
+        supabaseAdmin
           .from('system_events')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', today.toISOString()),
@@ -903,7 +903,7 @@ function SystemEventsContent() {
       setTotalEvents(totalResult.count ?? 0);
       setEventsToday(todayResult.count ?? 0);
 
-      let query = supabase
+      let query = supabaseAdmin
         .from('system_events')
         .select('*')
         .order('created_at', { ascending: false })
@@ -1048,12 +1048,12 @@ function CostAnalysisContent() {
     async function fetchData() {
       try {
         const [usageResult, balanceResult] = await Promise.all([
-          supabase
+          supabaseAdmin
             .from('api_usage')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(1000),
-          supabase
+          supabaseAdmin
             .from('api_balance')
             .select('balance')
             .order('updated_at', { ascending: false })

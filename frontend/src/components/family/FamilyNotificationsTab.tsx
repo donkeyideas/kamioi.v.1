@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Badge } from '@/components/ui'
 
 /* ---- Types ---- */
@@ -83,7 +83,7 @@ const typeBadgeVariant: Record<string, 'purple' | 'info' | 'success' | 'warning'
 /* ---- Component ---- */
 
 export function FamilyNotificationsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [notifications, setNotifications] = useState<FamilyNotification[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,20 +93,21 @@ export function FamilyNotificationsTab() {
   /* ---- Fetch ---- */
 
   const fetchNotifications = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
 
-    const { data: memberRecord } = await supabase
+    const { data: memberRecord } = await supabaseAdmin
       .from('family_members')
       .select('family_id')
-      .eq('user_id', profile.id)
-      .single()
+      .eq('user_id', userId)
+      .maybeSingle()
 
     if (!memberRecord) { setLoading(false); return }
 
-    const { data: familyMembers } = await supabase
+    const { data: familyMembers } = await supabaseAdmin
       .from('family_members')
       .select('*, users(id, name)')
       .eq('family_id', memberRecord.family_id)
+      .limit(50)
 
     const membersData = (familyMembers ?? []) as FamilyMember[]
     const memberUserIds = membersData.map((m) => m.user_id)
@@ -118,11 +119,12 @@ export function FamilyNotificationsTab() {
       memberNameMap.set(m.user_id, m.users?.name ?? 'Unknown')
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('notifications')
       .select('*')
       .in('user_id', memberUserIds)
       .order('created_at', { ascending: false })
+      .limit(200)
 
     if (error) {
       setNotifications([])
@@ -137,11 +139,11 @@ export function FamilyNotificationsTab() {
 
     setNotifications(mapped)
     setLoading(false)
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    void fetchNotifications()
-  }, [fetchNotifications])
+    if (!userLoading) void fetchNotifications()
+  }, [fetchNotifications, userLoading])
 
   /* ---- Derived data ---- */
 
@@ -170,26 +172,27 @@ export function FamilyNotificationsTab() {
   /* ---- Actions ---- */
 
   const markAllRead = useCallback(async () => {
-    if (!profile?.id) return
+    if (!userId) return
     setMarkingAll(true)
     try {
       // Get all family member user IDs
-      const { data: memberRecord } = await supabase
+      const { data: memberRecord } = await supabaseAdmin
         .from('family_members')
         .select('family_id')
-        .eq('user_id', profile.id)
-        .single()
+        .eq('user_id', userId)
+        .maybeSingle()
 
       if (!memberRecord) return
 
-      const { data: familyMembers } = await supabase
+      const { data: familyMembers } = await supabaseAdmin
         .from('family_members')
         .select('user_id')
         .eq('family_id', memberRecord.family_id)
+        .limit(50)
 
       const memberUserIds = (familyMembers ?? []).map((m: { user_id: number }) => m.user_id)
 
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('notifications')
         .update({ read: true })
         .in('user_id', memberUserIds)
@@ -202,11 +205,11 @@ export function FamilyNotificationsTab() {
     } finally {
       setMarkingAll(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   const markSingleRead = useCallback(async (id: number) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('notifications')
         .update({ read: true })
         .eq('id', id)

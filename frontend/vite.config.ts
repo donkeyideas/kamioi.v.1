@@ -14,4 +14,15 @@ export default defineConfig({
     port: 4604,
     host: '127.0.0.1',
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-charts': ['recharts'],
+        },
+      },
+    },
+  },
 })

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { PublicLayout } from '@/components/public'
 import { GlassCard } from '@/components/ui'
 import { SEO } from '@/components/common/SEO.tsx'
+import { renderMarkdown } from '@/utils/markdown'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -237,13 +238,10 @@ export default function BlogPost() {
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         ) : (
-          <div style={contentStyle}>
-            {post.content.split('\n').map((paragraph, i) => (
-              <p key={i} style={{ marginBottom: 16 }}>
-                {paragraph}
-              </p>
-            ))}
-          </div>
+          <div
+            style={contentStyle}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
+          />
         )}
       </section>
     </PublicLayout>

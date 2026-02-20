@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Badge, ActivityFeed, QuickActions } from '@/components/ui';
 import type { ActivityItem, QuickAction } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
@@ -99,6 +99,7 @@ export function PlatformOverviewTab() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [pendingMappings, setPendingMappings] = useState(0);
+  const [failedMappings, setFailedMappings] = useState(0);
   const [activeSubscriptions, setActiveSubscriptions] = useState(0);
   const [usersByMonth, setUsersByMonth] = useState<UserGrowthPoint[]>([]);
   const [revenueByMonth, setRevenueByMonth] = useState<RevenueTrendPoint[]>([]);
@@ -111,46 +112,56 @@ export function PlatformOverviewTab() {
           usersResult,
           revenueResult,
           pendingResult,
+          failedResult,
           activeSubsResult,
           usersListResult,
           subsListResult,
           eventsResult,
         ] = await Promise.all([
           /* Total users count */
-          supabase.from('users').select('id', { count: 'exact', head: true }),
+          supabaseAdmin.from('users').select('id', { count: 'exact', head: true }),
 
           /* Total revenue from active subscriptions */
-          supabase
+          supabaseAdmin
             .from('user_subscriptions')
             .select('amount')
-            .eq('status', 'active'),
+            .eq('status', 'active')
+            .limit(500),
 
           /* Pending mappings count */
-          supabase
+          supabaseAdmin
             .from('llm_mappings')
             .select('id', { count: 'exact', head: true })
             .eq('status', 'pending'),
 
+          /* Failed mappings count (transactions that failed LLM matching) */
+          supabaseAdmin
+            .from('transactions')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'failed'),
+
           /* Active subscriptions count */
-          supabase
+          supabaseAdmin
             .from('user_subscriptions')
             .select('id', { count: 'exact', head: true })
             .eq('status', 'active'),
 
           /* Users list for growth chart */
-          supabase
+          supabaseAdmin
             .from('users')
             .select('created_at')
-            .order('created_at', { ascending: true }),
+            .order('created_at', { ascending: true })
+            .limit(500),
 
           /* Subscriptions list for revenue trend chart */
-          supabase
+          supabaseAdmin
             .from('user_subscriptions')
             .select('amount, created_at')
-            .eq('status', 'active'),
+            .eq('status', 'active')
+            .limit(500),
 
           /* Recent system events */
-          supabase
+          supabaseAdmin
             .from('system_events')
             .select('id, event_type, source, created_at')
             .order('created_at', { ascending: false })
@@ -169,6 +180,9 @@ export function PlatformOverviewTab() {
 
         /* KPI: Pending Mappings */
         setPendingMappings(pendingResult.count ?? 0);
+
+        /* KPI: Failed Mappings */
+        setFailedMappings(failedResult.count ?? 0);
 
         /* KPI: Active Subscriptions */
         setActiveSubscriptions(activeSubsResult.count ?? 0);
@@ -274,13 +288,14 @@ export function PlatformOverviewTab() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(5, 1fr)',
           gap: '16px',
         }}
       >
         <KpiCard label="Total Users" value={formatNumber(totalUsers)} accent="purple" />
         <KpiCard label="Total Revenue" value={formatCurrency(totalRevenue)} accent="teal" />
         <KpiCard label="Pending Mappings" value={formatNumber(pendingMappings)} accent="pink" />
+        <KpiCard label="Failed Mappings" value={formatNumber(failedMappings)} accent="pink" />
         <KpiCard
           label="Active Subscriptions"
           value={formatNumber(activeSubscriptions)}

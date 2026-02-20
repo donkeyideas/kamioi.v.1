@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Select } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
 import AreaChart from '@/components/charts/AreaChart';
+import { CompanyLogo } from '@/components/common/CompanyLogo';
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices';
 import type { Database } from '@/types/database';
 
 /* ------------------------------------------------------------------ */
@@ -20,13 +22,15 @@ type UserRow = Database['public']['Tables']['users']['Row'];
 /*  Derived / view types                                                */
 /* ------------------------------------------------------------------ */
 
-interface AggregatedPortfolio {
+interface InvestmentDisplayRow {
+  id: number;
+  accountId: string;
   ticker: string;
-  totalShares: number;
-  avgPrice: number;
+  merchant: string;
+  amount: number;
+  roundUp: number;
   currentPrice: number;
-  totalValue: number;
-  gainLoss: number;
+  date: string;
 }
 
 interface TickerChartItem extends Record<string, unknown> {
@@ -201,29 +205,77 @@ const accountTypeOptions: SelectOption[] = [
 ];
 
 function InvestmentSummaryTab() {
-  const [portfolios, setPortfolios] = useState<PortfolioRow[]>([]);
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [rows, setRows] = useState<InvestmentDisplayRow[]>([]);
+  const [stockPrices, setStockPrices] = useState<Map<string, StockQuote>>(new Map());
   const [accountFilter, setAccountFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [pricesLoading, setPricesLoading] = useState(false);
 
   useEffect(() => {
-    async function fetch() {
+    async function load() {
       setLoading(true);
       try {
-        const [pRes, uRes] = await Promise.all([
-          supabase.from('portfolios').select('*'),
-          supabase.from('users').select('id, account_type'),
+        // Fetch matched transactions (individual purchases) + users for account IDs
+        const [txRes, usersRes] = await Promise.all([
+          supabaseAdmin
+            .from('transactions')
+            .select('id, date, user_id, merchant, ticker, amount, round_up, status')
+            .eq('status', 'mapped')
+            .not('ticker', 'is', null)
+            .order('date', { ascending: false })
+            .limit(500),
+          supabaseAdmin
+            .from('users')
+            .select('id, account_id, account_type')
+            .limit(500),
         ]);
 
-        if (pRes.error) {
-          console.error('Failed to fetch portfolios:', pRes.error.message);
-        }
-        if (uRes.error) {
-          console.error('Failed to fetch users:', uRes.error.message);
+        if (txRes.error) console.error('Failed to fetch transactions:', txRes.error.message);
+        if (usersRes.error) console.error('Failed to fetch users:', usersRes.error.message);
+
+        // Build user_id -> account_id lookup
+        const accountMap = new Map<number, string>();
+        const accountTypeMap = new Map<number, string>();
+        for (const u of (usersRes.data ?? [])) {
+          accountTypeMap.set(u.id, u.account_type);
+          if (u.account_id) {
+            accountMap.set(u.id, u.account_id);
+          } else {
+            const prefix = u.account_type === 'admin' ? 'A'
+              : u.account_type === 'family' ? 'F'
+              : u.account_type === 'business' ? 'B'
+              : 'I';
+            accountMap.set(u.id, prefix + String(u.id).padStart(9, '0'));
+          }
         }
 
-        setPortfolios(pRes.data ?? []);
-        setUsers((uRes.data as UserRow[]) ?? []);
+        const txData = (txRes.data ?? []).map((tx) => ({
+          id: tx.id,
+          accountId: accountMap.get(tx.user_id) ?? `I${String(tx.user_id).padStart(9, '0')}`,
+          ticker: tx.ticker as string,
+          merchant: tx.merchant,
+          amount: tx.amount,
+          roundUp: tx.round_up,
+          currentPrice: 0,
+          date: tx.date,
+          _accountType: accountTypeMap.get(tx.user_id) ?? 'individual',
+        }));
+
+        setRows(txData);
+
+        // Fetch live stock prices for unique tickers
+        const tickers = [...new Set(txData.map((t) => t.ticker))];
+        if (tickers.length > 0) {
+          setPricesLoading(true);
+          try {
+            const prices = await fetchStockPrices(tickers);
+            setStockPrices(prices);
+          } catch (err) {
+            console.error('Failed to fetch stock prices:', err);
+          } finally {
+            setPricesLoading(false);
+          }
+        }
       } catch (err) {
         console.error('Unexpected error fetching investment summary:', err);
       } finally {
@@ -231,122 +283,102 @@ function InvestmentSummaryTab() {
       }
     }
 
-    fetch();
+    load();
   }, []);
 
-  /* Build a lookup: user_id -> account_type */
-  const userAccountMap = useMemo(() => {
-    const m = new Map<number, string>();
-    for (const u of users) {
-      m.set(u.id, u.account_type);
-    }
-    return m;
-  }, [users]);
-
-  /* Filter portfolios by account type */
+  /* Filter by account type using the prefix of account_id */
   const filtered = useMemo(() => {
-    if (accountFilter === 'all') return portfolios;
-    return portfolios.filter(
-      (p) => userAccountMap.get(p.user_id) === accountFilter,
-    );
-  }, [portfolios, accountFilter, userAccountMap]);
+    if (accountFilter === 'all') return rows;
+    const prefixMap: Record<string, string> = { individual: 'I', family: 'F', business: 'B' };
+    const prefix = prefixMap[accountFilter];
+    if (!prefix) return rows;
+    return rows.filter((r) => r.accountId.startsWith(prefix));
+  }, [rows, accountFilter]);
 
-  /* Aggregate by ticker */
-  const aggregated = useMemo<AggregatedPortfolio[]>(() => {
-    const map = new Map<
-      string,
-      {
-        totalShares: number;
-        weightedCost: number;
-        currentPrice: number;
-        totalValue: number;
-      }
-    >();
-
-    for (const p of filtered) {
-      const existing = map.get(p.ticker);
-      if (existing) {
-        existing.totalShares += p.shares;
-        existing.weightedCost += p.average_price * p.shares;
-        existing.totalValue += p.total_value;
-        existing.currentPrice = p.current_price;
-      } else {
-        map.set(p.ticker, {
-          totalShares: p.shares,
-          weightedCost: p.average_price * p.shares,
-          currentPrice: p.current_price,
-          totalValue: p.total_value,
-        });
-      }
-    }
-
-    const result: AggregatedPortfolio[] = [];
-    map.forEach((val, ticker) => {
-      const avgPrice =
-        val.totalShares > 0 ? val.weightedCost / val.totalShares : 0;
-      result.push({
-        ticker,
-        totalShares: val.totalShares,
-        avgPrice,
-        currentPrice: val.currentPrice,
-        totalValue: val.totalValue,
-        gainLoss: (val.currentPrice - avgPrice) * val.totalShares,
-      });
-    });
-
-    return result.sort((a, b) => b.totalValue - a.totalValue);
-  }, [filtered]);
+  /* Attach live prices */
+  const displayRows = useMemo<InvestmentDisplayRow[]>(() => {
+    return filtered.map((r) => ({
+      ...r,
+      currentPrice: stockPrices.get(r.ticker)?.price ?? 0,
+    }));
+  }, [filtered, stockPrices]);
 
   /* KPIs */
-  const totalInvested = useMemo(
-    () => filtered.reduce((s, p) => s + p.total_value, 0),
-    [filtered],
+  const matchedCount = displayRows.length;
+  const totalRoundUps = useMemo(
+    () => displayRows.reduce((s, r) => s + r.roundUp, 0),
+    [displayRows],
   );
-  const currentValue = useMemo(
-    () => filtered.reduce((s, p) => s + p.total_value, 0),
-    [filtered],
-  );
-  const totalGainLoss = useMemo(
-    () => aggregated.reduce((s, a) => s + a.gainLoss, 0),
-    [aggregated],
+  const activeInvestors = useMemo(
+    () => new Set(displayRows.map((r) => r.accountId)).size,
+    [displayRows],
   );
   const uniqueTickers = useMemo(
-    () => new Set(filtered.map((p) => p.ticker)).size,
-    [filtered],
+    () => new Set(displayRows.map((r) => r.ticker)).size,
+    [displayRows],
   );
 
-  /* Chart data -- top 10 by value */
-  const chartData = useMemo<TickerChartItem[]>(
-    () =>
-      aggregated.slice(0, 10).map((a) => ({
-        name: a.ticker,
-        value: parseFloat(a.totalValue.toFixed(2)),
-      })),
-    [aggregated],
-  );
+  /* Chart data -- round-ups by ticker (top 10) */
+  const chartData = useMemo<TickerChartItem[]>(() => {
+    const tickerMap = new Map<string, number>();
+    for (const row of displayRows) {
+      tickerMap.set(row.ticker, (tickerMap.get(row.ticker) ?? 0) + row.roundUp);
+    }
+    return [...tickerMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, value]) => ({ name, value: parseFloat(value.toFixed(2)) }));
+  }, [displayRows]);
 
   /* Table columns */
-  const columns: Column<AggregatedPortfolio>[] = useMemo(
+  const columns: Column<InvestmentDisplayRow>[] = useMemo(
     () => [
-      { key: 'ticker', header: 'Ticker', sortable: true, width: '100px' },
       {
-        key: 'totalShares',
-        header: 'Total Shares',
+        key: 'ticker',
+        header: 'Ticker',
         sortable: true,
-        align: 'right',
         width: '130px',
-        render: (row) =>
-          row.totalShares.toLocaleString('en-US', {
-            maximumFractionDigits: 4,
-          }),
+        render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CompanyLogo name={row.ticker} size={20} />
+            <span style={{ fontWeight: 600 }}>{row.ticker}</span>
+          </div>
+        ),
       },
       {
-        key: 'avgPrice',
-        header: 'Avg Price',
+        key: 'accountId',
+        header: 'Account ID',
+        sortable: true,
+        width: '140px',
+        render: (row) => {
+          const prefix = row.accountId[0];
+          const color = prefix === 'F' ? '#3B82F6' : prefix === 'B' ? '#06B6D4' : '#A78BFA';
+          return <span style={{ fontWeight: 500, color }}>{row.accountId}</span>;
+        },
+      },
+      {
+        key: 'merchant',
+        header: 'Merchant',
+        sortable: true,
+        width: '150px',
+      },
+      {
+        key: 'amount',
+        header: 'Purchase',
         sortable: true,
         align: 'right',
-        width: '120px',
-        render: (row) => usd(row.avgPrice),
+        width: '110px',
+        render: (row) => usd(row.amount),
+      },
+      {
+        key: 'roundUp',
+        header: 'Round-Up',
+        sortable: true,
+        align: 'right',
+        width: '110px',
+        render: (row) => (
+          <span style={{ fontWeight: 600, color: '#7C3AED' }}>{usd(row.roundUp)}</span>
+        ),
       },
       {
         key: 'currentPrice',
@@ -354,31 +386,22 @@ function InvestmentSummaryTab() {
         sortable: true,
         align: 'right',
         width: '130px',
-        render: (row) => usd(row.currentPrice),
+        render: (row) =>
+          row.currentPrice > 0 ? (
+            usd(row.currentPrice)
+          ) : (
+            <span style={{ color: 'var(--text-muted)' }}>{pricesLoading ? '...' : '--'}</span>
+          ),
       },
       {
-        key: 'totalValue',
-        header: 'Total Value',
+        key: 'date',
+        header: 'Date',
         sortable: true,
-        align: 'right',
-        width: '140px',
-        render: (row) => usd(row.totalValue),
-      },
-      {
-        key: 'gainLoss',
-        header: 'Gain / Loss',
-        sortable: true,
-        align: 'right',
-        width: '140px',
-        render: (row) => (
-          <span style={{ color: row.gainLoss >= 0 ? '#34D399' : '#EF4444' }}>
-            {row.gainLoss >= 0 ? '+' : ''}
-            {usd(row.gainLoss)}
-          </span>
-        ),
+        width: '120px',
+        render: (row) => formatDate(row.date),
       },
     ],
-    [],
+    [pricesLoading],
   );
 
   return (
@@ -395,38 +418,30 @@ function InvestmentSummaryTab() {
 
       {/* KPI row */}
       <div style={kpiGridStyle}>
-        <KpiCard label="Total Invested" value={usd(totalInvested)} accent="purple" />
-        <KpiCard label="Current Value" value={usd(currentValue)} accent="blue" />
-        <KpiCard
-          label="Total Gain / Loss"
-          value={usd(totalGainLoss)}
-          accent={totalGainLoss >= 0 ? 'teal' : 'pink'}
-        />
-        <KpiCard
-          label="Unique Tickers"
-          value={uniqueTickers.toLocaleString()}
-          accent="teal"
-        />
+        <KpiCard label="Matched Transactions" value={matchedCount.toLocaleString()} accent="purple" />
+        <KpiCard label="Total Round-Ups" value={usd(totalRoundUps)} accent="teal" />
+        <KpiCard label="Active Investors" value={activeInvestors.toLocaleString()} accent="blue" />
+        <KpiCard label="Unique Tickers" value={uniqueTickers.toLocaleString()} accent="teal" />
       </div>
 
-      {/* Portfolio table */}
+      {/* Matched transactions table */}
       <GlassCard padding="0">
-        <Table<AggregatedPortfolio>
+        <Table<InvestmentDisplayRow>
           columns={columns}
-          data={aggregated}
+          data={displayRows}
           loading={loading}
-          emptyMessage="No portfolio holdings found"
+          emptyMessage="No matched transactions found"
           pageSize={15}
-          rowKey={(row) => row.ticker}
+          rowKey={(row) => row.id}
         />
       </GlassCard>
 
-      {/* Bar chart -- top 10 */}
+      {/* Bar chart -- round-ups by ticker top 10 */}
       <BarChart<TickerChartItem>
         data={chartData}
         dataKey="value"
         xKey="name"
-        title="Portfolio Value by Ticker (Top 10)"
+        title="Round-Up Investment by Ticker (Top 10)"
         color="#06B6D4"
         height={280}
       />
@@ -451,10 +466,11 @@ function InvestmentProcessingTab() {
   const fetchQueue = useCallback(async () => {
     setLoadingQueue(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('market_queue')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (error) {
         console.error('Failed to fetch market queue:', error.message);
@@ -473,14 +489,15 @@ function InvestmentProcessingTab() {
   const fetchStaged = useCallback(async () => {
     setLoadingStaged(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('transactions')
         .select(
           'id, date, user_id, merchant, ticker, amount, round_up, shares, status',
         )
         .not('ticker', 'is', null)
-        .eq('status', 'pending')
-        .order('date', { ascending: false });
+        .eq('status', 'mapped')
+        .order('date', { ascending: false })
+        .limit(500);
 
       if (error) {
         console.error('Failed to fetch staged transactions:', error.message);
@@ -519,7 +536,7 @@ function InvestmentProcessingTab() {
         status: 'pending' as const,
       }));
 
-      const { error } = await supabase.from('market_queue').insert(inserts);
+      const { error } = await supabaseAdmin.from('market_queue').insert(inserts);
 
       if (error) {
         console.error('Failed to execute staged transactions:', error.message);
@@ -803,10 +820,11 @@ function MarketQueueTab() {
     async function fetch() {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('market_queue')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
 
         if (error) {
           console.error('Failed to fetch market queue:', error.message);
@@ -962,10 +980,11 @@ function RoundUpLedgerTab() {
     async function fetch() {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('roundup_ledger')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
 
         if (error) {
           console.error('Failed to fetch roundup ledger:', error.message);

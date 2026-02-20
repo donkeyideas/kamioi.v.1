@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select, Modal } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
@@ -249,10 +249,11 @@ function PlansTab() {
   const fetchPlans = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('subscription_plans')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
       if (error) {
         console.error('Failed to fetch plans:', error.message);
         setPlans([]);
@@ -308,13 +309,13 @@ function PlansTab() {
       };
 
       if (editingPlan) {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('subscription_plans')
           .update({ ...payload, updated_at: new Date().toISOString() })
           .eq('id', editingPlan.id);
         if (error) console.error('Failed to update plan:', error.message);
       } else {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('subscription_plans')
           .insert({ ...payload, is_active: true });
         if (error) console.error('Failed to create plan:', error.message);
@@ -331,7 +332,7 @@ function PlansTab() {
 
   async function toggleActive(plan: SubscriptionPlan) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('subscription_plans')
         .update({ is_active: !plan.is_active, updated_at: new Date().toISOString() })
         .eq('id', plan.id);
@@ -477,10 +478,11 @@ function SubscribersTab() {
     async function fetchSubscriptions() {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('user_subscriptions')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
         if (error) {
           console.error('Failed to fetch subscriptions:', error.message);
           setSubscriptions([]);
@@ -592,10 +594,11 @@ function PromoCodesTab() {
   const fetchPromos = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('promo_codes')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
       if (error) {
         console.error('Failed to fetch promo codes:', error.message);
         setPromos([]);
@@ -635,7 +638,7 @@ function PromoCodesTab() {
         is_active: true,
         current_uses: 0,
       };
-      const { error } = await supabase.from('promo_codes').insert(payload);
+      const { error } = await supabaseAdmin.from('promo_codes').insert(payload);
       if (error) console.error('Failed to create promo code:', error.message);
       setModalOpen(false);
       setForm(EMPTY_PROMO_FORM);
@@ -789,10 +792,11 @@ function RenewalsTab() {
   useEffect(() => {
     async function fetchQueue() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('renewal_queue')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
         if (error) {
           console.error('Failed to fetch renewal queue:', error.message);
           setQueue([]);
@@ -809,10 +813,11 @@ function RenewalsTab() {
 
     async function fetchHistory() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('renewal_history')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
         if (error) {
           console.error('Failed to fetch renewal history:', error.message);
           setHistory([]);
@@ -966,9 +971,9 @@ function AnalyticsTab() {
     async function fetchData() {
       try {
         const [subsResult, changesResult, plansResult] = await Promise.all([
-          supabase.from('user_subscriptions').select('*'),
-          supabase.from('subscription_changes').select('*').order('created_at', { ascending: false }),
-          supabase.from('subscription_plans').select('*'),
+          supabaseAdmin.from('user_subscriptions').select('*').limit(500),
+          supabaseAdmin.from('subscription_changes').select('*').order('created_at', { ascending: false }).limit(500),
+          supabaseAdmin.from('subscription_plans').select('*').limit(500),
         ]);
         setSubscriptions((subsResult.data ?? []) as UserSubscription[]);
         setChanges((changesResult.data ?? []) as SubscriptionChange[]);
@@ -1115,10 +1120,11 @@ function DemoRequestsTab() {
   const fetchMessages = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('contact_messages')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
       if (error) {
         console.error('Failed to fetch contact messages:', error.message);
         setMessages([]);
@@ -1142,7 +1148,7 @@ function DemoRequestsTab() {
 
   async function updateStatus(id: number, status: string) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('contact_messages')
         .update({ status })
         .eq('id', id);

@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
-import { GlassCard } from '@/components/ui'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
+import { GlassCard, Table, Badge } from '@/components/ui'
+import type { Column } from '@/components/ui'
+import { CompanyLogo } from '@/components/common/CompanyLogo'
 import BarChart from '@/components/charts/BarChart'
 
 /* ------------------------------------------------------------------ */
@@ -35,9 +38,22 @@ interface AiResponse {
 
 interface Holding {
   user_id: number
+  ticker: string
   shares: number
   avg_price: number
   current_price: number
+}
+
+interface SubmittedMapping {
+  id: number
+  merchant_name: string
+  ticker: string | null
+  company_name: string | null
+  confidence: number | null
+  status: string
+  admin_approved: boolean | null
+  ai_processed: boolean
+  created_at: string
 }
 
 /* ------------------------------------------------------------------ */
@@ -86,6 +102,18 @@ function RoiIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
       <polyline points="17 6 23 6 23 12" />
+    </svg>
+  )
+}
+
+function MappingIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 3 21 3 21 8" />
+      <line x1="4" y1="20" x2="21" y2="3" />
+      <polyline points="21 16 21 21 16 21" />
+      <line x1="15" y1="15" x2="21" y2="21" />
+      <line x1="4" y1="4" x2="9" y2="9" />
     </svg>
   )
 }
@@ -177,34 +205,38 @@ function EmptyInsight({ message }: { message: string }) {
 /* ------------------------------------------------------------------ */
 
 export function BusinessAiInsightsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [members, setMembers] = useState<BusinessMember[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [holdings, setHoldings] = useState<Holding[]>([])
+  const [prices, setPrices] = useState<Map<string, StockQuote>>(new Map())
   const [aiResponses, setAiResponses] = useState<AiResponse[]>([])
+  const [mappings, setMappings] = useState<SubmittedMapping[]>([])
+  const [mappingsLoading, setMappingsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   /* ---- Fetch ---- */
 
   const fetchData = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     setLoading(true)
 
     try {
-      const { data: bizData } = await supabase
+      const { data: bizData } = await supabaseAdmin
         .from('businesses')
         .select('id')
-        .eq('created_by', profile.id)
+        .eq('created_by', userId)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (!bizData) { setLoading(false); return }
 
-      const { data: memberData } = await supabase
+      const { data: memberData } = await supabaseAdmin
         .from('business_members')
         .select('user_id, department')
         .eq('business_id', bizData.id)
+        .limit(100)
 
       const memberList = (memberData as BusinessMember[] | null) ?? []
       setMembers(memberList)
@@ -213,16 +245,18 @@ export function BusinessAiInsightsTab() {
 
       if (userIds.length > 0) {
         const [txRes, holdRes, aiRes] = await Promise.all([
-          supabase
+          supabaseAdmin
             .from('transactions')
             .select('*')
             .in('user_id', userIds)
-            .order('created_at', { ascending: false }),
-          supabase
+            .order('created_at', { ascending: false })
+            .limit(200),
+          supabaseAdmin
             .from('holdings')
-            .select('user_id, shares, avg_price, current_price')
-            .in('user_id', userIds),
-          supabase
+            .select('user_id, shares, avg_price, current_price, ticker')
+            .in('user_id', userIds)
+            .limit(50),
+          supabaseAdmin
             .from('ai_responses')
             .select('*')
             .in('user_id', userIds)
@@ -231,19 +265,46 @@ export function BusinessAiInsightsTab() {
         ])
 
         setTransactions((txRes.data as Transaction[] | null) ?? [])
-        setHoldings((holdRes.data as Holding[] | null) ?? [])
+        const holdingsArr = (holdRes.data as Holding[] | null) ?? []
+        setHoldings(holdingsArr)
         setAiResponses((aiRes.data as AiResponse[] | null) ?? [])
+
+        // Fetch user-submitted mappings for all business members (include orphaned null user_id)
+        if (userIds.length > 0) {
+          const userIdList = userIds.map(id => `user_id.eq.${id}`).join(',')
+          const { data: mappingData } = await supabaseAdmin
+            .from('llm_mappings')
+            .select('id, merchant_name, ticker, company_name, confidence, status, admin_approved, ai_processed, created_at')
+            .eq('category', 'business_submitted')
+            .or(`${userIdList},user_id.is.null`)
+            .order('created_at', { ascending: false })
+            .limit(200)
+          setMappings((mappingData ?? []) as SubmittedMapping[])
+        }
+        setMappingsLoading(false)
+
+        // Fetch live stock prices
+        if (holdingsArr.length > 0) {
+          const tickers = [...new Set(holdingsArr.map(h => h.ticker))]
+          fetchStockPrices(tickers).then(quotes => {
+            if (quotes.size > 0) setPrices(quotes)
+          })
+        }
       }
     } catch (err) {
       console.error('Failed to fetch AI insights data:', err)
     } finally {
       setLoading(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    if (!userLoading) void fetchData()
+  }, [fetchData, userLoading])
+
+  /* ---- Live price helper ---- */
+
+  const getPrice = useCallback((h: Holding) => prices.get(h.ticker)?.price ?? h.current_price, [prices])
 
   /* ---- Computed: Spending analysis ---- */
 
@@ -283,7 +344,7 @@ export function BusinessAiInsightsTab() {
 
   const roiStats = useMemo(() => {
     const totalCost = holdings.reduce((sum, h) => sum + h.shares * h.avg_price, 0)
-    const totalValue = holdings.reduce((sum, h) => sum + h.shares * h.current_price, 0)
+    const totalValue = holdings.reduce((sum, h) => sum + h.shares * getPrice(h), 0)
     const roi = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0
 
     const totalRoundUps = transactions.reduce((sum, tx) => sum + (tx.round_up ?? 0), 0)
@@ -297,7 +358,7 @@ export function BusinessAiInsightsTab() {
     const projectedAnnual = monthlyRoundUp * 12
 
     return { totalCost, totalValue, roi, totalRoundUps, projectedAnnual }
-  }, [holdings, transactions])
+  }, [holdings, transactions, getPrice])
 
   /* ---- Computed: Investment optimization ---- */
 
@@ -341,6 +402,58 @@ export function BusinessAiInsightsTab() {
   }, [transactions, topCategories, categorySpend, roiStats])
 
   const hasData = transactions.length > 0
+
+  const mappingColumns: Column<SubmittedMapping>[] = useMemo(() => [
+    {
+      key: 'merchant_name',
+      header: 'Merchant',
+      sortable: true,
+      render: (row: SubmittedMapping) => (
+        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.merchant_name}</span>
+      ),
+    },
+    {
+      key: 'ticker',
+      header: 'Ticker',
+      sortable: true,
+      width: '110px',
+      render: (row: SubmittedMapping) => row.ticker ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <CompanyLogo name={row.ticker} size={18} />
+          <span style={{ fontWeight: 600, color: '#A78BFA' }}>{row.ticker}</span>
+        </div>
+      ) : <span style={{ color: 'var(--text-muted)' }}>--</span>,
+    },
+    {
+      key: 'confidence',
+      header: 'Confidence',
+      sortable: true,
+      width: '110px',
+      align: 'right',
+      render: (row: SubmittedMapping) => row.confidence != null ? (
+        <span style={{ color: row.confidence > 0.8 ? '#34D399' : row.confidence > 0.5 ? '#FBBF24' : '#EF4444', fontWeight: 600 }}>
+          {(row.confidence * 100).toFixed(1)}%
+        </span>
+      ) : <span style={{ color: 'var(--text-muted)' }}>--</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      width: '120px',
+      render: (row: SubmittedMapping) => {
+        const variant = row.status === 'approved' ? 'success' : row.status === 'rejected' ? 'error' : 'warning'
+        return <Badge variant={variant}>{row.status.charAt(0).toUpperCase() + row.status.slice(1)}</Badge>
+      },
+    },
+    {
+      key: 'created_at',
+      header: 'Submitted',
+      sortable: true,
+      width: '130px',
+      render: (row: SubmittedMapping) => new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    },
+  ], [])
 
   /* ---- Render ---- */
 
@@ -534,6 +647,26 @@ export function BusinessAiInsightsTab() {
                   {formatCurrency(roiStats.projectedAnnual)}
                 </p>
               </div>
+            </div>
+          )}
+        </InsightCard>
+
+        {/* My Submitted Mappings */}
+        <InsightCard title="My Submitted Mappings" accent="teal" icon={<MappingIcon />}>
+          {mappings.length === 0 && !mappingsLoading ? (
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>
+              No mappings submitted yet. When a transaction fails to match, use the "Map" button on the Transactions page to submit your own mapping.
+            </p>
+          ) : (
+            <div style={{ margin: '0 -24px -24px', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
+              <Table<SubmittedMapping>
+                columns={mappingColumns}
+                data={mappings}
+                loading={mappingsLoading}
+                emptyMessage="No submitted mappings"
+                pageSize={10}
+                rowKey={(row) => row.id}
+              />
             </div>
           )}
         </InsightCard>

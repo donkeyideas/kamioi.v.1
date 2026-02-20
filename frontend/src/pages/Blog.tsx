@@ -187,6 +187,7 @@ export default function Blog() {
           .select('*')
           .eq('status', 'published')
           .order('created_at', { ascending: false })
+          .limit(50)
 
         if (error) throw error
         if (!cancelled && data) {

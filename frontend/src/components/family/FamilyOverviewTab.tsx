@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Table } from '@/components/ui/Table'
 import type { Column } from '@/components/ui/Table'
 import AreaChart from '@/components/charts/AreaChart'
+import { COMPANY_LOOKUP, CompanyLogo, CompanyLink } from '@/components/common/CompanyLogo'
 
 /* ---- Types ---- */
 
@@ -31,6 +33,7 @@ interface Transaction {
   round_up: number
   category: string | null
   status: string
+  date: string
   created_at: string
 }
 
@@ -151,12 +154,12 @@ interface FamilyTransaction extends Transaction {
 
 const recentTxColumns: Column<FamilyTransaction>[] = [
   {
-    key: 'created_at',
+    key: 'date',
     header: 'Date',
     width: '80px',
     render: (row) => (
       <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-        {formatDate(row.created_at)}
+        {formatDate(row.date)}
       </span>
     ),
   },
@@ -172,11 +175,20 @@ const recentTxColumns: Column<FamilyTransaction>[] = [
   {
     key: 'merchant',
     header: 'Merchant',
-    render: (row) => (
-      <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
-        {row.merchant ?? '--'}
-      </span>
-    ),
+    render: (row) => {
+      const content = (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {row.merchant && <CompanyLogo name={row.merchant} size={20} />}
+          <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
+            {row.merchant ?? '--'}
+          </span>
+        </div>
+      )
+      if (row.merchant && COMPANY_LOOKUP[row.merchant]) {
+        return <CompanyLink name={row.merchant}>{content}</CompanyLink>
+      }
+      return content
+    },
   },
   {
     key: 'amount',
@@ -203,34 +215,36 @@ const recentTxColumns: Column<FamilyTransaction>[] = [
 /* ---- Component ---- */
 
 export function FamilyOverviewTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [members, setMembers] = useState<FamilyMember[]>([])
   const [transactions, setTransactions] = useState<FamilyTransaction[]>([])
   const [holdings, setHoldings] = useState<Holding[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
+  const [prices, setPrices] = useState<Map<string, StockQuote>>(new Map())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchAll() {
-      if (!profile?.id) { setLoading(false); return }
+      if (!userId) { setLoading(false); return }
 
       // First get the family for this user
-      const { data: memberRecord } = await supabase
+      const { data: memberRecord } = await supabaseAdmin
         .from('family_members')
         .select('family_id')
-        .eq('user_id', profile.id)
-        .single()
+        .eq('user_id', userId)
+        .maybeSingle()
 
       if (!memberRecord) { setLoading(false); return }
 
       const familyId = memberRecord.family_id
 
       // Get all family members with user info
-      const { data: familyMembers } = await supabase
+      const { data: familyMembers } = await supabaseAdmin
         .from('family_members')
         .select('*, users(id, name, email)')
         .eq('family_id', familyId)
+        .limit(200)
 
       const membersData = (familyMembers ?? []) as FamilyMember[]
       setMembers(membersData)
@@ -241,21 +255,23 @@ export function FamilyOverviewTab() {
 
       // Fetch transactions, holdings, goals for all family members
       const [txRes, holdRes, goalRes] = await Promise.all([
-        supabase
+        supabaseAdmin
           .from('transactions')
           .select('*')
           .in('user_id', memberUserIds)
           .order('created_at', { ascending: false })
           .limit(50),
-        supabase
+        supabaseAdmin
           .from('holdings')
           .select('*')
-          .in('user_id', memberUserIds),
-        supabase
+          .in('user_id', memberUserIds)
+          .limit(200),
+        supabaseAdmin
           .from('goals')
           .select('*')
           .in('user_id', memberUserIds)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(200),
       ])
 
       // Map member names to transactions
@@ -270,18 +286,33 @@ export function FamilyOverviewTab() {
       }))
 
       setTransactions(txData)
-      setHoldings((holdRes.data ?? []) as Holding[])
+      const holdingsArr = (holdRes.data ?? []) as Holding[]
+      setHoldings(holdingsArr)
       setGoals((goalRes.data ?? []) as Goal[])
       setLoading(false)
+
+      // Fetch live stock prices
+      if (holdingsArr.length > 0) {
+        const tickers = [...new Set(holdingsArr.map(h => h.ticker))]
+        const quotes = await fetchStockPrices(tickers)
+        if (quotes.size > 0) setPrices(quotes)
+      }
     }
-    fetchAll()
-  }, [profile?.id])
+    if (!userLoading) fetchAll()
+  }, [userId, userLoading])
+
+  /* ---- Live price helper ---- */
+
+  const getPrice = useCallback(
+    (h: Holding) => prices.get(h.ticker)?.price ?? h.current_price,
+    [prices],
+  )
 
   /* ---- Computed KPIs ---- */
 
   const portfolioValue = useMemo(
-    () => holdings.reduce((sum, h) => sum + h.shares * h.current_price, 0),
-    [holdings],
+    () => holdings.reduce((sum, h) => sum + h.shares * getPrice(h), 0),
+    [holdings, getPrice],
   )
 
   const totalRoundUps = useMemo(
@@ -308,26 +339,55 @@ export function FamilyOverviewTab() {
     [transactions],
   )
 
-  /* ---- Chart data: portfolio value over time ---- */
+  /* ---- Chart data: cumulative round-ups by month ---- */
 
   const chartData = useMemo(() => {
-    if (holdings.length === 0) return []
+    if (transactions.length === 0) return []
 
-    // Group holdings by a synthetic time series
-    const sorted = [...holdings].sort((a, b) => a.id - b.id)
-    let runningTotal = 0
-    return sorted.map((h, idx) => {
-      runningTotal += h.shares * h.current_price
-      return {
-        name: `H${idx + 1}`,
-        value: Math.round(runningTotal * 100) / 100,
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const map = new Map<string, { sortKey: string; total: number }>()
+
+    for (const tx of transactions) {
+      const d = new Date(tx.date)
+      const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`
+      const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const existing = map.get(label)
+      if (existing) {
+        existing.total += tx.round_up
+      } else {
+        map.set(label, { sortKey, total: tx.round_up })
       }
+    }
+
+    const sorted = Array.from(map.entries())
+      .map(([name, { sortKey, total }]) => ({ name, sortKey, total }))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+
+    let cumulative = 0
+    return sorted.map(({ name, total }) => {
+      cumulative += total
+      return { name, value: Math.round(cumulative * 100) / 100 }
     })
-  }, [holdings])
+  }, [transactions])
 
-  /* ---- Goal accent colors ---- */
+  /* ---- Top holdings ---- */
 
-  const goalColors = ['#7C3AED', '#3B82F6', '#06B6D4', '#EC4899']
+  const topHoldings = useMemo(() => {
+    // Aggregate by ticker
+    const tickerMap = new Map<string, { shares: number; value: number }>()
+    for (const h of holdings) {
+      const existing = tickerMap.get(h.ticker) ?? { shares: 0, value: 0 }
+      existing.shares += Number(h.shares)
+      existing.value += Number(h.shares) * getPrice(h)
+      tickerMap.set(h.ticker, existing)
+    }
+    return Array.from(tickerMap.entries())
+      .map(([ticker, data]) => ({ ticker, shares: data.shares, value: data.value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+  }, [holdings, getPrice])
+
+  const holdingColors = ['#7C3AED', '#3B82F6', '#06B6D4', '#EC4899', '#10B981']
 
   /* ---- Loading state ---- */
 
@@ -410,10 +470,10 @@ export function FamilyOverviewTab() {
         </GlassCard>
       </div>
 
-      {/* Active Goals */}
+      {/* Top Holdings */}
       <div style={{ marginTop: '20px' }}>
         <GlassCard accent="teal" padding="24px">
-          <p style={sectionTitleStyle}>Active Goals</p>
+          <p style={sectionTitleStyle}>Top Holdings</p>
           <div
             style={{
               height: '1px',
@@ -422,7 +482,7 @@ export function FamilyOverviewTab() {
             }}
           />
 
-          {goals.length === 0 ? (
+          {topHoldings.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',
@@ -431,54 +491,46 @@ export function FamilyOverviewTab() {
                 fontSize: '14px',
               }}
             >
-              No family goals yet
+              No holdings yet — sync transactions to start investing
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {goals.map((goal, idx) => {
-                const pct = goal.target_amount > 0
-                  ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
-                  : 0
-                const barColor = goalColors[idx % goalColors.length]
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {topHoldings.map((h, idx) => {
+                const maxValue = topHoldings[0]?.value ?? 1
+                const pct = maxValue > 0 ? (h.value / maxValue) * 100 : 0
+                const barColor = holdingColors[idx % holdingColors.length]
 
                 return (
-                  <div key={goal.id}>
+                  <div key={h.ticker}>
                     <div
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: '8px',
+                        marginBottom: '6px',
                       }}
                     >
-                      <div>
-                        <span
-                          style={{
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            color: 'var(--text-primary)',
-                          }}
-                        >
-                          {goal.name}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: '12px',
-                            color: 'var(--text-muted)',
-                            marginLeft: '8px',
-                          }}
-                        >
-                          {goal.status}
-                        </span>
-                      </div>
-                      <div
+                      <span
                         style={{
-                          fontSize: '13px',
-                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          color: 'var(--text-primary)',
                         }}
                       >
-                        {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
-                      </div>
+                        <CompanyLogo name={h.ticker} size={22} />
+                        {h.ticker}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {h.shares.toFixed(4)} shares · {formatCurrency(h.value)}
+                      </span>
                     </div>
 
                     <div style={progressBarBgStyle}>
@@ -491,18 +543,6 @@ export function FamilyOverviewTab() {
                           transition: 'width 0.6s ease',
                         }}
                       />
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: '12px',
-                        color: barColor,
-                        fontWeight: 600,
-                        marginTop: '4px',
-                        textAlign: 'right',
-                      }}
-                    >
-                      {pct.toFixed(1)}%
                     </div>
                   </div>
                 )

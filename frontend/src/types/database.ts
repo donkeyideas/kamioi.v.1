@@ -8,6 +8,7 @@ export interface Database {
           email: string
           name: string
           account_type: 'individual' | 'family' | 'business' | 'admin'
+          account_id: string | null
           account_number: string | null
           user_guid: string | null
           city: string | null
@@ -41,7 +42,7 @@ export interface Database {
           shares: number | null
           price_per_share: number | null
           stock_price: number | null
-          status: 'pending' | 'completed' | 'failed'
+          status: 'pending' | 'mapped' | 'completed' | 'failed'
           fee: number
           transaction_type: string
           created_at: string
@@ -400,6 +401,40 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['contact_messages']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['contact_messages']['Insert']>
+      }
+      blog_posts: {
+        Row: {
+          id: number
+          title: string
+          slug: string
+          content: string | null
+          excerpt: string | null
+          featured_image: string | null
+          status: 'draft' | 'published'
+          author: string | null
+          author_id: number | null
+          category: string | null
+          tags: string[] | null
+          seo_title: string | null
+          seo_description: string | null
+          seo_keywords: string | null
+          meta_robots: string
+          canonical_url: string | null
+          og_title: string | null
+          og_description: string | null
+          og_image: string | null
+          schema_markup: string | null
+          ai_seo_score: number
+          ai_seo_suggestions: string[] | null
+          read_time: number
+          word_count: number
+          views: number
+          published_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['blog_posts']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['blog_posts']['Insert']>
       }
     }
   }

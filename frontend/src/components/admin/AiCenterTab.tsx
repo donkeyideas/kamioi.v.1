@@ -1,9 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
+import { mapMerchant } from '@/services/api';
+import { reprocessFailedTransactions } from '@/services/bankSync';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select, Modal } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
 import LineChart from '@/components/charts/LineChart';
+import { CompanyLogo, COMPANY_LOOKUP } from '@/components/common/CompanyLogo';
 
 /* ========================================================================== */
 /*  Types                                                                     */
@@ -89,17 +92,6 @@ interface TransactionRow {
   created_at: string;
 }
 
-interface ReceiptMappingRow {
-  transaction_id: string | number;
-  date: string;
-  merchant: string;
-  amount: number;
-  round_up: number;
-  mapped_ticker: string | null;
-  confidence: number | null;
-  mapping_status: string;
-}
-
 interface MerchantAssetRow {
   merchant_name: string;
   primary_ticker: string | null;
@@ -114,8 +106,6 @@ interface CategoryCountPoint {
   name: string;
   count: number;
 }
-
-type ReceiptStatusFilter = 'all' | 'mapped' | 'unmapped';
 
 /* ========================================================================== */
 /*  Helpers                                                                   */
@@ -156,6 +146,61 @@ function dayLabel(dateString: string): string {
     month: 'short',
     day: 'numeric',
   });
+}
+
+function formatCategory(category: string | null): string {
+  if (!category) return 'Unknown';
+  const MAP: Record<string, string> = {
+    user_submitted: 'User',
+    family_submitted: 'Family',
+    business_submitted: 'Business',
+  };
+  if (MAP[category]) return MAP[category];
+  return category
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/* ---- Local merchant-to-ticker fallback (used when Edge Function unavailable) ---- */
+
+const MERCHANT_TICKER_MAP: Record<string, { ticker: string; company_name: string; category: string }> = {};
+// Build reverse lookup: merchant name → ticker info
+const domainToTicker: Record<string, string> = {};
+for (const [key, info] of Object.entries(COMPANY_LOOKUP)) {
+  // Tickers are uppercase short strings; merchant names are mixed case
+  if (key === key.toUpperCase() && key.length <= 5) {
+    domainToTicker[info.domain] = key;
+  }
+}
+for (const [key, info] of Object.entries(COMPANY_LOOKUP)) {
+  if (key !== key.toUpperCase() || key.length > 5) {
+    const ticker = domainToTicker[info.domain];
+    if (ticker) {
+      MERCHANT_TICKER_MAP[key.toLowerCase()] = {
+        ticker,
+        company_name: key,
+        category: ['Starbucks', 'Chipotle', 'Chick-fil-A', 'McDonalds', 'Panera Bread', 'Whole Foods', 'Trader Joes'].includes(key) ? 'Food'
+          : ['Uber', 'Lyft', 'Shell Gas', 'Chevron'].includes(key) ? 'Transport'
+          : ['Netflix', 'Spotify'].includes(key) ? 'Entertainment'
+          : 'Shopping',
+      };
+    }
+  }
+}
+
+function localMerchantLookup(merchantName: string): { ticker: string; company_name: string; category: string; confidence: number } | null {
+  const lower = merchantName.toLowerCase().trim();
+  // Exact match
+  if (MERCHANT_TICKER_MAP[lower]) {
+    return { ...MERCHANT_TICKER_MAP[lower], confidence: 0.95 };
+  }
+  // Partial match (merchant name contains a known company)
+  for (const [name, info] of Object.entries(MERCHANT_TICKER_MAP)) {
+    if (lower.includes(name) || name.includes(lower)) {
+      return { ...info, confidence: 0.80 };
+    }
+  }
+  return null;
 }
 
 const CATEGORY_OPTIONS: SelectOption[] = [
@@ -300,20 +345,114 @@ function ToastMessage({ message, variant }: { message: string; variant: 'success
 /*  Tab 1: LLM Center                                                        */
 /* ========================================================================== */
 
+interface BulkUploadProgress {
+  processed: number;
+  total: number;
+  errors: string[];
+  rowsPerSec: number;
+  elapsedSec: number;
+}
+
+interface BulkUploadResult {
+  success: number;
+  failed: number;
+  skipped: number;
+  elapsedSec: number;
+}
+
+interface BulkUploadState {
+  file: File | null;
+  uploading: boolean;
+  progress: BulkUploadProgress | null;
+  result: BulkUploadResult | null;
+  error: string | null;
+}
+
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        fields.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+function findColumn(headers: string[], ...variants: string[]): number {
+  for (const v of variants) {
+    const idx = headers.findIndex((h) => h.toLowerCase().replace(/[_\s-]/g, '') === v.toLowerCase().replace(/[_\s-]/g, ''));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
 function LlmCenterContent() {
   const [loading, setLoading] = useState(true);
-  const [mappings, setMappings] = useState<LlmMapping[]>([]);
-  const [responses, setResponses] = useState<AiResponse[]>([]);
+  const [recentMappings, setRecentMappings] = useState<LlmMapping[]>([]);
+  const [totalMappings, setTotalMappings] = useState(0);
+  const [approvedCount, setApprovedCount] = useState(0);
+  const [rejectedCount, setRejectedCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [avgConfidence, setAvgConfidence] = useState(0);
+  const [bulk, setBulk] = useState<BulkUploadState>({
+    file: null,
+    uploading: false,
+    progress: null,
+    result: null,
+    error: null,
+  });
+  const [showBulkModal, setShowBulkModal] = useState(false);
+
+  /* Search state */
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchFilter, setSearchFilter] = useState<StatusFilter>('all');
+  const [searchResults, setSearchResults] = useState<LlmMapping[] | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [mappingsResult, responsesResult] = await Promise.all([
-        supabase.from('llm_mappings').select('*').order('created_at', { ascending: false }),
-        supabase.from('ai_responses').select('*').order('created_at', { ascending: false }),
+      const [totalResult, approvedResult, rejectedResult, pendingResult, avgConfResult, recentResult] = await Promise.all([
+        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabaseAdmin.from('llm_mappings').select('confidence').not('confidence', 'is', null).limit(5000),
+        supabaseAdmin.from('llm_mappings').select('*').order('created_at', { ascending: false }).limit(20),
       ]);
-      setMappings((mappingsResult.data ?? []) as LlmMapping[]);
-      setResponses((responsesResult.data ?? []) as AiResponse[]);
+
+      setTotalMappings(totalResult.count ?? 0);
+      setApprovedCount(approvedResult.count ?? 0);
+      setRejectedCount(rejectedResult.count ?? 0);
+      setPendingCount(pendingResult.count ?? 0);
+
+      const confRows = (avgConfResult.data ?? []) as { confidence: number }[];
+      if (confRows.length > 0) {
+        const avg = confRows.reduce((sum, r) => sum + Number(r.confidence || 0), 0) / confRows.length;
+        setAvgConfidence(avg);
+      }
+
+      setRecentMappings((recentResult.data ?? []) as LlmMapping[]);
     } catch (err) {
       console.error('LlmCenterContent fetch error:', err);
     } finally {
@@ -325,91 +464,261 @@ function LlmCenterContent() {
     fetchData();
   }, [fetchData]);
 
-  /* KPI computations */
-  const totalMappings = mappings.length;
-  const approvedCount = useMemo(() => mappings.filter((m) => m.status === 'approved').length, [mappings]);
-  const rejectedCount = useMemo(() => mappings.filter((m) => m.status === 'rejected').length, [mappings]);
-  const avgConfidence = useMemo(() => {
-    const withConf = mappings.filter((m) => m.confidence !== null);
-    if (withConf.length === 0) return 0;
-    return withConf.reduce((acc, m) => acc + (m.confidence ?? 0), 0) / withConf.length;
-  }, [mappings]);
+  /* Search handler */
+  const handleSearch = useCallback(async () => {
+    setSearching(true);
+    try {
+      let query = supabaseAdmin
+        .from('llm_mappings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-  /* Model performance stats */
-  const totalCalls = responses.length;
-  const errorRate = useMemo(() => {
-    if (responses.length === 0) return 0;
-    return responses.filter((r) => r.is_error).length / responses.length;
-  }, [responses]);
-  const avgProcessingTime = useMemo(() => {
-    const withTime = responses.filter((r) => r.processing_time_ms !== null);
-    if (withTime.length === 0) return 0;
-    return Math.round(withTime.reduce((acc, r) => acc + (r.processing_time_ms ?? 0), 0) / withTime.length);
-  }, [responses]);
-  const accuracy = useMemo(() => {
-    const evaluated = responses.filter((r) => r.was_ai_correct !== null);
-    if (evaluated.length === 0) return 0;
-    return evaluated.filter((r) => r.was_ai_correct === true).length / evaluated.length;
-  }, [responses]);
+      if (searchTerm.trim()) {
+        query = query.ilike('merchant_name', `%${searchTerm.trim()}%`);
+      }
+      if (searchFilter !== 'all') {
+        query = query.eq('status', searchFilter);
+      }
 
-  /* Model version counts */
-  const modelVersionCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of responses) {
-      const model = r.model_version ?? 'Unknown';
-      map.set(model, (map.get(model) ?? 0) + 1);
+      const { data } = await query;
+      setSearchResults((data ?? []) as LlmMapping[]);
+    } catch (err) {
+      console.error('Search error:', err);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
     }
-    return Array.from(map.entries())
-      .map(([version, count]) => ({ version, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [responses]);
+  }, [searchTerm, searchFilter]);
 
-  /* Recent 20 AI responses */
-  const recentResponses = useMemo(() => responses.slice(0, 20), [responses]);
+  /* Mapping source breakdown */
+  const sourceBreakdown = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const m of recentMappings) {
+      const src = formatCategory(m.category);
+      map.set(src, (map.get(src) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [recentMappings]);
 
-  const responseColumns: Column<AiResponse>[] = useMemo(
+  /* Recent mappings table columns */
+  const recentColumns: Column<LlmMapping>[] = useMemo(
     () => [
-      { key: 'merchant_name', header: 'Merchant', sortable: true },
-      { key: 'category', header: 'Category', sortable: true, width: '120px' },
-      { key: 'model_version', header: 'Model Version', sortable: true, width: '140px' },
       {
-        key: 'processing_time_ms',
-        header: 'Time (ms)',
+        key: 'merchant_name',
+        header: 'Merchant',
         sortable: true,
-        width: '100px',
+        render: (row) => (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CompanyLogo name={COMPANY_LOOKUP[row.merchant_name] ? row.merchant_name : (row.ticker ?? '')} size={20} />
+            {row.merchant_name}
+          </span>
+        ),
+      },
+      { key: 'ticker', header: 'Ticker', sortable: true, width: '100px' },
+      { key: 'category', header: 'Source', sortable: true, width: '100px', render: (row) => formatCategory(row.category) },
+      {
+        key: 'confidence',
+        header: 'Confidence',
+        sortable: true,
+        width: '110px',
         align: 'right',
-        render: (row) => (
-          <span>{row.processing_time_ms !== null ? formatNumber(row.processing_time_ms) : '--'}</span>
-        ),
+        render: (row) => <ConfidenceBadge confidence={row.confidence} />,
       },
       {
-        key: 'is_error',
-        header: 'Error',
-        width: '90px',
-        render: (row) => (
-          <Badge variant={row.is_error ? 'error' : 'success'}>
-            {row.is_error ? 'Yes' : 'No'}
-          </Badge>
-        ),
-      },
-      {
-        key: 'was_ai_correct',
-        header: 'Correct',
-        width: '100px',
-        render: (row) => (
-          <BooleanBadge value={row.was_ai_correct} trueLabel="Yes" falseLabel="No" nullLabel="N/A" />
-        ),
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        width: '110px',
+        render: (row) => <StatusBadge status={row.status} />,
       },
       {
         key: 'created_at',
-        header: 'Created At',
+        header: 'Created',
         sortable: true,
-        width: '160px',
-        render: (row) => formatDateTime(row.created_at),
+        width: '140px',
+        render: (row) => formatDate(row.created_at),
       },
     ],
     [],
   );
+
+  /* Search results table columns (more detail) */
+  const searchColumns: Column<LlmMapping>[] = useMemo(
+    () => [
+      { key: 'id', header: 'ID', sortable: true, width: '70px', align: 'right' },
+      {
+        key: 'merchant_name',
+        header: 'Merchant',
+        sortable: true,
+        render: (row) => (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CompanyLogo name={COMPANY_LOOKUP[row.merchant_name] ? row.merchant_name : (row.ticker ?? '')} size={20} />
+            {row.merchant_name}
+          </span>
+        ),
+      },
+      { key: 'ticker', header: 'Ticker', sortable: true, width: '100px' },
+      { key: 'category', header: 'Source', sortable: true, width: '100px', render: (row) => formatCategory(row.category) },
+      {
+        key: 'confidence',
+        header: 'Confidence',
+        sortable: true,
+        width: '110px',
+        align: 'right',
+        render: (row) => <ConfidenceBadge confidence={row.confidence} />,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        width: '110px',
+        render: (row) => <StatusBadge status={row.status} />,
+      },
+      {
+        key: 'ai_processed',
+        header: 'AI',
+        width: '80px',
+        render: (row) => (
+          <Badge variant={row.ai_processed ? 'info' : 'default'}>
+            {row.ai_processed ? 'Yes' : 'No'}
+          </Badge>
+        ),
+      },
+      {
+        key: 'created_at',
+        header: 'Created',
+        sortable: true,
+        width: '140px',
+        render: (row) => formatDate(row.created_at),
+      },
+    ],
+    [],
+  );
+
+  /* Bulk upload handler — optimized for large files (500K+ rows) */
+  const handleBulkUpload = useCallback(async () => {
+    if (!bulk.file) return;
+    setBulk((prev) => ({ ...prev, uploading: true, error: null, result: null, progress: null }));
+
+    try {
+      const text = await bulk.file.text();
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length < 2) {
+        setBulk((prev) => ({ ...prev, uploading: false, error: 'CSV must have a header row and at least one data row.' }));
+        return;
+      }
+
+      const headers = parseCsvLine(lines[0]);
+      const merchantIdx = findColumn(headers, 'merchantname', 'merchant_name', 'merchant', 'name');
+      const tickerIdx = findColumn(headers, 'tickersymbol', 'ticker_symbol', 'ticker', 'symbol');
+      const categoryIdx = findColumn(headers, 'category', 'cat');
+      const confidenceIdx = findColumn(headers, 'confidence', 'conf');
+      const notesIdx = findColumn(headers, 'notes', 'note', 'description');
+
+      if (merchantIdx === -1 || tickerIdx === -1) {
+        setBulk((prev) => ({
+          ...prev,
+          uploading: false,
+          error: `CSV must contain at least "Merchant Name" and "Ticker" columns. Found headers: ${headers.join(', ')}`,
+        }));
+        return;
+      }
+
+      const dataLines = lines.slice(1);
+      const total = dataLines.length;
+      let success = 0;
+      let failed = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+      const startTime = Date.now();
+
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < dataLines.length; i += BATCH_SIZE) {
+        const batch = dataLines.slice(i, i + BATCH_SIZE);
+        const rows: {
+          merchant_name: string;
+          ticker: string;
+          category: string | null;
+          confidence: number;
+          status: string;
+          admin_approved: boolean;
+          ai_processed: boolean;
+          company_name: string | null;
+        }[] = [];
+
+        for (const line of batch) {
+          const fields = parseCsvLine(line);
+          const merchant = fields[merchantIdx]?.trim();
+          const ticker = fields[tickerIdx]?.trim();
+          if (!merchant || !ticker) {
+            skipped++;
+            continue;
+          }
+
+          let confidence = 0.9;
+          if (confidenceIdx !== -1 && fields[confidenceIdx]) {
+            const raw = fields[confidenceIdx].replace('%', '').trim();
+            const parsed = parseFloat(raw);
+            if (!isNaN(parsed)) {
+              confidence = parsed > 1 ? parsed / 100 : parsed;
+            }
+          }
+
+          rows.push({
+            merchant_name: merchant,
+            ticker: ticker.toUpperCase(),
+            category: categoryIdx !== -1 ? (fields[categoryIdx]?.trim() || null) : null,
+            confidence,
+            status: 'approved',
+            admin_approved: true,
+            ai_processed: false,
+            company_name: notesIdx !== -1 ? (fields[notesIdx]?.trim() || null) : null,
+          });
+        }
+
+        if (rows.length > 0) {
+          const { error } = await supabaseAdmin.from('llm_mappings').insert(rows);
+          if (error) {
+            failed += rows.length;
+            if (errors.length < 10) errors.push(`Batch at row ${i + 2}: ${error.message}`);
+          } else {
+            success += rows.length;
+          }
+        }
+
+        const elapsed = (Date.now() - startTime) / 1000;
+        const processed = Math.min(i + BATCH_SIZE, total);
+        const rowsPerSec = elapsed > 0 ? Math.round(processed / elapsed) : 0;
+
+        setBulk((prev) => ({
+          ...prev,
+          progress: { processed, total, errors, rowsPerSec, elapsedSec: Math.round(elapsed) },
+        }));
+
+        await new Promise((r) => setTimeout(r, 0));
+      }
+
+      const totalElapsed = Math.round((Date.now() - startTime) / 1000);
+      setBulk((prev) => ({
+        ...prev,
+        uploading: false,
+        result: { success, failed, skipped, elapsedSec: totalElapsed },
+        progress: { processed: total, total, errors, rowsPerSec: 0, elapsedSec: totalElapsed },
+      }));
+      fetchData();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error during bulk upload.';
+      setBulk((prev) => ({ ...prev, uploading: false, error: msg }));
+    }
+  }, [bulk.file, fetchData]);
+
+  const filterPills: { label: string; value: StatusFilter }[] = [
+    { label: 'All', value: 'all' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Approved', value: 'approved' },
+    { label: 'Rejected', value: 'rejected' },
+  ];
 
   if (loading) {
     return <LoadingSpinner message="Loading LLM Center..." />;
@@ -422,103 +731,342 @@ function LlmCenterContent() {
         <KpiCard label="Total Mappings" value={formatNumber(totalMappings)} accent="purple" />
         <KpiCard label="Approved" value={formatNumber(approvedCount)} accent="teal" />
         <KpiCard label="Rejected" value={formatNumber(rejectedCount)} accent="pink" />
+        <KpiCard label="Pending" value={formatNumber(pendingCount)} accent="orange" />
         <KpiCard label="Avg Confidence" value={formatPercent(avgConfidence)} accent="blue" />
       </KpiGrid>
 
-      {/* Model Performance */}
+      {/* Search Mappings */}
       <GlassCard accent="purple">
-        <SectionTitle>Model Performance</SectionTitle>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '16px',
-            marginTop: '16px',
-          }}
-        >
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {formatNumber(totalCalls)}
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Total API Calls
-            </p>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '24px', fontWeight: 700, color: errorRate > 0.1 ? '#EF4444' : '#34D399' }}>
-              {formatPercent(errorRate)}
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Error Rate
-            </p>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {formatNumber(avgProcessingTime)}ms
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Avg Processing Time
-            </p>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '24px', fontWeight: 700, color: accuracy > 0.8 ? '#34D399' : '#FBBF24' }}>
-              {formatPercent(accuracy)}
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Accuracy
-            </p>
-          </div>
-        </div>
-      </GlassCard>
+        <SectionTitle>Search Mappings</SectionTitle>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '16px' }}>
+          Search the mapping database by merchant name. Returns the most recent 100 matches.
+        </p>
 
-      {/* Prompt Template / Model Versions */}
-      <GlassCard accent="blue">
-        <SectionTitle>Model Versions in Use</SectionTitle>
-        {modelVersionCounts.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px' }}>
-            No AI responses recorded yet.
-          </p>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '12px',
-              marginTop: '16px',
-            }}
-          >
-            {modelVersionCounts.map((mv) => (
-              <div
-                key={mv.version}
-                style={{
-                  padding: '14px 18px',
-                  background: 'var(--surface-input)',
-                  border: '1px solid var(--border-divider)',
-                  borderRadius: '10px',
-                }}
-              >
-                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {mv.version}
-                </p>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  {formatNumber(mv.count)} call{mv.count !== 1 ? 's' : ''}
-                </p>
-              </div>
-            ))}
+        {/* Filter pills */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          {filterPills.map((pill) => (
+            <button
+              key={pill.value}
+              onClick={() => setSearchFilter(pill.value)}
+              style={{
+                fontFamily: 'inherit',
+                fontSize: '13px',
+                fontWeight: 600,
+                padding: '6px 16px',
+                borderRadius: '20px',
+                border: '1px solid',
+                borderColor:
+                  searchFilter === pill.value
+                    ? 'rgba(124,58,237,0.6)'
+                    : 'var(--border-subtle)',
+                background:
+                  searchFilter === pill.value
+                    ? 'rgba(124,58,237,0.2)'
+                    : 'var(--surface-input)',
+                color:
+                  searchFilter === pill.value ? '#C4B5FD' : 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 200ms ease',
+              }}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search bar */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1, maxWidth: '480px' }}>
+            <Input
+              placeholder="Search merchant name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearch();
+              }}
+            />
+          </div>
+          <Button variant="primary" size="md" loading={searching} onClick={handleSearch}>
+            Search
+          </Button>
+        </div>
+
+        {/* Search results */}
+        {searchResults !== null && (
+          <div style={{ marginTop: '16px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              {searchResults.length === 100
+                ? 'Showing first 100 results. Refine your search for more specific results.'
+                : `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''} found`}
+            </p>
+            <Table<LlmMapping>
+              columns={searchColumns}
+              data={searchResults}
+              loading={false}
+              emptyMessage="No mappings found matching your search"
+              pageSize={15}
+              rowKey={(row) => row.id}
+            />
           </div>
         )}
       </GlassCard>
 
-      {/* Recent AI Responses Table */}
+      {/* Bulk Import Section */}
+      <GlassCard accent="teal">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <SectionTitle>Bulk Import Mappings</SectionTitle>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Upload a CSV file to import merchant-to-ticker mappings in bulk. All imported rows are automatically approved.
+            </p>
+          </div>
+          <Button variant="primary" size="md" onClick={() => {
+            setBulk({ file: null, uploading: false, progress: null, result: null, error: null });
+            setShowBulkModal(true);
+          }}>
+            Import CSV
+          </Button>
+        </div>
+
+        <div
+          style={{
+            marginTop: '16px',
+            padding: '14px 18px',
+            background: 'var(--surface-input)',
+            border: '1px solid var(--border-divider)',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            lineHeight: '1.7',
+          }}
+        >
+          <p style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Required CSV Columns:</p>
+          <code style={{ fontFamily: 'monospace', fontSize: '12px' }}>Merchant Name, Ticker Symbol, Category, Confidence, Notes</code>
+          <br />
+          <span style={{ fontSize: '11px' }}>
+            Column names are flexible (e.g. "merchant_name", "Merchant", "name" all work). Confidence accepts 0.95 or 95%.
+          </span>
+        </div>
+      </GlassCard>
+
+      {/* Bulk Upload Modal */}
+      <Modal
+        open={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        title="Bulk Import Merchant Mappings"
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div
+            style={{
+              padding: '32px',
+              border: '2px dashed var(--border-divider)',
+              borderRadius: '12px',
+              textAlign: 'center',
+              background: 'var(--surface-input)',
+              cursor: 'pointer',
+            }}
+            onClick={() => document.getElementById('bulk-csv-input')?.click()}
+          >
+            <input
+              id="bulk-csv-input"
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setBulk((prev) => ({ ...prev, file, result: null, error: null, progress: null }));
+              }}
+            />
+            {bulk.file ? (
+              <div>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {bulk.file.name}
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {(bulk.file.size / 1024).toFixed(1)} KB
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  Click to select a CSV file or drag and drop
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  Supports .csv files
+                </p>
+              </div>
+            )}
+          </div>
+
+          {bulk.progress && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {bulk.uploading ? 'Processing rows...' : 'Complete'}
+                  {bulk.progress.rowsPerSec > 0 && (
+                    <span style={{ marginLeft: '8px', color: '#06B6D4', fontWeight: 600 }}>
+                      {formatNumber(bulk.progress.rowsPerSec)} rows/sec
+                    </span>
+                  )}
+                  {bulk.progress.elapsedSec > 0 && (
+                    <span style={{ marginLeft: '8px' }}>
+                      ({bulk.progress.elapsedSec}s elapsed)
+                    </span>
+                  )}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {formatNumber(bulk.progress.processed)} / {formatNumber(bulk.progress.total)}
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '6px' }}>
+                    ({Math.round((bulk.progress.processed / Math.max(bulk.progress.total, 1)) * 100)}%)
+                  </span>
+                </span>
+              </div>
+              <div
+                style={{
+                  height: '6px',
+                  background: 'var(--surface-input)',
+                  borderRadius: '3px',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${(bulk.progress.processed / Math.max(bulk.progress.total, 1)) * 100}%`,
+                    background: 'linear-gradient(90deg, #7C3AED, #3B82F6)',
+                    borderRadius: '3px',
+                    transition: 'width 300ms ease',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {bulk.result && (
+            <div
+              style={{
+                padding: '16px',
+                background: 'rgba(52,211,153,0.08)',
+                border: '1px solid rgba(52,211,153,0.2)',
+                borderRadius: '8px',
+              }}
+            >
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#34D399', marginBottom: '8px' }}>
+                Import Complete in {bulk.result.elapsedSec}s
+              </p>
+              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                <div>
+                  <span style={{ fontSize: '20px', fontWeight: 700, color: '#34D399' }}>{formatNumber(bulk.result.success)}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>imported</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '20px', fontWeight: 700, color: '#FBBF24' }}>{formatNumber(bulk.result.skipped)}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>skipped</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '20px', fontWeight: 700, color: '#EF4444' }}>{formatNumber(bulk.result.failed)}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>failed</span>
+                </div>
+              </div>
+              {bulk.progress && bulk.progress.errors.length > 0 && (
+                <div style={{ marginTop: '10px', fontSize: '12px', color: '#FCA5A5' }}>
+                  {bulk.progress.errors.map((e, i) => (
+                    <p key={i}>{e}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {bulk.error && (
+            <div
+              style={{
+                padding: '12px 16px',
+                background: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                borderRadius: '8px',
+                color: '#FCA5A5',
+                fontSize: '13px',
+              }}
+            >
+              {bulk.error}
+            </div>
+          )}
+
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+            Bulk uploads are processed directly to the database as <strong style={{ color: 'var(--text-secondary)' }}>approved mappings</strong>.
+            This bypasses the normal approval process for high-volume data ingestion.
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setShowBulkModal(false)}
+            >
+              {bulk.result ? 'Close' : 'Cancel'}
+            </Button>
+            {!bulk.result && (
+              <Button
+                variant="primary"
+                size="md"
+                loading={bulk.uploading}
+                disabled={!bulk.file}
+                onClick={handleBulkUpload}
+              >
+                {bulk.uploading ? 'Importing...' : 'Start Import'}
+              </Button>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Mapping Sources Breakdown */}
+      <GlassCard accent="blue">
+        <SectionTitle>Mapping Sources</SectionTitle>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: '12px',
+            marginTop: '16px',
+          }}
+        >
+          {sourceBreakdown.length > 0 ? sourceBreakdown.map(([source, count]) => (
+            <div
+              key={source}
+              style={{
+                padding: '14px 18px',
+                background: 'var(--surface-input)',
+                border: '1px solid var(--border-divider)',
+                borderRadius: '10px',
+                textAlign: 'center',
+              }}
+            >
+              <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {formatNumber(count)}
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {source}
+              </p>
+            </div>
+          )) : (
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No recent mappings.</p>
+          )}
+        </div>
+      </GlassCard>
+
+      {/* Recent Mappings Table */}
       <GlassCard accent="teal" padding="0">
         <div style={{ padding: '20px 20px 0 20px' }}>
-          <SectionTitle>Recent AI Responses</SectionTitle>
+          <SectionTitle>Recent Mappings</SectionTitle>
         </div>
-        <Table<AiResponse>
-          columns={responseColumns}
-          data={recentResponses}
+        <Table<LlmMapping>
+          columns={recentColumns}
+          data={recentMappings}
           loading={false}
-          emptyMessage="No AI responses recorded yet"
+          emptyMessage="No mappings in the database yet"
           pageSize={10}
           rowKey={(row) => row.id}
         />
@@ -535,15 +1083,21 @@ function PendingMappingsContent() {
   const [loading, setLoading] = useState(true);
   const [mappings, setMappings] = useState<LlmMapping[]>([]);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [processLoading, setProcessLoading] = useState<number | null>(null);
+  const [processError, setProcessError] = useState<string | null>(null);
+  const [selectedMapping, setSelectedMapping] = useState<LlmMapping | null>(null);
+  const [aiResponse, setAiResponse] = useState<AiResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchPending = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await supabase
+      const result = await supabaseAdmin
         .from('llm_mappings')
         .select('*')
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
       setMappings((result.data ?? []) as LlmMapping[]);
     } catch (err) {
       console.error('PendingMappingsContent fetch error:', err);
@@ -559,32 +1113,174 @@ function PendingMappingsContent() {
   const handleApprove = useCallback(async (id: number) => {
     setActionLoading(id);
     try {
-      await supabase
+      // Find the mapping to get its transaction_id and ticker
+      const mapping = mappings.find((m) => m.id === id);
+
+      await supabaseAdmin
         .from('llm_mappings')
         .update({ status: 'approved', admin_approved: true })
         .eq('id', id);
+
+      // Update the linked transaction to 'mapped' with the approved ticker
+      if (mapping?.transaction_id) {
+        const updateFields: Record<string, unknown> = { status: 'mapped' };
+        if (mapping.ticker) updateFields.ticker = mapping.ticker;
+        await supabaseAdmin
+          .from('transactions')
+          .update(updateFields)
+          .eq('id', Number(mapping.transaction_id));
+      }
+
       await fetchPending();
     } catch (err) {
       console.error('Approve error:', err);
     } finally {
       setActionLoading(null);
     }
-  }, [fetchPending]);
+  }, [fetchPending, mappings]);
 
   const handleReject = useCallback(async (id: number) => {
     setActionLoading(id);
     try {
-      await supabase
+      const mapping = mappings.find((m) => m.id === id);
+
+      await supabaseAdmin
         .from('llm_mappings')
         .update({ status: 'rejected', admin_approved: false })
         .eq('id', id);
+
+      // Revert the linked transaction back to 'failed'
+      if (mapping?.transaction_id) {
+        await supabaseAdmin
+          .from('transactions')
+          .update({ status: 'failed' })
+          .eq('id', Number(mapping.transaction_id));
+      }
+
       await fetchPending();
     } catch (err) {
       console.error('Reject error:', err);
     } finally {
       setActionLoading(null);
     }
+  }, [fetchPending, mappings]);
+
+  const handleDelete = useCallback(async (id: number) => {
+    setActionLoading(id);
+    try {
+      await supabaseAdmin.from('llm_mappings').delete().eq('id', id);
+      if (selectedMapping?.id === id) setSelectedMapping(null);
+      await fetchPending();
+    } catch (err) {
+      console.error('Delete error:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  }, [fetchPending, selectedMapping]);
+
+  const handleProcess = useCallback(async (row: LlmMapping) => {
+    setProcessLoading(row.id);
+    setProcessError(null);
+    try {
+      // 1. Try the Edge Function (DeepSeek AI) first
+      const txId = row.transaction_id ? Number(row.transaction_id) : undefined;
+      const { data, error } = await mapMerchant(row.merchant_name, txId);
+
+      if (data && !error) {
+        // Edge Function succeeded
+        await supabaseAdmin
+          .from('llm_mappings')
+          .update({
+            ticker: data.ticker,
+            company_name: data.company_name,
+            category: data.category,
+            confidence: data.confidence,
+            ai_processed: true,
+          })
+          .eq('id', row.id);
+        await fetchPending();
+        return;
+      }
+
+      // 2. Edge Function unavailable — use local fallback
+      let reasoning = '';
+      let finalTicker = row.ticker;
+      let finalCompany = row.company_name;
+      let finalCategory = row.category;
+      let finalConfidence = row.confidence ?? 0.90;
+
+      if (row.ticker) {
+        // Mapping already has a ticker (user-submitted) — validate & mark processed
+        reasoning = `User-submitted mapping: "${row.merchant_name}" → ${row.ticker}. Validated via local lookup. No AI model was used — the Edge Function is not yet deployed.`;
+      } else {
+        // Try local COMPANY_LOOKUP matching
+        const localResult = localMerchantLookup(row.merchant_name);
+        if (localResult) {
+          finalTicker = localResult.ticker;
+          finalCompany = localResult.company_name;
+          finalCategory = localResult.category;
+          finalConfidence = localResult.confidence;
+          reasoning = `Matched "${row.merchant_name}" → ${localResult.ticker} (${localResult.company_name}) via local company database with ${(localResult.confidence * 100).toFixed(0)}% confidence. No AI model was used.`;
+        } else {
+          // No local match either
+          setProcessError(
+            `Could not auto-process "${row.merchant_name}". AI Edge Function is not deployed. ` +
+            `You can manually set the ticker and approve this mapping.`
+          );
+          return;
+        }
+      }
+
+      await supabaseAdmin
+        .from('llm_mappings')
+        .update({
+          ticker: finalTicker,
+          company_name: finalCompany,
+          category: finalCategory,
+          confidence: finalConfidence,
+          ai_processed: true,
+        })
+        .eq('id', row.id);
+
+      // Insert an ai_responses record so the detail modal shows reasoning
+      await supabaseAdmin.from('ai_responses').insert({
+        mapping_id: row.id,
+        merchant_name: row.merchant_name,
+        category: finalCategory,
+        parsed_response: reasoning,
+        model_version: 'local-lookup',
+        processing_time_ms: 0,
+        is_error: false,
+      });
+
+      await fetchPending();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setProcessError(`Failed to process "${row.merchant_name}": ${message}`);
+      console.error('Process mapping error:', err);
+    } finally {
+      setProcessLoading(null);
+    }
   }, [fetchPending]);
+
+  const openDetail = useCallback(async (mapping: LlmMapping) => {
+    setSelectedMapping(mapping);
+    setDetailLoading(true);
+    try {
+      const { data } = await supabaseAdmin
+        .from('ai_responses')
+        .select('*')
+        .eq('mapping_id', mapping.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setAiResponse(data as AiResponse | null);
+    } catch {
+      setAiResponse(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
 
   /* KPI computations */
   const pendingCount = mappings.length;
@@ -596,6 +1292,10 @@ function PendingMappingsContent() {
     () => mappings.filter((m) => m.confidence !== null && m.confidence < 0.5).length,
     [mappings],
   );
+  const unprocessedCount = useMemo(
+    () => mappings.filter((m) => !m.ai_processed).length,
+    [mappings],
+  );
   const avgConfidence = useMemo(() => {
     const withConf = mappings.filter((m) => m.confidence !== null);
     if (withConf.length === 0) return 0;
@@ -604,9 +1304,19 @@ function PendingMappingsContent() {
 
   const columns: Column<LlmMapping>[] = useMemo(
     () => [
-      { key: 'merchant_name', header: 'Merchant Name', sortable: true },
+      {
+        key: 'merchant_name',
+        header: 'Merchant Name',
+        sortable: true,
+        render: (row) => (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CompanyLogo name={COMPANY_LOOKUP[row.merchant_name] ? row.merchant_name : (row.ticker ?? '')} size={20} />
+            {row.merchant_name}
+          </span>
+        ),
+      },
       { key: 'ticker', header: 'Ticker', sortable: true, width: '100px' },
-      { key: 'category', header: 'Category', sortable: true, width: '130px' },
+      { key: 'category', header: 'Source', sortable: true, width: '130px', render: (row) => formatCategory(row.category) },
       {
         key: 'confidence',
         header: 'Confidence',
@@ -615,7 +1325,7 @@ function PendingMappingsContent() {
         align: 'right',
         render: (row) => <ConfidenceBadge confidence={row.confidence} />,
       },
-      { key: 'company_name', header: 'Company Name', sortable: true },
+      { key: 'user_id', header: 'User ID', sortable: true, width: '90px', render: (row) => row.user_id ?? 'N/A' },
       {
         key: 'created_at',
         header: 'Created At',
@@ -626,13 +1336,38 @@ function PendingMappingsContent() {
       {
         key: 'actions',
         header: 'Actions',
-        width: '200px',
+        width: '420px',
         render: (row) => (
           <div style={{ display: 'flex', gap: '8px' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                openDetail(row);
+              }}
+            >
+              View
+            </Button>
+            {!row.ai_processed && (
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={processLoading === row.id}
+                disabled={actionLoading === row.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProcess(row);
+                }}
+              >
+                Process
+              </Button>
+            )}
             <Button
               variant="primary"
               size="sm"
               loading={actionLoading === row.id}
+              disabled={processLoading === row.id}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApprove(row.id);
@@ -644,6 +1379,7 @@ function PendingMappingsContent() {
               variant="danger"
               size="sm"
               loading={actionLoading === row.id}
+              disabled={processLoading === row.id}
               onClick={(e) => {
                 e.stopPropagation();
                 handleReject(row.id);
@@ -651,11 +1387,25 @@ function PendingMappingsContent() {
             >
               Reject
             </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={actionLoading === row.id}
+              disabled={processLoading === row.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Delete mapping for "${row.merchant_name}"?`)) {
+                  handleDelete(row.id);
+                }
+              }}
+            >
+              Delete
+            </Button>
           </div>
         ),
       },
     ],
-    [actionLoading, handleApprove, handleReject],
+    [actionLoading, processLoading, handleApprove, handleReject, handleProcess, handleDelete, openDetail],
   );
 
   if (loading) {
@@ -666,10 +1416,46 @@ function PendingMappingsContent() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <KpiGrid>
         <KpiCard label="Pending Count" value={formatNumber(pendingCount)} accent="pink" />
+        <KpiCard label="Unprocessed" value={formatNumber(unprocessedCount)} accent="orange" />
         <KpiCard label="High Confidence (>0.8)" value={formatNumber(highConfidence)} accent="teal" />
         <KpiCard label="Low Confidence (<0.5)" value={formatNumber(lowConfidence)} accent="purple" />
         <KpiCard label="Avg Confidence" value={formatPercent(avgConfidence)} accent="blue" />
       </KpiGrid>
+
+      {processError && (
+        <div
+          style={{
+            padding: '12px 16px',
+            borderRadius: '8px',
+            background: 'rgba(239,68,68,0.12)',
+            border: '1px solid rgba(239,68,68,0.3)',
+            color: '#FCA5A5',
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <span>{processError}</span>
+          <button
+            onClick={() => setProcessError(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#FCA5A5',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 700,
+              lineHeight: 1,
+              padding: '2px 6px',
+              flexShrink: 0,
+            }}
+          >
+            x
+          </button>
+        </div>
+      )}
 
       <GlassCard accent="purple" padding="0">
         <Table<LlmMapping>
@@ -681,6 +1467,183 @@ function PendingMappingsContent() {
           rowKey={(row) => row.id}
         />
       </GlassCard>
+
+      {/* Mapping Details Modal */}
+      <Modal open={!!selectedMapping} onClose={() => { setSelectedMapping(null); setAiResponse(null); }}>
+        {selectedMapping && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '560px', maxWidth: '640px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              Mapping Details
+            </h3>
+
+            {detailLoading && (
+              <div style={{ textAlign: 'center', padding: '12px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                Loading AI response data...
+              </div>
+            )}
+
+            {/* Grid layout for details */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* Merchant */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Merchant</p>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{selectedMapping.merchant_name}</p>
+              </div>
+              {/* Mapping ID */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Mapping ID</p>
+                <span style={{ padding: '2px 10px', background: 'var(--surface-input)', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{selectedMapping.id}</span>
+              </div>
+
+              {/* Company Logo */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Company Logo</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CompanyLogo name={selectedMapping.ticker ?? selectedMapping.merchant_name} size={24} />
+                  <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{selectedMapping.company_name ?? selectedMapping.merchant_name}</span>
+                </div>
+              </div>
+              {/* Stock Ticker */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Stock Ticker</p>
+                <span style={{ padding: '2px 10px', background: 'var(--surface-input)', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedMapping.ticker ?? 'N/A'}</span>
+              </div>
+
+              {/* Company Name */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Company Name</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{selectedMapping.company_name ?? selectedMapping.merchant_name}</p>
+              </div>
+              {/* Category */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Category</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{formatCategory(selectedMapping.category)}</p>
+              </div>
+
+              {/* Confidence */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Confidence</p>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: selectedMapping.confidence != null ? (selectedMapping.confidence > 0.8 ? '#34D399' : selectedMapping.confidence > 0.5 ? '#FBBF24' : '#EF4444') : 'var(--text-muted)', margin: 0 }}>
+                  {selectedMapping.confidence != null ? `${(selectedMapping.confidence * 100).toFixed(1)}%` : 'N/A'}
+                </p>
+              </div>
+              {/* Status */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Status</p>
+                <Badge variant={selectedMapping.status === 'approved' ? 'success' : selectedMapping.status === 'rejected' ? 'error' : 'warning'}>
+                  {selectedMapping.status.charAt(0).toUpperCase() + selectedMapping.status.slice(1)}
+                </Badge>
+              </div>
+
+              {/* User ID */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>User ID</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{selectedMapping.user_id ? `ID: ${selectedMapping.user_id}` : 'N/A'}</p>
+              </div>
+              {/* Submitted At */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Submitted At</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{new Date(selectedMapping.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</p>
+              </div>
+
+              {/* Admin Approval */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Admin Approval</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: selectedMapping.admin_approved === true ? '#34D399' : selectedMapping.admin_approved === false ? '#EF4444' : 'var(--text-muted)', margin: 0 }}>
+                  {selectedMapping.admin_approved === true ? 'Approved' : selectedMapping.admin_approved === false ? 'Rejected' : 'Pending'}
+                </p>
+              </div>
+
+              {/* AI Processing Status */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>AI Processing Status</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: selectedMapping.ai_processed ? 'var(--text-primary)' : '#FBBF24', margin: 0 }}>
+                  {selectedMapping.ai_processed ? 'Processed' : selectedMapping.confidence != null && selectedMapping.confidence < 0.8 ? `Review required ${(selectedMapping.confidence * 100).toFixed(1)}%` : 'Not Processed'}
+                </p>
+              </div>
+              {/* AI Confidence */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>AI Confidence</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>
+                  {selectedMapping.confidence != null ? `${(selectedMapping.confidence * 100).toFixed(1)}%` : 'N/A'}
+                </p>
+              </div>
+
+              {/* AI Model Version */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>AI Model Version</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>
+                  {aiResponse?.model_version ?? 'N/A'}
+                </p>
+              </div>
+              {/* AI Processing Time */}
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 4px' }}>AI Processing Time</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>
+                  {aiResponse?.processing_time_ms != null ? `${aiResponse.processing_time_ms}ms` : 'N/A'}
+                </p>
+              </div>
+            </div>
+
+            {/* AI Reasoning */}
+            <div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 6px' }}>AI Reasoning</p>
+              <div style={{ padding: '12px 16px', background: 'var(--surface-input)', border: '1px solid var(--border-subtle)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                {aiResponse?.parsed_response ?? aiResponse?.raw_response ?? 'No AI reasoning available'}
+              </div>
+            </div>
+
+            {/* User Notes */}
+            <div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 6px' }}>User Notes</p>
+              <div style={{ padding: '12px 16px', background: 'var(--surface-input)', border: '1px solid var(--border-subtle)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                {aiResponse?.feedback_notes ?? 'No user notes'}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', paddingTop: '8px' }}>
+              {!selectedMapping.ai_processed && (
+                <Button
+                  variant="secondary"
+                  loading={processLoading === selectedMapping.id}
+                  onClick={() => { handleProcess(selectedMapping); }}
+                >
+                  Process with AI
+                </Button>
+              )}
+              <Button
+                variant="primary"
+                loading={actionLoading === selectedMapping.id}
+                onClick={() => { handleApprove(selectedMapping.id); setSelectedMapping(null); }}
+              >
+                Approve
+              </Button>
+              <Button
+                variant="danger"
+                loading={actionLoading === selectedMapping.id}
+                onClick={() => { handleReject(selectedMapping.id); setSelectedMapping(null); }}
+              >
+                Reject
+              </Button>
+              <Button
+                variant="danger"
+                loading={actionLoading === selectedMapping.id}
+                onClick={() => {
+                  if (confirm(`Delete mapping for "${selectedMapping.merchant_name}"?`)) {
+                    handleDelete(selectedMapping.id);
+                  }
+                }}
+              >
+                Delete
+              </Button>
+              <Button variant="secondary" onClick={() => { setSelectedMapping(null); setAiResponse(null); }}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -689,160 +1652,16 @@ function PendingMappingsContent() {
 /*  Tab 3: All Mappings                                                       */
 /* ========================================================================== */
 
-function AllMappingsContent() {
-  const [loading, setLoading] = useState(true);
-  const [mappings, setMappings] = useState<LlmMapping[]>([]);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const result = await supabase
-          .from('llm_mappings')
-          .select('*')
-          .order('created_at', { ascending: false });
-        setMappings((result.data ?? []) as LlmMapping[]);
-      } catch (err) {
-        console.error('AllMappingsContent fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
-
-  const filteredMappings = useMemo(() => {
-    let result = mappings;
-    if (statusFilter !== 'all') {
-      result = result.filter((m) => m.status === statusFilter);
-    }
-    if (searchTerm.trim() !== '') {
-      const term = searchTerm.toLowerCase().trim();
-      result = result.filter((m) => m.merchant_name.toLowerCase().includes(term));
-    }
-    return result;
-  }, [mappings, statusFilter, searchTerm]);
-
-  const columns: Column<LlmMapping>[] = useMemo(
-    () => [
-      { key: 'id', header: 'ID', sortable: true, width: '70px', align: 'right' },
-      { key: 'merchant_name', header: 'Merchant', sortable: true },
-      { key: 'ticker', header: 'Ticker', sortable: true, width: '100px' },
-      { key: 'category', header: 'Category', sortable: true, width: '130px' },
-      {
-        key: 'confidence',
-        header: 'Confidence %',
-        sortable: true,
-        width: '120px',
-        align: 'right',
-        render: (row) => <ConfidenceBadge confidence={row.confidence} />,
-      },
-      {
-        key: 'status',
-        header: 'Status',
-        sortable: true,
-        width: '120px',
-        render: (row) => <StatusBadge status={row.status} />,
-      },
-      {
-        key: 'ai_processed',
-        header: 'AI Processed',
-        width: '120px',
-        render: (row) => (
-          <Badge variant={row.ai_processed ? 'info' : 'default'}>
-            {row.ai_processed ? 'Yes' : 'No'}
-          </Badge>
-        ),
-      },
-      { key: 'company_name', header: 'Company Name', sortable: true },
-      {
-        key: 'created_at',
-        header: 'Created At',
-        sortable: true,
-        width: '140px',
-        render: (row) => formatDate(row.created_at),
-      },
-    ],
-    [],
-  );
-
-  const filterPills: { label: string; value: StatusFilter }[] = [
-    { label: 'All', value: 'all' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'Approved', value: 'approved' },
-    { label: 'Rejected', value: 'rejected' },
-  ];
-
-  if (loading) {
-    return <LoadingSpinner message="Loading all mappings..." />;
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Filter pills + search */}
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {filterPills.map((pill) => (
-            <button
-              key={pill.value}
-              onClick={() => setStatusFilter(pill.value)}
-              style={{
-                fontFamily: 'inherit',
-                fontSize: '13px',
-                fontWeight: 600,
-                padding: '8px 18px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor:
-                  statusFilter === pill.value
-                    ? 'rgba(124,58,237,0.6)'
-                    : 'var(--border-subtle)',
-                background:
-                  statusFilter === pill.value
-                    ? 'rgba(124,58,237,0.2)'
-                    : 'var(--surface-input)',
-                color:
-                  statusFilter === pill.value ? '#C4B5FD' : 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'all 200ms ease',
-              }}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: 1, minWidth: '200px', maxWidth: '320px' }}>
-          <Input
-            placeholder="Search merchant name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <GlassCard accent="blue" padding="0">
-        <Table<LlmMapping>
-          columns={columns}
-          data={filteredMappings}
-          loading={false}
-          emptyMessage="No mappings found"
-          pageSize={20}
-          rowKey={(row) => row.id}
-        />
-      </GlassCard>
-    </div>
-  );
-}
-
 /* ========================================================================== */
-/*  Tab 4: ML Dashboard                                                       */
+/*  Tab 3: ML Dashboard                                                       */
 /* ========================================================================== */
 
 function MlDashboardContent() {
   const [loading, setLoading] = useState(true);
   const [responses, setResponses] = useState<AiResponse[]>([]);
   const [mappings, setMappings] = useState<LlmMapping[]>([]);
+  const [totalCalls, setTotalCalls] = useState(0);
+  const [totalMappingsCount, setTotalMappingsCount] = useState(0);
 
   /* Test Merchant Mapping state */
   const [testMerchant, setTestMerchant] = useState('');
@@ -862,12 +1681,16 @@ function MlDashboardContent() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [respResult, mapResult] = await Promise.all([
-        supabase.from('ai_responses').select('*').order('created_at', { ascending: false }),
-        supabase.from('llm_mappings').select('*').order('created_at', { ascending: false }),
+      const [respResult, mapResult, respCount, mapCount] = await Promise.all([
+        supabaseAdmin.from('ai_responses').select('*').order('created_at', { ascending: false }).limit(500),
+        supabaseAdmin.from('llm_mappings').select('*').order('created_at', { ascending: false }).limit(500),
+        supabaseAdmin.from('ai_responses').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'exact', head: true }),
       ]);
       setResponses((respResult.data ?? []) as AiResponse[]);
       setMappings((mapResult.data ?? []) as LlmMapping[]);
+      setTotalCalls(respCount.count ?? 0);
+      setTotalMappingsCount(mapCount.count ?? 0);
     } catch (err) {
       console.error('MlDashboardContent fetch error:', err);
     } finally {
@@ -880,7 +1703,6 @@ function MlDashboardContent() {
   }, [fetchData]);
 
   /* KPI computations */
-  const totalCalls = responses.length;
   const successRate = useMemo(() => {
     if (responses.length === 0) return 0;
     return responses.filter((r) => !r.is_error).length / responses.length;
@@ -895,7 +1717,19 @@ function MlDashboardContent() {
     return Math.round(withTime.reduce((acc, r) => acc + (r.processing_time_ms ?? 0), 0) / withTime.length);
   }, [responses]);
 
-  /* Bar chart data: calls by model */
+  /* Bar chart data: mappings by status (always has data from llm_mappings) */
+  const mappingsByStatus = useMemo<ModelCallPoint[]>(() => {
+    const map = new Map<string, number>();
+    for (const m of mappings) {
+      const status = m.status ?? 'unknown';
+      map.set(status, (map.get(status) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([name, calls]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), calls }))
+      .sort((a, b) => b.calls - a.calls);
+  }, [mappings]);
+
+  /* Bar chart data: calls by model (from ai_responses) */
   const callsByModel = useMemo<ModelCallPoint[]>(() => {
     const map = new Map<string, number>();
     for (const r of responses) {
@@ -907,17 +1741,29 @@ function MlDashboardContent() {
       .sort((a, b) => b.calls - a.calls);
   }, [responses]);
 
+  /* Bar chart data: mappings by source */
+  const mappingsBySource = useMemo<ModelCallPoint[]>(() => {
+    const map = new Map<string, number>();
+    for (const m of mappings) {
+      const source = formatCategory(m.category);
+      map.set(source, (map.get(source) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([name, calls]) => ({ name, calls }))
+      .sort((a, b) => b.calls - a.calls);
+  }, [mappings]);
+
   /* Test merchant handler */
   const handleTestMerchant = useCallback(async () => {
     if (!testMerchant.trim()) return;
     setTestLoading(true);
     setTestResults(null);
     try {
-      const result = await supabase
+      const result = await supabaseAdmin
         .from('llm_mappings')
         .select('*')
-        .eq('merchant_name', testMerchant.trim())
-        .limit(5);
+        .ilike('merchant_name', `%${testMerchant.trim()}%`)
+        .limit(10);
       setTestResults((result.data ?? []) as LlmMapping[]);
     } catch (err) {
       console.error('Test merchant error:', err);
@@ -942,7 +1788,7 @@ function MlDashboardContent() {
     }
     setManualSubmitting(true);
     try {
-      const { error } = await supabase.from('llm_mappings').insert({
+      const { error } = await supabaseAdmin.from('llm_mappings').insert({
         merchant_name: manualForm.merchant_name.trim(),
         ticker: manualForm.ticker.trim(),
         category: manualForm.category,
@@ -972,7 +1818,7 @@ function MlDashboardContent() {
     () => [
       { key: 'merchant_name', header: 'Merchant', sortable: false },
       { key: 'ticker', header: 'Ticker', width: '90px' },
-      { key: 'category', header: 'Category', width: '120px' },
+      { key: 'category', header: 'Source', width: '120px', render: (row) => formatCategory(row.category) },
       {
         key: 'confidence',
         header: 'Confidence',
@@ -998,11 +1844,28 @@ function MlDashboardContent() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* KPI Cards */}
       <KpiGrid>
-        <KpiCard label="Total AI Calls" value={formatNumber(totalCalls)} accent="purple" />
-        <KpiCard label="Success Rate" value={formatPercent(successRate)} accent="teal" />
+        <KpiCard label="Total Mappings" value={formatNumber(totalMappingsCount)} accent="purple" />
+        <KpiCard label="AI Calls" value={formatNumber(totalCalls)} accent="teal" />
         <KpiCard label="Learning Progress" value={formatPercent(learningProgress)} accent="blue" />
-        <KpiCard label="Avg Response Time" value={`${formatNumber(avgResponseTime)}ms`} accent="pink" />
+        <KpiCard label="Avg Response Time" value={totalCalls > 0 ? `${formatNumber(avgResponseTime)}ms` : 'N/A'} accent="pink" />
       </KpiGrid>
+
+      {/* AI Status Banner */}
+      {totalCalls === 0 && (
+        <GlassCard accent="blue">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '20px' }}>i</span>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                AI Processing Not Yet Active
+              </p>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                The DeepSeek AI Edge Function has not been deployed yet. AI call analytics will populate once the Edge Function is active and processing merchant mappings. Currently using local lookup for merchant-to-ticker matching.
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      )}
 
       {/* Test Merchant Mapping */}
       <GlassCard accent="purple">
@@ -1041,7 +1904,7 @@ function MlDashboardContent() {
                 data={testResults}
                 loading={false}
                 emptyMessage="No results"
-                pageSize={5}
+                pageSize={10}
                 rowKey={(row) => row.id}
               />
             )}
@@ -1105,15 +1968,43 @@ function MlDashboardContent() {
         </div>
       </GlassCard>
 
-      {/* Bar Chart: Calls by model */}
-      <BarChart<ModelCallPoint>
-        data={callsByModel}
-        dataKey="calls"
-        xKey="name"
-        title="AI Calls by Model Version"
-        color="#7C3AED"
-        height={260}
-      />
+      {/* Charts */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gap: '16px',
+        }}
+      >
+        <BarChart<ModelCallPoint>
+          data={mappingsByStatus}
+          dataKey="calls"
+          xKey="name"
+          title="Mappings by Status"
+          color="#7C3AED"
+          height={260}
+        />
+        <BarChart<ModelCallPoint>
+          data={mappingsBySource}
+          dataKey="calls"
+          xKey="name"
+          title="Mappings by Source"
+          color="#3B82F6"
+          height={260}
+        />
+      </div>
+
+      {/* AI Calls by model — only show when there's AI data */}
+      {callsByModel.length > 0 && (
+        <BarChart<ModelCallPoint>
+          data={callsByModel}
+          dataKey="calls"
+          xKey="name"
+          title="AI Calls by Model Version"
+          color="#06B6D4"
+          height={260}
+        />
+      )}
     </div>
   );
 }
@@ -1127,15 +2018,21 @@ function DataManagementContent() {
   const [responses, setResponses] = useState<AiResponse[]>([]);
   const [mappings, setMappings] = useState<LlmMapping[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [totalResponsesCount, setTotalResponsesCount] = useState(0);
+  const [totalMappingsCount, setTotalMappingsCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
-      const [respResult, mapResult] = await Promise.all([
-        supabase.from('ai_responses').select('*').order('created_at', { ascending: false }),
-        supabase.from('llm_mappings').select('*').order('created_at', { ascending: false }),
+      const [respResult, mapResult, respCount, mapCount] = await Promise.all([
+        supabaseAdmin.from('ai_responses').select('*').order('created_at', { ascending: false }).limit(500),
+        supabaseAdmin.from('llm_mappings').select('*').order('created_at', { ascending: false }).limit(500),
+        supabaseAdmin.from('ai_responses').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'exact', head: true }),
       ]);
       setResponses((respResult.data ?? []) as AiResponse[]);
       setMappings((mapResult.data ?? []) as LlmMapping[]);
+      setTotalResponsesCount(respCount.count ?? 0);
+      setTotalMappingsCount(mapCount.count ?? 0);
     } catch (err) {
       console.error('DataManagementContent fetch error:', err);
     } finally {
@@ -1154,8 +2051,6 @@ function DataManagementContent() {
   }, [fetchData]);
 
   /* KPI computations */
-  const totalResponses = responses.length;
-  const totalMappings = mappings.length;
   const errorResponses = useMemo(() => responses.filter((r) => r.is_error).length, [responses]);
   const feedbackGiven = useMemo(() => responses.filter((r) => r.admin_feedback !== null).length, [responses]);
 
@@ -1188,7 +2083,7 @@ function DataManagementContent() {
     () => [
       { key: 'id', header: 'ID', sortable: true, width: '70px', align: 'right' },
       { key: 'merchant_name', header: 'Merchant', sortable: true },
-      { key: 'category', header: 'Category', sortable: true, width: '120px' },
+      { key: 'category', header: 'Category', sortable: true, width: '120px', render: (row) => formatCategory(row.category) },
       { key: 'model_version', header: 'Model', sortable: true, width: '130px' },
       {
         key: 'processing_time_ms',
@@ -1247,26 +2142,11 @@ function DataManagementContent() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* KPI Cards */}
       <KpiGrid>
-        <KpiCard label="Total AI Responses" value={formatNumber(totalResponses)} accent="purple" />
-        <KpiCard label="Total Mappings" value={formatNumber(totalMappings)} accent="blue" />
+        <KpiCard label="Total AI Responses" value={formatNumber(totalResponsesCount)} accent="purple" />
+        <KpiCard label="Total Mappings" value={formatNumber(totalMappingsCount)} accent="blue" />
         <KpiCard label="Error Responses" value={formatNumber(errorResponses)} accent="pink" />
         <KpiCard label="Feedback Given" value={formatNumber(feedbackGiven)} accent="teal" />
       </KpiGrid>
-
-      {/* AI Response History */}
-      <GlassCard accent="purple" padding="0">
-        <div style={{ padding: '20px 20px 0 20px' }}>
-          <SectionTitle>AI Response History</SectionTitle>
-        </div>
-        <Table<AiResponse>
-          columns={responseColumns}
-          data={responses}
-          loading={false}
-          emptyMessage="No AI responses recorded yet"
-          pageSize={15}
-          rowKey={(row) => row.id}
-        />
-      </GlassCard>
 
       {/* Data Quality */}
       <GlassCard accent="teal">
@@ -1335,15 +2215,48 @@ function DataManagementContent() {
         </div>
       </GlassCard>
 
-      {/* Processing time trend */}
-      <LineChart<ProcessingTrendPoint>
-        data={processingTrend}
-        dataKey="avg_ms"
-        xKey="name"
-        title="Avg Processing Time Trend (ms)"
-        color="#06B6D4"
-        height={260}
-      />
+      {/* AI Response History */}
+      {responses.length > 0 ? (
+        <>
+          <GlassCard accent="purple" padding="0">
+            <div style={{ padding: '20px 20px 0 20px' }}>
+              <SectionTitle>AI Response History</SectionTitle>
+            </div>
+            <Table<AiResponse>
+              columns={responseColumns}
+              data={responses}
+              loading={false}
+              emptyMessage="No AI responses recorded yet"
+              pageSize={15}
+              rowKey={(row) => row.id}
+            />
+          </GlassCard>
+
+          {/* Processing time trend */}
+          <LineChart<ProcessingTrendPoint>
+            data={processingTrend}
+            dataKey="avg_ms"
+            xKey="name"
+            title="Avg Processing Time Trend (ms)"
+            color="#06B6D4"
+            height={260}
+          />
+        </>
+      ) : (
+        <GlassCard accent="blue">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '20px' }}>i</span>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                AI Response History
+              </p>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                No AI responses recorded yet. The response history and processing time trend will populate once the DeepSeek AI Edge Function is deployed and processing merchant mappings.
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      )}
     </div>
   );
 }
@@ -1355,15 +2268,23 @@ function DataManagementContent() {
 function AiAnalyticsContent() {
   const [loading, setLoading] = useState(true);
   const [responses, setResponses] = useState<AiResponse[]>([]);
+  const [mappings, setMappings] = useState<LlmMapping[]>([]);
+  const [totalMappingsCount, setTotalMappingsCount] = useState(0);
+  const [totalResponsesCount, setTotalResponsesCount] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const result = await supabase
-          .from('ai_responses')
-          .select('*')
-          .order('created_at', { ascending: false });
-        setResponses((result.data ?? []) as AiResponse[]);
+        const [respResult, mapResult, respCount, mapCount] = await Promise.all([
+          supabaseAdmin.from('ai_responses').select('*').order('created_at', { ascending: false }).limit(500),
+          supabaseAdmin.from('llm_mappings').select('*').order('created_at', { ascending: false }).limit(500),
+          supabaseAdmin.from('ai_responses').select('id', { count: 'exact', head: true }),
+          supabaseAdmin.from('llm_mappings').select('id', { count: 'exact', head: true }),
+        ]);
+        setResponses((respResult.data ?? []) as AiResponse[]);
+        setMappings((mapResult.data ?? []) as LlmMapping[]);
+        setTotalResponsesCount(respCount.count ?? 0);
+        setTotalMappingsCount(mapCount.count ?? 0);
       } catch (err) {
         console.error('AiAnalyticsContent fetch error:', err);
       } finally {
@@ -1373,25 +2294,64 @@ function AiAnalyticsContent() {
     fetchData();
   }, []);
 
-  /* KPI computations */
+  /* Mapping-based KPIs (always available) */
+  const approvalRate = useMemo(() => {
+    if (mappings.length === 0) return 0;
+    return mappings.filter((m) => m.status === 'approved').length / mappings.length;
+  }, [mappings]);
+
+  const rejectionRate = useMemo(() => {
+    if (mappings.length === 0) return 0;
+    return mappings.filter((m) => m.status === 'rejected').length / mappings.length;
+  }, [mappings]);
+
+  const avgConfidence = useMemo(() => {
+    const withConf = mappings.filter((m) => m.confidence !== null);
+    if (withConf.length === 0) return 0;
+    return withConf.reduce((acc, m) => acc + (m.confidence ?? 0), 0) / withConf.length;
+  }, [mappings]);
+
+  /* AI-response KPIs */
   const accuracyRate = useMemo(() => {
     const evaluated = responses.filter((r) => r.was_ai_correct !== null);
-    if (evaluated.length === 0) return 0;
+    if (evaluated.length === 0) return null;
     return evaluated.filter((r) => r.was_ai_correct === true).length / evaluated.length;
-  }, [responses]);
-
-  const errorRate = useMemo(() => {
-    if (responses.length === 0) return 0;
-    return responses.filter((r) => r.is_error).length / responses.length;
   }, [responses]);
 
   const avgProcessingTime = useMemo(() => {
     const withTime = responses.filter((r) => r.processing_time_ms !== null);
-    if (withTime.length === 0) return 0;
+    if (withTime.length === 0) return null;
     return Math.round(withTime.reduce((acc, r) => acc + (r.processing_time_ms ?? 0), 0) / withTime.length);
   }, [responses]);
 
-  /* Bar chart: calls by model */
+  /* Bar chart: mappings by status */
+  const mappingsByStatus = useMemo<ModelCallPoint[]>(() => {
+    const map = new Map<string, number>();
+    for (const m of mappings) {
+      const status = m.status ?? 'unknown';
+      map.set(status, (map.get(status) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([name, calls]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), calls }))
+      .sort((a, b) => b.calls - a.calls);
+  }, [mappings]);
+
+  /* Line chart: daily mapping volume */
+  const dailyMappings = useMemo<DailyVolumePoint[]>(() => {
+    const dayMap = new Map<string, number>();
+    for (const m of mappings) {
+      const dk = dayKey(m.created_at);
+      dayMap.set(dk, (dayMap.get(dk) ?? 0) + 1);
+    }
+    return Array.from(dayMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([dk, count]) => ({
+        name: dayLabel(dk + 'T00:00:00Z'),
+        count,
+      }));
+  }, [mappings]);
+
+  /* Bar chart: AI calls by model (only if responses exist) */
   const callsByModel = useMemo<ModelCallPoint[]>(() => {
     const map = new Map<string, number>();
     for (const r of responses) {
@@ -1403,20 +2363,19 @@ function AiAnalyticsContent() {
       .sort((a, b) => b.calls - a.calls);
   }, [responses]);
 
-  /* Line chart: daily call volume */
-  const dailyVolume = useMemo<DailyVolumePoint[]>(() => {
-    const dayMap = new Map<string, number>();
-    for (const r of responses) {
-      const dk = dayKey(r.created_at);
-      dayMap.set(dk, (dayMap.get(dk) ?? 0) + 1);
+  /* Confidence distribution */
+  const confidenceDistribution = useMemo<ModelCallPoint[]>(() => {
+    const buckets = { 'High (>80%)': 0, 'Medium (50-80%)': 0, 'Low (<50%)': 0, 'None': 0 };
+    for (const m of mappings) {
+      if (m.confidence === null) buckets['None'] += 1;
+      else if (m.confidence >= 0.8) buckets['High (>80%)'] += 1;
+      else if (m.confidence >= 0.5) buckets['Medium (50-80%)'] += 1;
+      else buckets['Low (<50%)'] += 1;
     }
-    return Array.from(dayMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([dk, count]) => ({
-        name: dayLabel(dk + 'T00:00:00Z'),
-        count,
-      }));
-  }, [responses]);
+    return Object.entries(buckets)
+      .filter(([, v]) => v > 0)
+      .map(([name, calls]) => ({ name, calls }));
+  }, [mappings]);
 
   /* Feedback summary */
   const feedbackSummary = useMemo(() => {
@@ -1445,13 +2404,30 @@ function AiAnalyticsContent() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* KPI Cards */}
       <KpiGrid>
-        <KpiCard label="Accuracy Rate" value={formatPercent(accuracyRate)} accent="teal" />
-        <KpiCard label="Error Rate" value={formatPercent(errorRate)} accent="pink" />
-        <KpiCard label="Avg Processing Time" value={`${formatNumber(avgProcessingTime)}ms`} accent="blue" />
-        <KpiCard label="Total Cost" value="N/A -- Edge Function" accent="purple" />
+        <KpiCard label="Total Mappings" value={formatNumber(totalMappingsCount)} accent="purple" />
+        <KpiCard label="Approval Rate" value={formatPercent(approvalRate)} accent="teal" />
+        <KpiCard label="Avg Confidence" value={formatPercent(avgConfidence)} accent="blue" />
+        <KpiCard label="AI Accuracy" value={accuracyRate !== null ? formatPercent(accuracyRate) : 'N/A'} accent="pink" />
       </KpiGrid>
 
-      {/* Charts */}
+      {/* AI Status Banner */}
+      {totalResponsesCount === 0 && (
+        <GlassCard accent="blue">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '20px' }}>i</span>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                AI Processing Analytics
+              </p>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                AI response analytics (accuracy, processing time, model comparison) will populate once the DeepSeek AI Edge Function is deployed and processing mappings. The charts below show mapping-level analytics from the current data.
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* Charts — mapping-based (always has data) */}
       <div
         style={{
           display: 'grid',
@@ -1460,29 +2436,51 @@ function AiAnalyticsContent() {
         }}
       >
         <BarChart<ModelCallPoint>
-          data={callsByModel}
+          data={mappingsByStatus}
           dataKey="calls"
           xKey="name"
-          title="Calls by Model Version"
+          title="Mappings by Status"
           color="#7C3AED"
           height={260}
         />
         <LineChart<DailyVolumePoint>
-          data={dailyVolume}
+          data={dailyMappings}
           dataKey="count"
           xKey="name"
-          title="Daily Call Volume"
+          title="Daily Mapping Volume"
           color="#3B82F6"
           height={260}
         />
       </div>
+
+      {/* Confidence Distribution */}
+      <BarChart<ModelCallPoint>
+        data={confidenceDistribution}
+        dataKey="calls"
+        xKey="name"
+        title="Confidence Distribution"
+        color="#06B6D4"
+        height={260}
+      />
+
+      {/* AI Model Calls — only if AI responses exist */}
+      {callsByModel.length > 0 && (
+        <BarChart<ModelCallPoint>
+          data={callsByModel}
+          dataKey="calls"
+          xKey="name"
+          title="AI Calls by Model Version"
+          color="#EC4899"
+          height={260}
+        />
+      )}
 
       {/* Feedback Summary */}
       <GlassCard accent="teal">
         <SectionTitle>Feedback Summary</SectionTitle>
         {feedbackSummary.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px' }}>
-            No admin feedback recorded yet.
+            No admin feedback recorded yet. Feedback analytics will appear here as you approve/reject mappings and provide feedback on AI responses.
           </p>
         ) : (
           <div
@@ -1546,215 +2544,333 @@ function AiAnalyticsContent() {
 }
 
 /* ========================================================================== */
-/*  Tab 7: Flow (Transaction Processing Pipeline)                             */
+/*  Tab 7: Flow (Transaction Processing Pipeline) — LIVE METRICS             */
 /* ========================================================================== */
 
-interface PipelineStage {
+interface FlowStage {
   step: number;
   title: string;
   description: string;
-  status: 'healthy' | 'warning' | 'error' | 'idle';
+  status: 'active' | 'warning' | 'idle';
+  mainValue: string;
+  mainLabel: string;
+  secondaryValue?: string;
+  secondaryLabel?: string;
+  metrics: { label: string; value: string }[];
+  color: string;
 }
 
 function FlowContent() {
   const [loading, setLoading] = useState(true);
-  const [transactionsToday, setTransactionsToday] = useState(0);
-  const [avgProcessingTime, setAvgProcessingTime] = useState(0);
-  const [pipelineHealth, setPipelineHealth] = useState(0);
-  const [autoApprovalRate, setAutoApprovalRate] = useState(0);
-  const [stages, setStages] = useState<PipelineStage[]>([]);
+  const [stages, setStages] = useState<FlowStage[]>([]);
+  /* KPIs */
+  const [totalTx, setTotalTx] = useState(0);
+  const [totalRoundUps, setTotalRoundUps] = useState(0);
+  const [matchRate, setMatchRate] = useState(0);
+  const [mappingDbSize, setMappingDbSize] = useState(0);
+  const [avgConfidence, setAvgConfidence] = useState(0);
+  const [investmentQueued, setInvestmentQueued] = useState(0);
+  const [reprocessing, setReprocessing] = useState(false);
+  const [reprocessResult, setReprocessResult] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayISO = todayStart.toISOString();
+  const fetchData = useCallback(async () => {
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayISO = todayStart.toISOString();
 
-        const [txResult, aiResult, mapResult] = await Promise.all([
-          supabase
-            .from('transactions')
-            .select('id, created_at', { count: 'exact' })
-            .gte('created_at', todayISO),
-          supabase
-            .from('ai_responses')
-            .select('processing_time_ms, is_error'),
-          supabase
-            .from('llm_mappings')
-            .select('status, admin_approved'),
-        ]);
+      // Use count queries for large tables (no 1,000 row limit)
+      const [
+        txCountResult,
+        txTodayResult,
+        txPendingResult,
+        txCompletedResult,
+        txFailedResult,
+        txWithTickerResult,
+        txWithRoundupResult,
+        mappingDbResult,
+        mappingApprovedResult,
+        aiCallsResult,
+        aiErrorsResult,
+        ledgerResult,
+        queueResult,
+        confSample,
+        roundupSample,
+      ] = await Promise.all([
+        supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).gte('created_at', todayISO),
+        supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+        supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
+        supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).not('ticker', 'is', null),
+        supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).gt('round_up', 0),
+        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabaseAdmin.from('ai_responses').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('ai_responses').select('*', { count: 'exact', head: true }).eq('is_error', true),
+        supabaseAdmin.from('roundup_ledger').select('id, round_up_amount, status, fee_amount').limit(1000),
+        supabaseAdmin.from('market_queue').select('id, amount, status, ticker').limit(1000),
+        supabaseAdmin.from('llm_mappings').select('confidence').not('confidence', 'is', null).limit(5000),
+        supabaseAdmin.from('transactions').select('round_up').gt('round_up', 0).limit(5000),
+      ]);
 
-        const txCount = txResult.count ?? (txResult.data?.length ?? 0);
-        setTransactionsToday(txCount);
+      const allTxCount = txCountResult.count ?? 0;
+      const todayCount = txTodayResult.count ?? 0;
+      const pendingCount = txPendingResult.count ?? 0;
+      const completedCount = txCompletedResult.count ?? 0;
+      const failedCount = txFailedResult.count ?? 0;
+      const withTickerCount = txWithTickerResult.count ?? 0;
+      const withRoundupCount = txWithRoundupResult.count ?? 0;
+      const dbMappings = mappingDbResult.count ?? 0;
+      const dbApproved = mappingApprovedResult.count ?? 0;
+      const aiCalls = aiCallsResult.count ?? 0;
+      const aiErrors = aiErrorsResult.count ?? 0;
 
-        const aiData = (aiResult.data ?? []) as { processing_time_ms: number | null; is_error: boolean }[];
-        const withTime = aiData.filter((r) => r.processing_time_ms !== null);
-        const avgTime = withTime.length > 0
-          ? Math.round(withTime.reduce((acc, r) => acc + (r.processing_time_ms ?? 0), 0) / withTime.length)
-          : 0;
-        setAvgProcessingTime(avgTime);
+      // Calculate totals from sampled data
+      const confRows = (confSample.data ?? []) as { confidence: number }[];
+      const avgConf = confRows.length > 0
+        ? confRows.reduce((s, r) => s + Number(r.confidence || 0), 0) / confRows.length
+        : 0;
 
-        const errorCount = aiData.filter((r) => r.is_error).length;
-        const healthPct = aiData.length > 0 ? (aiData.length - errorCount) / aiData.length : 1;
-        setPipelineHealth(healthPct);
+      const roundupRows = (roundupSample.data ?? []) as { round_up: number }[];
+      const sampledRoundupTotal = roundupRows.reduce((s, r) => s + Number(r.round_up || 0), 0);
+      // Extrapolate if sample was capped
+      const estimatedRoundupTotal = roundupRows.length === 5000 && withRoundupCount > 5000
+        ? (sampledRoundupTotal / roundupRows.length) * withRoundupCount
+        : sampledRoundupTotal;
 
-        const mapData = (mapResult.data ?? []) as { status: string; admin_approved: boolean | null }[];
-        const approvedAuto = mapData.filter((m) => m.status === 'approved').length;
-        const autoRate = mapData.length > 0 ? approvedAuto / mapData.length : 0;
-        setAutoApprovalRate(autoRate);
+      const ledgerData = (ledgerResult.data ?? []) as { id: number; round_up_amount: number; status: string; fee_amount: number }[];
+      const ledgerPending = ledgerData.filter((l) => l.status === 'pending');
+      const ledgerPendingAmt = ledgerPending.reduce((s, l) => s + Number(l.round_up_amount || 0), 0);
+      const ledgerSwept = ledgerData.filter((l) => l.status !== 'pending');
+      const ledgerSweptAmt = ledgerSwept.reduce((s, l) => s + Number(l.round_up_amount || 0), 0);
 
-        // Determine stage statuses
-        const stageList: PipelineStage[] = [
-          {
-            step: 1,
-            title: 'Bank Sync',
-            description: 'Plaid pulls new transactions from linked bank accounts in real-time.',
-            status: txCount > 0 ? 'healthy' : 'idle',
-          },
-          {
-            step: 2,
-            title: 'Event Detection',
-            description: 'Round-up amounts are calculated and new spending events are queued for processing.',
-            status: txCount > 0 ? 'healthy' : 'idle',
-          },
-          {
-            step: 3,
-            title: 'LLM Processing',
-            description: 'Merchant names are sent to the LLM to determine the best matching stock ticker.',
-            status: aiData.length > 0
-              ? (errorCount / Math.max(aiData.length, 1) > 0.2 ? 'warning' : 'healthy')
-              : 'idle',
-          },
-          {
-            step: 4,
-            title: 'Ticker Assignment',
-            description: 'The AI-selected ticker is validated and assigned to the transaction mapping.',
-            status: mapData.length > 0
-              ? (mapData.filter((m) => m.status === 'pending').length / Math.max(mapData.length, 1) > 0.5 ? 'warning' : 'healthy')
-              : 'idle',
-          },
-          {
-            step: 5,
-            title: 'Investment Ready',
-            description: 'Approved mappings are queued for fractional share purchases via the brokerage API.',
-            status: approvedAuto > 0 ? 'healthy' : 'idle',
-          },
-        ];
-        setStages(stageList);
-      } catch (err) {
-        console.error('FlowContent fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
+      const queueData = (queueResult.data ?? []) as { id: number; amount: number; status: string; ticker: string }[];
+      const queuedOrders = queueData.filter((q) => q.status === 'queued');
+      const queuedAmount = queuedOrders.reduce((s, q) => s + Number(q.amount || 0), 0);
+      const executedOrders = queueData.filter((q) => q.status !== 'queued');
+      const executedAmount = executedOrders.reduce((s, q) => s + Number(q.amount || 0), 0);
+      const uniqueTickers = new Set(queueData.map((q) => q.ticker)).size;
+
+      // Unmatched = transactions without a ticker that are completed (went through LLM but no match)
+      const unmatchedCount = completedCount - withTickerCount;
+      const rate = completedCount > 0 ? withTickerCount / completedCount : (dbApproved > 0 ? 1 : 0);
+
+      // Set KPIs
+      setTotalTx(allTxCount);
+      setTotalRoundUps(estimatedRoundupTotal);
+      setMatchRate(rate);
+      setMappingDbSize(dbMappings);
+      setAvgConfidence(avgConf);
+      setInvestmentQueued(queuedAmount + executedAmount);
+
+      // Build pipeline stages showing how a TRANSACTION flows through the system
+      const stageList: FlowStage[] = [
+        {
+          step: 1,
+          title: 'Transaction Ingestion',
+          description: 'User purchases detected via Plaid bank sync. New transactions arrive here.',
+          status: allTxCount > 0 ? 'active' : 'idle',
+          mainValue: formatNumber(allTxCount),
+          mainLabel: 'Total Transactions',
+          secondaryValue: formatNumber(todayCount),
+          secondaryLabel: 'Today',
+          metrics: [
+            { label: 'Pending', value: formatNumber(pendingCount) },
+            { label: 'Completed', value: formatNumber(completedCount) },
+            { label: 'Failed', value: formatNumber(failedCount) },
+          ],
+          color: '#7C3AED',
+        },
+        {
+          step: 2,
+          title: 'Round-Up Calculation',
+          description: 'Each transaction receives the user\'s selected fixed round-up amount ($1, $2, $3, etc.) as a micro-investment.',
+          status: withRoundupCount > 0 ? 'active' : 'idle',
+          mainValue: formatNumber(withRoundupCount),
+          mainLabel: 'Transactions with Round-Ups',
+          secondaryValue: `$${estimatedRoundupTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          secondaryLabel: 'Total Round-Up Value',
+          metrics: [
+            { label: 'Ledger Pending', value: `${formatNumber(ledgerPending.length)} ($${ledgerPendingAmt.toFixed(2)})` },
+            { label: 'Ledger Swept', value: `${formatNumber(ledgerSwept.length)} ($${ledgerSweptAmt.toFixed(2)})` },
+          ],
+          color: '#3B82F6',
+        },
+        {
+          step: 3,
+          title: 'LLM Merchant Matching',
+          description: 'AI analyzes the merchant name from each transaction and looks up the mapping database to find the best stock ticker match.',
+          status: aiCalls > 0
+            ? (aiErrors / Math.max(aiCalls, 1) > 0.2 ? 'warning' : 'active')
+            : (dbMappings > 0 ? 'active' : 'idle'),
+          mainValue: formatNumber(dbMappings),
+          mainLabel: 'Mapping Database Size',
+          secondaryValue: formatNumber(aiCalls),
+          secondaryLabel: 'AI API Calls Made',
+          metrics: [
+            { label: 'Approved Mappings', value: formatNumber(dbApproved) },
+            { label: 'AI Errors', value: formatNumber(aiErrors) },
+            { label: 'Avg Confidence', value: formatPercent(avgConf) },
+          ],
+          color: '#8B5CF6',
+        },
+        {
+          step: 4,
+          title: 'Match Result',
+          description: 'Transactions matched to a ticker are approved and continue to investment. Unmatched transactions are flagged for manual review or rejected.',
+          status: withTickerCount > 0 ? 'active' : 'idle',
+          mainValue: formatNumber(withTickerCount),
+          mainLabel: 'Matched Transactions',
+          secondaryValue: formatNumber(Math.max(0, unmatchedCount)),
+          secondaryLabel: 'Unmatched / Rejected',
+          metrics: [
+            { label: 'Match Rate', value: formatPercent(rate) },
+            { label: 'Ticker Assigned', value: formatNumber(withTickerCount) },
+            { label: 'Pending Review', value: formatNumber(pendingCount) },
+          ],
+          color: '#06B6D4',
+        },
+        {
+          step: 5,
+          title: 'Investment Queue',
+          description: 'Approved round-ups with matched tickers are queued for fractional share purchases on the brokerage.',
+          status: queueData.length > 0 ? 'active' : 'idle',
+          mainValue: formatNumber(queueData.length),
+          mainLabel: 'Total Orders',
+          secondaryValue: `$${(queuedAmount + executedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          secondaryLabel: 'Total Queue Value',
+          metrics: [
+            { label: 'Queued', value: `${formatNumber(queuedOrders.length)} ($${queuedAmount.toFixed(2)})` },
+            { label: 'Executed', value: `${formatNumber(executedOrders.length)} ($${executedAmount.toFixed(2)})` },
+            { label: 'Unique Tickers', value: formatNumber(uniqueTickers) },
+          ],
+          color: '#10B981',
+        },
+      ];
+      setStages(stageList);
+    } catch (err) {
+      console.error('FlowContent fetch error:', err);
+    } finally {
+      setLoading(false);
     }
-    fetchData();
   }, []);
 
-  const statusColor = (status: PipelineStage['status']): string => {
-    switch (status) {
-      case 'healthy': return '#34D399';
-      case 'warning': return '#FBBF24';
-      case 'error': return '#EF4444';
-      case 'idle': return 'var(--text-muted)';
+  const handleReprocess = useCallback(async () => {
+    setReprocessing(true);
+    setReprocessResult(null);
+    try {
+      const result = await reprocessFailedTransactions();
+      if (result.total === 0) {
+        setReprocessResult('No failed transactions to reprocess');
+      } else {
+        setReprocessResult(`Reprocessed ${result.total}: ${result.matched} matched, ${result.failed} still failed`);
+      }
+      fetchData();
+    } catch (err) {
+      console.error('Reprocess error:', err);
+      setReprocessResult('Reprocess failed');
+    } finally {
+      setReprocessing(false);
+      setTimeout(() => setReprocessResult(null), 6000);
     }
-  };
+  }, [fetchData]);
 
-  const statusLabel = (status: PipelineStage['status']): string => {
-    switch (status) {
-      case 'healthy': return 'Healthy';
-      case 'warning': return 'Warning';
-      case 'error': return 'Error';
-      case 'idle': return 'Idle';
-    }
-  };
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 30_000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   if (loading) {
-    return <LoadingSpinner message="Loading pipeline flow..." />;
+    return <LoadingSpinner message="Loading transaction pipeline..." />;
   }
 
   const leftStages = stages.slice(0, 2);
   const rightStages = stages.slice(2, 5);
 
-  const renderStageCard = (stage: PipelineStage) => (
+  const renderStageCard = (stage: FlowStage) => (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '16px',
         padding: '20px',
         background: 'var(--surface-input)',
-        border: `1px solid ${statusColor(stage.status)}33`,
+        border: `1px solid ${stage.color}33`,
         borderRadius: '12px',
-        position: 'relative',
+        borderLeft: `4px solid ${stage.color}`,
       }}
     >
-      {/* Step number circle */}
-      <div
-        style={{
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          background: `${statusColor(stage.status)}22`,
-          border: `2px solid ${statusColor(stage.status)}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <span
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+        <div
           style={{
-            fontSize: '16px',
-            fontWeight: 700,
-            color: statusColor(stage.status),
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            background: `${stage.color}22`,
+            border: `2px solid ${stage.color}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
           }}
         >
-          {stage.step}
-        </span>
+          <span style={{ fontSize: '14px', fontWeight: 700, color: stage.color }}>{stage.step}</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{stage.title}</p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{stage.description}</p>
+        </div>
+        <Badge variant={stage.status === 'active' ? 'success' : stage.status === 'warning' ? 'warning' : 'default'}>
+          {stage.status === 'active' ? 'Active' : stage.status === 'warning' ? 'Warning' : 'No Data'}
+        </Badge>
       </div>
 
-      {/* Text */}
-      <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {stage.title}
-          </p>
-          <Badge
-            variant={
-              stage.status === 'healthy'
-                ? 'success'
-                : stage.status === 'warning'
-                  ? 'warning'
-                  : stage.status === 'error'
-                    ? 'error'
-                    : 'default'
-            }
-          >
-            {statusLabel(stage.status)}
-          </Badge>
+      {/* Main metrics */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '16px',
+          padding: '12px 16px',
+          background: `${stage.color}0A`,
+          borderRadius: '8px',
+          marginBottom: '12px',
+        }}
+      >
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <p style={{ fontSize: '22px', fontWeight: 700, color: stage.color }}>{stage.mainValue}</p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{stage.mainLabel}</p>
         </div>
-        <p
-          style={{
-            fontSize: '13px',
-            color: 'var(--text-muted)',
-            marginTop: '6px',
-            lineHeight: '1.5',
-          }}
-        >
-          {stage.description}
-        </p>
+        {stage.secondaryValue && (
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <p style={{ fontSize: '22px', fontWeight: 700, color: stage.color }}>{stage.secondaryValue}</p>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{stage.secondaryLabel}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Sub-metrics */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {stage.metrics.map((m) => (
+          <div
+            key={m.label}
+            style={{
+              padding: '6px 12px',
+              background: 'var(--surface-card)',
+              border: '1px solid var(--border-divider)',
+              borderRadius: '6px',
+              fontSize: '12px',
+            }}
+          >
+            <span style={{ color: 'var(--text-muted)' }}>{m.label}: </span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.value}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 
-  const renderVerticalConnector = () => (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '4px 0',
-      }}
-    >
+  const renderConnector = () => (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
       <div
         style={{
           width: '2px',
@@ -1769,8 +2885,8 @@ function FlowContent() {
             bottom: '-4px',
             left: '50%',
             transform: 'translateX(-50%)',
-            width: '0',
-            height: '0',
+            width: 0,
+            height: 0,
             borderLeft: '5px solid transparent',
             borderRight: '5px solid transparent',
             borderTop: '6px solid rgba(59,130,246,0.5)',
@@ -1782,29 +2898,81 @@ function FlowContent() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* KPI Cards */}
-      <KpiGrid>
-        <KpiCard label="Transactions Today" value={formatNumber(transactionsToday)} accent="purple" />
-        <KpiCard label="Avg Processing Time" value={`${formatNumber(avgProcessingTime)}ms`} accent="blue" />
-        <KpiCard label="Pipeline Health" value={formatPercent(pipelineHealth)} accent="teal" />
-        <KpiCard label="Auto-Approval Rate" value={formatPercent(autoApprovalRate)} accent="pink" />
-      </KpiGrid>
+      {/* Live status bar */}
+      <div
+        style={{
+          padding: '12px 20px',
+          background: 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(59,130,246,0.08))',
+          border: '1px solid rgba(124,58,237,0.15)',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#34D399',
+            boxShadow: '0 0 6px #34D399',
+          }}
+        />
+        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+          Transaction Processing Pipeline
+        </span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          Auto-refreshing every 30s
+        </span>
+        <div style={{ flex: 1 }} />
+        {reprocessResult && (
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#34D399' }}>{reprocessResult}</span>
+        )}
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleReprocess}
+          disabled={reprocessing}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10" />
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+          </svg>
+          {reprocessing ? 'Reprocessing...' : 'Reprocess Failed'}
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => { setLoading(true); fetchData(); }}>
+          Refresh Now
+        </Button>
+      </div>
 
-      {/* Pipeline Flow Visualization - 2 Column Layout */}
+      {/* KPI Cards — single row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+        <KpiCard label="Total Transactions" value={formatNumber(totalTx)} accent="purple" />
+        <KpiCard label="Total Round-Ups" value={`$${totalRoundUps.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} accent="blue" />
+        <KpiCard label="Match Rate" value={formatPercent(matchRate)} accent="teal" />
+        <KpiCard label="Mapping DB" value={formatNumber(mappingDbSize)} accent="purple" />
+        <KpiCard label="Investment Queued" value={`$${investmentQueued.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} accent="teal" />
+      </div>
+
+      {/* Pipeline 2-Column Layout */}
       <GlassCard accent="purple">
-        <SectionTitle>Transaction Processing Pipeline</SectionTitle>
+        <SectionTitle>How a Transaction Flows Through the System</SectionTitle>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '20px' }}>
+          Each user purchase goes through this pipeline: ingestion, round-up calculation, AI merchant matching against the {formatNumber(mappingDbSize)}-row mapping database, approval, and finally investment execution.
+        </p>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr auto 1fr',
             gap: '0',
-            marginTop: '20px',
             alignItems: 'stretch',
           }}
         >
-          {/* Left Column: Data Ingestion */}
+          {/* Left: Ingestion & Round-Up */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {/* Column Header */}
             <div
               style={{
                 padding: '16px 20px',
@@ -1814,43 +2982,22 @@ function FlowContent() {
                 marginBottom: '16px',
               }}
             >
-              <p style={{ fontSize: '16px', fontWeight: 700, color: '#C4B5FD' }}>
-                Data Ingestion
-              </p>
-              <p style={{ fontSize: '12px', color: 'rgba(196,181,253,0.5)', marginTop: '4px' }}>
-                Transaction capture and event detection
-              </p>
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#C4B5FD' }}>Data Ingestion</p>
+              <p style={{ fontSize: '12px', color: 'rgba(196,181,253,0.5)', marginTop: '4px' }}>Transaction capture and round-up detection</p>
             </div>
-
-            {/* Left Column Stages */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: 1 }}>
               {leftStages.map((stage, idx) => (
                 <div key={stage.step}>
                   {renderStageCard(stage)}
-                  {idx < leftStages.length - 1 && renderVerticalConnector()}
+                  {idx < leftStages.length - 1 && renderConnector()}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Center: Horizontal Flow Connector */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 12px',
-              minWidth: '80px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
+          {/* Center connector */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px', minWidth: '80px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
               <div
                 style={{
                   height: '2px',
@@ -1865,32 +3012,22 @@ function FlowContent() {
                     right: '-5px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    width: '0',
-                    height: '0',
+                    width: 0,
+                    height: 0,
                     borderTop: '6px solid transparent',
                     borderBottom: '6px solid transparent',
                     borderLeft: '8px solid rgba(59,130,246,0.5)',
                   }}
                 />
               </div>
-              <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  color: 'rgba(148,163,184,0.6)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(148,163,184,0.6)', textTransform: 'uppercase', letterSpacing: '1px', whiteSpace: 'nowrap' }}>
                 Flow
               </span>
             </div>
           </div>
 
-          {/* Right Column: AI Processing & Execution */}
+          {/* Right: AI Processing, Matching, Investment */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {/* Column Header */}
             <div
               style={{
                 padding: '16px 20px',
@@ -1900,20 +3037,14 @@ function FlowContent() {
                 marginBottom: '16px',
               }}
             >
-              <p style={{ fontSize: '16px', fontWeight: 700, color: '#93C5FD' }}>
-                AI Processing & Execution
-              </p>
-              <p style={{ fontSize: '12px', color: 'rgba(147,197,253,0.5)', marginTop: '4px' }}>
-                LLM analysis, ticker mapping, and investment routing
-              </p>
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#93C5FD' }}>AI Processing & Execution</p>
+              <p style={{ fontSize: '12px', color: 'rgba(147,197,253,0.5)', marginTop: '4px' }}>Merchant matching, approval, and investment routing</p>
             </div>
-
-            {/* Right Column Stages */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: 1 }}>
               {rightStages.map((stage, idx) => (
                 <div key={stage.step}>
                   {renderStageCard(stage)}
-                  {idx < rightStages.length - 1 && renderVerticalConnector()}
+                  {idx < rightStages.length - 1 && renderConnector()}
                 </div>
               ))}
             </div>
@@ -1929,254 +3060,23 @@ function FlowContent() {
 /* ========================================================================== */
 
 function ReceiptMappingsContent() {
-  const [loading, setLoading] = useState(true);
-  const [receiptRows, setReceiptRows] = useState<ReceiptMappingRow[]>([]);
-  const [statusFilter, setStatusFilter] = useState<ReceiptStatusFilter>('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [txResult, mapResult] = await Promise.all([
-          supabase.from('transactions').select('id, date, merchant, amount, round_up, ticker, created_at').order('created_at', { ascending: false }),
-          supabase.from('llm_mappings').select('transaction_id, ticker, confidence, status'),
-        ]);
-
-        const transactions = (txResult.data ?? []) as {
-          id: number;
-          date: string;
-          merchant: string;
-          amount: number;
-          round_up: number;
-          ticker: string | null;
-          created_at: string;
-        }[];
-
-        const mappingsByTxId = new Map<string, { ticker: string | null; confidence: number | null; status: string }>();
-        for (const m of (mapResult.data ?? []) as { transaction_id: string | null; ticker: string | null; confidence: number | null; status: string }[]) {
-          if (m.transaction_id) {
-            mappingsByTxId.set(String(m.transaction_id), {
-              ticker: m.ticker,
-              confidence: m.confidence,
-              status: m.status,
-            });
-          }
-        }
-
-        const rows: ReceiptMappingRow[] = transactions.map((tx) => {
-          const mapping = mappingsByTxId.get(String(tx.id));
-          return {
-            transaction_id: tx.id,
-            date: tx.date ?? tx.created_at,
-            merchant: tx.merchant,
-            amount: tx.amount,
-            round_up: tx.round_up ?? 0,
-            mapped_ticker: mapping?.ticker ?? tx.ticker ?? null,
-            confidence: mapping?.confidence ?? null,
-            mapping_status: mapping ? mapping.status : (tx.ticker ? 'auto' : 'unmapped'),
-          };
-        });
-
-        setReceiptRows(rows);
-      } catch (err) {
-        console.error('ReceiptMappingsContent fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
-
-  const filteredRows = useMemo(() => {
-    let result = receiptRows;
-    if (statusFilter === 'mapped') {
-      result = result.filter((r) => r.mapped_ticker !== null);
-    } else if (statusFilter === 'unmapped') {
-      result = result.filter((r) => r.mapped_ticker === null);
-    }
-    if (dateFrom) {
-      result = result.filter((r) => r.date >= dateFrom);
-    }
-    if (dateTo) {
-      result = result.filter((r) => r.date <= dateTo);
-    }
-    return result;
-  }, [receiptRows, statusFilter, dateFrom, dateTo]);
-
-  /* KPI computations */
-  const totalReceipts = receiptRows.length;
-  const mappedCount = useMemo(() => receiptRows.filter((r) => r.mapped_ticker !== null).length, [receiptRows]);
-  const unmappedCount = totalReceipts - mappedCount;
-  const mappedThisMonth = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    return receiptRows.filter((r) => r.mapped_ticker !== null && r.date >= monthStart).length;
-  }, [receiptRows]);
-  const avgConfidence = useMemo(() => {
-    const withConf = receiptRows.filter((r) => r.confidence !== null);
-    if (withConf.length === 0) return 0;
-    return withConf.reduce((acc, r) => acc + (r.confidence ?? 0), 0) / withConf.length;
-  }, [receiptRows]);
-
-  const columns: Column<ReceiptMappingRow>[] = useMemo(
-    () => [
-      {
-        key: 'transaction_id',
-        header: 'Tx ID',
-        sortable: true,
-        width: '80px',
-        align: 'right',
-      },
-      {
-        key: 'date',
-        header: 'Date',
-        sortable: true,
-        width: '120px',
-        render: (row) => formatDate(row.date),
-      },
-      { key: 'merchant', header: 'Merchant', sortable: true },
-      {
-        key: 'amount',
-        header: 'Amount',
-        sortable: true,
-        width: '100px',
-        align: 'right',
-        render: (row) => `$${row.amount.toFixed(2)}`,
-      },
-      {
-        key: 'round_up',
-        header: 'Round-Up',
-        sortable: true,
-        width: '100px',
-        align: 'right',
-        render: (row) => `$${row.round_up.toFixed(2)}`,
-      },
-      {
-        key: 'mapped_ticker',
-        header: 'Mapped Ticker',
-        sortable: true,
-        width: '130px',
-        render: (row) => (
-          <span style={{ color: row.mapped_ticker ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: row.mapped_ticker ? 600 : 400 }}>
-            {row.mapped_ticker ?? '--'}
-          </span>
-        ),
-      },
-      {
-        key: 'confidence',
-        header: 'Confidence',
-        sortable: true,
-        width: '120px',
-        align: 'right',
-        render: (row) => <ConfidenceBadge confidence={row.confidence} />,
-      },
-      {
-        key: 'mapping_status',
-        header: 'Status',
-        sortable: true,
-        width: '120px',
-        render: (row) => {
-          const variant = row.mapping_status === 'approved'
-            ? 'success'
-            : row.mapping_status === 'unmapped'
-              ? 'error'
-              : row.mapping_status === 'auto'
-                ? 'info'
-                : row.mapping_status === 'pending'
-                  ? 'warning'
-                  : 'default';
-          return (
-            <Badge variant={variant}>
-              {row.mapping_status.charAt(0).toUpperCase() + row.mapping_status.slice(1)}
-            </Badge>
-          );
-        },
-      },
-    ],
-    [],
-  );
-
-  const filterPills: { label: string; value: ReceiptStatusFilter }[] = [
-    { label: 'All', value: 'all' },
-    { label: 'Mapped', value: 'mapped' },
-    { label: 'Unmapped', value: 'unmapped' },
-  ];
-
-  if (loading) {
-    return <LoadingSpinner message="Loading receipt mappings..." />;
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* KPI Cards */}
-      <KpiGrid>
-        <KpiCard label="Total Receipt Mappings" value={formatNumber(totalReceipts)} accent="purple" />
-        <KpiCard label="Mapped This Month" value={formatNumber(mappedThisMonth)} accent="teal" />
-        <KpiCard label="Unmapped" value={formatNumber(unmappedCount)} accent="pink" />
-        <KpiCard label="Avg Confidence" value={formatPercent(avgConfidence)} accent="blue" />
-      </KpiGrid>
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {filterPills.map((pill) => (
-            <button
-              key={pill.value}
-              onClick={() => setStatusFilter(pill.value)}
-              style={{
-                fontFamily: 'inherit',
-                fontSize: '13px',
-                fontWeight: 600,
-                padding: '8px 18px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor:
-                  statusFilter === pill.value
-                    ? 'rgba(124,58,237,0.6)'
-                    : 'var(--border-subtle)',
-                background:
-                  statusFilter === pill.value
-                    ? 'rgba(124,58,237,0.2)'
-                    : 'var(--surface-input)',
-                color:
-                  statusFilter === pill.value ? '#C4B5FD' : 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'all 200ms ease',
-              }}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Input
-            type="date"
-            placeholder="From"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-          />
-          <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>to</span>
-          <Input
-            type="date"
-            placeholder="To"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-          />
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '16px' }}>
+      <div style={{
+        width: '64px', height: '64px', borderRadius: '16px',
+        background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '28px',
+      }}>
+        <span role="img" aria-label="receipt">R</span>
       </div>
-
-      {/* Table */}
-      <GlassCard accent="blue" padding="0">
-        <Table<ReceiptMappingRow>
-          columns={columns}
-          data={filteredRows}
-          loading={false}
-          emptyMessage="No receipt mappings found"
-          pageSize={20}
-          rowKey={(row) => row.transaction_id}
-        />
-      </GlassCard>
+      <p style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+        Receipt Mappings
+      </p>
+      <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, textAlign: 'center', maxWidth: '440px', lineHeight: '1.6' }}>
+        This feature allows users to upload receipt images which are then OCR-processed to extract merchant names, amounts, and dates. The extracted data is automatically mapped to stock tickers using the AI mapping pipeline. This feature is not yet implemented.
+      </p>
+      <Badge variant="warning">Coming Soon</Badge>
     </div>
   );
 }
@@ -2200,10 +3100,12 @@ function LlmDataAssetsContent() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const result = await supabase
+        // Fetch recent mappings (limited to 500 for performance)
+        const result = await supabaseAdmin
           .from('llm_mappings')
           .select('merchant_name, ticker, category, confidence, status, admin_approved, created_at')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
 
         const mappings = (result.data ?? []) as {
           merchant_name: string;
@@ -2299,7 +3201,7 @@ function LlmDataAssetsContent() {
           catMap.set(cat, (catMap.get(cat) ?? 0) + 1);
         }
         const catData: CategoryCountPoint[] = Array.from(catMap.entries())
-          .map(([name, count]) => ({ name, count }))
+          .map(([name, count]) => ({ name: formatCategory(name), count }))
           .sort((a, b) => b.count - a.count);
         setCategoryData(catData);
 
@@ -2351,7 +3253,17 @@ function LlmDataAssetsContent() {
 
   const columns: Column<MerchantAssetRow>[] = useMemo(
     () => [
-      { key: 'merchant_name', header: 'Merchant', sortable: true },
+      {
+        key: 'merchant_name',
+        header: 'Merchant',
+        sortable: true,
+        render: (row) => (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CompanyLogo name={COMPANY_LOOKUP[row.merchant_name] ? row.merchant_name : (row.primary_ticker ?? '')} size={20} />
+            {row.merchant_name}
+          </span>
+        ),
+      },
       {
         key: 'primary_ticker',
         header: 'Primary Ticker',
@@ -2498,11 +3410,6 @@ export function AiCenterTab() {
         key: 'pending',
         label: 'Pending Mappings',
         content: <PendingMappingsContent />,
-      },
-      {
-        key: 'all',
-        label: 'All Mappings',
-        content: <AllMappingsContent />,
       },
       {
         key: 'ml-dashboard',

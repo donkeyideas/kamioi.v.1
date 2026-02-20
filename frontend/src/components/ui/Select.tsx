@@ -1,4 +1,4 @@
-import { forwardRef, useState, type SelectHTMLAttributes } from 'react';
+import { forwardRef, useState, useId, type SelectHTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 
 export interface SelectOption {
@@ -58,14 +58,20 @@ const errorTextStyle: React.CSSProperties = {
 };
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, options, placeholder, className, style, ...rest }, ref) => {
+  ({ label, error, options, placeholder, className, style, id: propId, ...rest }, ref) => {
+    const generatedId = useId();
+    const selectId = propId || generatedId;
+    const errorId = `${selectId}-error`;
     const [focused, setFocused] = useState(false);
 
     return (
       <div className={clsx('aurora-select-wrapper', className)}>
-        {label && <label style={labelStyle}>{label}</label>}
+        {label && <label htmlFor={selectId} style={labelStyle}>{label}</label>}
         <select
           ref={ref}
+          id={selectId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           style={{
             ...baseStyle,
             ...(focused ? focusStyle : {}),
@@ -101,7 +107,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {error && <p style={errorTextStyle}>{error}</p>}
+        {error && <p id={errorId} role="alert" style={errorTextStyle}>{error}</p>}
       </div>
     );
   },

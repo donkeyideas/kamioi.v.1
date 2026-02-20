@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Input, Select, Modal } from '@/components/ui';
 import type { Column, SelectOption } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
@@ -199,10 +199,11 @@ export function UserManagementTab() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('users')
           .select('id, auth_id, name, email, account_type, city, state, zip_code, phone, round_up_amount, subscription_tier, subscription_status, created_at, updated_at')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
 
         if (error) {
           console.error('UserManagementTab fetch error:', error.message);

@@ -1,7 +1,7 @@
-import { useEffect, useCallback, type ReactNode } from 'react';
+import { useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { clsx } from 'clsx';
 
-type ModalSize = 'sm' | 'md' | 'lg';
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ModalProps {
   open: boolean;
@@ -16,6 +16,7 @@ const sizeMaxWidths: Record<ModalSize, string> = {
   sm: '420px',
   md: '560px',
   lg: '720px',
+  xl: '960px',
 };
 
 const backdropStyle: React.CSSProperties = {
@@ -47,10 +48,10 @@ const panelStyle: React.CSSProperties = {
 
 const closeBtnStyle: React.CSSProperties = {
   position: 'absolute',
-  top: '16px',
-  right: '16px',
-  width: '32px',
-  height: '32px',
+  top: '12px',
+  right: '12px',
+  width: '44px',
+  height: '44px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -71,8 +72,11 @@ const titleStyle: React.CSSProperties = {
   fontWeight: 700,
   color: 'var(--text-primary)',
   marginBottom: '16px',
-  paddingRight: '40px',
+  paddingRight: '52px',
 };
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Modal({
   open,
@@ -82,9 +86,55 @@ export function Modal({
   size = 'md',
   className,
 }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  // Store previously focused element and manage focus
+  useEffect(() => {
+    if (!open) return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    document.body.style.overflow = 'hidden';
+
+    // Focus first focusable element after render
+    const timer = setTimeout(() => {
+      if (panelRef.current) {
+        const first = panelRef.current.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+        first?.focus();
+      }
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      document.body.style.overflow = '';
+      // Restore focus to previously focused element
+      previousFocusRef.current?.focus();
+    };
+  }, [open]);
+
+  // Keyboard handler: Escape to close + focus trap
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusableElements = panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusableElements.length === 0) return;
+
+        const first = focusableElements[0];
+        const last = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     },
     [onClose],
   );
@@ -92,11 +142,9 @@ export function Modal({
   useEffect(() => {
     if (open) {
       document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
     }
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
     };
   }, [open, handleKeyDown]);
 
@@ -109,8 +157,11 @@ export function Modal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {/* Top light line */}
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'aurora-modal-title' : undefined}
         className={clsx('aurora-modal-panel', className)}
         style={{
           ...panelStyle,
@@ -150,7 +201,7 @@ export function Modal({
           &#x2715;
         </button>
 
-        {title && <h2 style={titleStyle}>{title}</h2>}
+        {title && <h2 id="aurora-modal-title" style={titleStyle}>{title}</h2>}
         {children}
       </div>
     </div>

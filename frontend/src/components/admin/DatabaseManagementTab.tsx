@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Select, Modal } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 
@@ -162,7 +162,7 @@ function TablesContent() {
       const results = await Promise.all(
         KNOWN_TABLES.map(async (tableName) => {
           try {
-            const { count, error } = await supabase
+            const { count, error } = await supabaseAdmin
               .from(tableName)
               .select('*', { count: 'exact', head: true });
 
@@ -356,18 +356,18 @@ function DataQualityContent() {
 
     try {
       const [usersResult, txResult, subsResult, mappingsResult] = await Promise.all([
-        supabase
+        supabaseAdmin
           .from('users')
           .select('id', { count: 'exact', head: true })
           .is('email', null),
-        supabase
+        supabaseAdmin
           .from('transactions')
           .select('id', { count: 'exact', head: true })
           .is('merchant', null),
-        supabase
+        supabaseAdmin
           .from('user_subscriptions')
           .select('id', { count: 'exact', head: true }),
-        supabase
+        supabaseAdmin
           .from('llm_mappings')
           .select('id', { count: 'exact', head: true })
           .is('ticker', null),
@@ -526,10 +526,11 @@ function MaintenanceContent() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('admin_settings')
           .select('*')
-          .order('setting_key', { ascending: true });
+          .order('setting_key', { ascending: true })
+          .limit(100);
 
         if (error) {
           setSettings([]);
@@ -553,7 +554,7 @@ function MaintenanceContent() {
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('system_events')
         .delete()
         .lt('created_at', ninetyDaysAgo.toISOString());
@@ -729,7 +730,7 @@ function SecurityContent() {
   useEffect(() => {
     async function fetchAuditEvents() {
       try {
-        const { data } = await supabase
+        const { data } = await supabaseAdmin
           .from('system_events')
           .select('*')
           .order('created_at', { ascending: false })

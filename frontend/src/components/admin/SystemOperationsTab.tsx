@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 import type { Database } from '@/types/database';
@@ -122,10 +122,11 @@ function useAdminSettings(filterType?: string) {
 
   const fetchSettings = useCallback(async () => {
     try {
-      let query = supabase
+      let query = supabaseAdmin
         .from('admin_settings')
         .select('*')
-        .order('setting_key', { ascending: true });
+        .order('setting_key', { ascending: true })
+        .limit(500);
 
       if (filterType) {
         query = query.eq('setting_type', filterType);
@@ -212,7 +213,7 @@ function SettingsContent() {
     try {
       const changed = drafts.filter((d) => d.setting_value !== d.original_value);
       for (const draft of changed) {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('admin_settings')
           .update({ setting_value: draft.setting_value })
           .eq('id', draft.id);
@@ -400,7 +401,7 @@ function BusinessInfoContent() {
     try {
       for (const [key, entry] of Object.entries(formValues)) {
         if (entry.id !== null) {
-          const { error } = await supabase
+          const { error } = await supabaseAdmin
             .from('admin_settings')
             .update({ setting_value: entry.value })
             .eq('id', entry.id);
@@ -515,7 +516,7 @@ function AccessControlsContent() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('admin_settings')
         .update({ setting_value: currentValue ? 'false' : 'true' })
         .eq('id', id);
@@ -545,7 +546,7 @@ function AccessControlsContent() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('admin_settings')
         .update({ setting_value: JSON.stringify(localAllowedTypes) })
         .eq('id', id);
@@ -688,7 +689,7 @@ function TwoFAManagementContent() {
     if (!twoFaSetting) return;
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('admin_settings')
         .update({ setting_value: is2FAEnabled ? 'false' : 'true' })
         .eq('id', twoFaSetting.id);
@@ -819,7 +820,7 @@ function SystemEventsContent() {
     async function fetchEvents() {
       try {
         // Total count
-        const { count: total, error: countErr } = await supabase
+        const { count: total, error: countErr } = await supabaseAdmin
           .from('system_events')
           .select('*', { count: 'exact', head: true });
 
@@ -832,7 +833,7 @@ function SystemEventsContent() {
         // Today count
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
-        const { count: today, error: todayErr } = await supabase
+        const { count: today, error: todayErr } = await supabaseAdmin
           .from('system_events')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', todayStart.toISOString());
@@ -844,7 +845,7 @@ function SystemEventsContent() {
         }
 
         // Fetch recent events
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('system_events')
           .select('*')
           .order('created_at', { ascending: false })
@@ -1088,7 +1089,7 @@ function ApiBalanceContent() {
   useEffect(() => {
     async function fetchBalance() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('api_balance')
           .select('*')
           .order('updated_at', { ascending: false })
@@ -1141,6 +1142,449 @@ function ApiBalanceContent() {
 }
 
 /* ------------------------------------------------------------------ */
+/*  API Keys Management tab                                            */
+/* ------------------------------------------------------------------ */
+
+interface ApiKeyConfig {
+  key: string;
+  label: string;
+  category: 'ai' | 'payments' | 'trading' | 'analytics' | 'auth' | 'other';
+  description: string;
+  isSecret?: boolean;
+}
+
+const API_KEY_DEFINITIONS: ApiKeyConfig[] = [
+  // AI
+  { key: 'deepseek_api_key', label: 'DeepSeek API Key', category: 'ai', description: 'AI merchant mapping & recommendations', isSecret: true },
+  // Payments
+  { key: 'stripe_secret_key', label: 'Stripe Secret Key', category: 'payments', description: 'Payment processing (live)', isSecret: true },
+  { key: 'stripe_publishable_key', label: 'Stripe Publishable Key', category: 'payments', description: 'Stripe client-side key' },
+  // Trading
+  { key: 'alpaca_api_key', label: 'Alpaca API Key', category: 'trading', description: 'Stock trading (sandbox)' },
+  { key: 'alpaca_api_secret', label: 'Alpaca API Secret', category: 'trading', description: 'Stock trading secret', isSecret: true },
+  // Analytics / Firebase
+  { key: 'firebase_api_key', label: 'Firebase API Key', category: 'analytics', description: 'Firebase client config' },
+  { key: 'firebase_auth_domain', label: 'Firebase Auth Domain', category: 'auth', description: 'Firebase authentication domain' },
+  { key: 'firebase_project_id', label: 'Firebase Project ID', category: 'analytics', description: 'Firebase project identifier' },
+  { key: 'firebase_storage_bucket', label: 'Firebase Storage Bucket', category: 'analytics', description: 'Firebase storage' },
+  { key: 'firebase_messaging_sender_id', label: 'Firebase Messaging Sender ID', category: 'analytics', description: 'Push notification sender' },
+  { key: 'firebase_app_id', label: 'Firebase App ID', category: 'analytics', description: 'Firebase app identifier' },
+  { key: 'firebase_measurement_id', label: 'Firebase Measurement ID', category: 'analytics', description: 'Google Analytics (GA4)' },
+];
+
+const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
+  ai: { label: 'AI', color: '#7C3AED' },
+  payments: { label: 'Payments', color: '#34D399' },
+  trading: { label: 'Trading', color: '#3B82F6' },
+  analytics: { label: 'Analytics', color: '#F59E0B' },
+  auth: { label: 'Auth', color: '#EC4899' },
+  other: { label: 'Other', color: 'var(--text-muted)' },
+};
+
+function maskValue(value: string): string {
+  if (!value || value.length < 8) return '••••••••';
+  return '••••••••' + value.slice(-4);
+}
+
+function ApiKeysContent() {
+  const { settings, loading, refetch } = useAdminSettings('api_key');
+  const [editing, setEditing] = useState<Record<string, string>>({});
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [addingKey, setAddingKey] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyValue, setNewKeyValue] = useState('');
+  const [newKeyDesc, setNewKeyDesc] = useState('');
+
+  function getStoredValue(settingKey: string): { id: number | null; value: string } {
+    const match = settings.find((s) => s.setting_key === settingKey);
+    return { id: match?.id ?? null, value: match?.setting_value ?? '' };
+  }
+
+  function startEditing(key: string, currentValue: string) {
+    setEditing((prev) => ({ ...prev, [key]: currentValue }));
+  }
+
+  function cancelEditing(key: string) {
+    setEditing((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function toggleReveal(key: string) {
+    setRevealed((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  async function saveKey(settingKey: string) {
+    const newValue = editing[settingKey];
+    if (newValue === undefined) return;
+
+    setSaving(settingKey);
+    try {
+      const stored = getStoredValue(settingKey);
+
+      if (stored.id !== null) {
+        // Update existing
+        await supabaseAdmin
+          .from('admin_settings')
+          .update({ setting_value: newValue } as any)
+          .eq('id', stored.id);
+      } else {
+        // Insert new
+        await supabaseAdmin
+          .from('admin_settings')
+          .insert({
+            setting_key: settingKey,
+            setting_value: newValue,
+            setting_type: 'api_key',
+            description: API_KEY_DEFINITIONS.find((d) => d.key === settingKey)?.description ?? '',
+          } as any);
+      }
+
+      cancelEditing(settingKey);
+      await refetch();
+    } catch (err) {
+      console.error(`Failed to save API key ${settingKey}:`, err);
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function addCustomKey() {
+    if (!newKeyName.trim() || !newKeyValue.trim()) return;
+    setSaving('__new__');
+    try {
+      await supabaseAdmin
+        .from('admin_settings')
+        .insert({
+          setting_key: newKeyName.trim().toLowerCase().replace(/\s+/g, '_'),
+          setting_value: newKeyValue.trim(),
+          setting_type: 'api_key',
+          description: newKeyDesc.trim() || null,
+        } as any);
+
+      setNewKeyName('');
+      setNewKeyValue('');
+      setNewKeyDesc('');
+      setAddingKey(false);
+      await refetch();
+    } catch (err) {
+      console.error('Failed to add custom API key:', err);
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function deleteKey(settingKey: string) {
+    const stored = getStoredValue(settingKey);
+    if (stored.id === null) return;
+
+    setSaving(settingKey);
+    try {
+      await supabaseAdmin
+        .from('admin_settings')
+        .delete()
+        .eq('id', stored.id);
+      await refetch();
+    } catch (err) {
+      console.error(`Failed to delete API key ${settingKey}:`, err);
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  const filteredKeys = filterCategory === 'all'
+    ? API_KEY_DEFINITIONS
+    : API_KEY_DEFINITIONS.filter((k) => k.category === filterCategory);
+
+  // Find custom keys (in settings but not in definitions)
+  const definedKeys = new Set(API_KEY_DEFINITIONS.map((d) => d.key));
+  const customKeys = settings.filter((s) => !definedKeys.has(s.setting_key));
+
+  const configuredCount = API_KEY_DEFINITIONS.filter((d) => getStoredValue(d.key).value).length + customKeys.length;
+
+  if (loading) {
+    return (
+      <GlassCard padding="28px">
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Loading API keys...</p>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* KPI summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <KpiCard label="Total Keys Defined" value={String(API_KEY_DEFINITIONS.length)} accent="purple" />
+        <KpiCard label="Keys Configured" value={String(configuredCount)} accent="teal" />
+        <KpiCard label="Custom Keys" value={String(customKeys.length)} accent="blue" />
+      </div>
+
+      {/* Category filter */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {[{ value: 'all', label: 'All' }, ...Object.entries(CATEGORY_LABELS).map(([k, v]) => ({ value: k, label: v.label }))].map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setFilterCategory(opt.value)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '20px',
+              border: '1px solid',
+              borderColor: filterCategory === opt.value ? '#7C3AED' : 'var(--border-subtle)',
+              background: filterCategory === opt.value ? 'rgba(124,58,237,0.15)' : 'transparent',
+              color: filterCategory === opt.value ? '#7C3AED' : 'var(--text-secondary)',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'all 200ms ease',
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* API Keys list */}
+      <GlassCard padding="24px">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            API Keys & Secrets
+          </h3>
+          <Button size="sm" onClick={() => setAddingKey(true)}>
+            + Add Custom Key
+          </Button>
+        </div>
+
+        {/* Add custom key form */}
+        {addingKey && (
+          <div style={{
+            padding: '16px',
+            marginBottom: '16px',
+            background: 'var(--surface-input)',
+            borderRadius: '12px',
+            border: '1px solid var(--border-subtle)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            <Input label="Key Name" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} placeholder="e.g. plaid_api_key" />
+            <Input label="Value" value={newKeyValue} onChange={(e) => setNewKeyValue(e.target.value)} placeholder="Enter key value" type="password" />
+            <Input label="Description (optional)" value={newKeyDesc} onChange={(e) => setNewKeyDesc(e.target.value)} placeholder="What is this key used for?" />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <Button variant="ghost" size="sm" onClick={() => { setAddingKey(false); setNewKeyName(''); setNewKeyValue(''); setNewKeyDesc(''); }}>Cancel</Button>
+              <Button size="sm" onClick={addCustomKey} loading={saving === '__new__'} disabled={!newKeyName.trim() || !newKeyValue.trim()}>Save Key</Button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {filteredKeys.map((keyDef) => {
+            const stored = getStoredValue(keyDef.key);
+            const isEditing = keyDef.key in editing;
+            const isRevealed = revealed[keyDef.key];
+            const isSaving = saving === keyDef.key;
+            const catInfo = CATEGORY_LABELS[keyDef.category];
+
+            return (
+              <div
+                key={keyDef.key}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '14px 0',
+                  borderBottom: '1px solid var(--border-divider)',
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {keyDef.label}
+                    </span>
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      background: `${catInfo.color}22`,
+                      color: catInfo.color,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}>
+                      {catInfo.label}
+                    </span>
+                    {keyDef.isSecret && (
+                      <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px', background: 'rgba(239,68,68,0.15)', color: '#EF4444' }}>
+                        SECRET
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{keyDef.description}</p>
+                </div>
+
+                <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {isEditing ? (
+                    <>
+                      <Input
+                        value={editing[keyDef.key]}
+                        onChange={(e) => setEditing((prev) => ({ ...prev, [keyDef.key]: e.target.value }))}
+                        type="text"
+                        style={{ width: '280px', fontSize: '13px', fontFamily: 'monospace' }}
+                        placeholder="Enter new value"
+                      />
+                      <Button size="sm" onClick={() => saveKey(keyDef.key)} loading={isSaving}>Save</Button>
+                      <Button variant="ghost" size="sm" onClick={() => cancelEditing(keyDef.key)}>Cancel</Button>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{
+                        fontSize: '13px',
+                        fontFamily: 'monospace',
+                        color: stored.value ? 'var(--text-secondary)' : 'var(--text-muted)',
+                        background: 'var(--surface-input)',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        minWidth: '140px',
+                        textAlign: 'center',
+                      }}>
+                        {stored.value
+                          ? (isRevealed ? stored.value : maskValue(stored.value))
+                          : 'Not configured'}
+                      </span>
+                      {stored.value && (
+                        <button
+                          onClick={() => toggleReveal(keyDef.key)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            padding: '4px',
+                            fontFamily: 'inherit',
+                          }}
+                          aria-label={isRevealed ? 'Hide value' : 'Show value'}
+                        >
+                          {isRevealed ? '🙈' : '👁'}
+                        </button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEditing(keyDef.key, stored.value)}
+                      >
+                        {stored.value ? 'Update' : 'Set'}
+                      </Button>
+                      {stored.value && (
+                        <Button variant="danger" size="sm" onClick={() => deleteKey(keyDef.key)} loading={isSaving}>
+                          Delete
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Custom keys */}
+          {customKeys.length > 0 && (
+            <>
+              <div style={{ padding: '16px 0 8px', marginTop: '8px', borderTop: '2px solid var(--border-divider)' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Custom Keys
+                </p>
+              </div>
+              {customKeys.map((s) => {
+                const isEditing = s.setting_key in editing;
+                const isRevealed = revealed[s.setting_key];
+                const isSaving = saving === s.setting_key;
+
+                return (
+                  <div
+                    key={s.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '14px 0',
+                      borderBottom: '1px solid var(--border-divider)',
+                      gap: '16px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {s.setting_key}
+                      </p>
+                      {s.description && (
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{s.description}</p>
+                      )}
+                    </div>
+                    <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {isEditing ? (
+                        <>
+                          <Input
+                            value={editing[s.setting_key]}
+                            onChange={(e) => setEditing((prev) => ({ ...prev, [s.setting_key]: e.target.value }))}
+                            type="text"
+                            style={{ width: '280px', fontSize: '13px', fontFamily: 'monospace' }}
+                          />
+                          <Button size="sm" onClick={() => saveKey(s.setting_key)} loading={isSaving}>Save</Button>
+                          <Button variant="ghost" size="sm" onClick={() => cancelEditing(s.setting_key)}>Cancel</Button>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{
+                            fontSize: '13px',
+                            fontFamily: 'monospace',
+                            color: 'var(--text-secondary)',
+                            background: 'var(--surface-input)',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            minWidth: '140px',
+                            textAlign: 'center',
+                          }}>
+                            {isRevealed ? s.setting_value : maskValue(s.setting_value)}
+                          </span>
+                          <button
+                            onClick={() => toggleReveal(s.setting_key)}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', padding: '4px', fontFamily: 'inherit' }}
+                          >
+                            {isRevealed ? '🙈' : '👁'}
+                          </button>
+                          <Button variant="ghost" size="sm" onClick={() => startEditing(s.setting_key, s.setting_value)}>Update</Button>
+                          <Button variant="danger" size="sm" onClick={() => deleteKey(s.setting_key)} loading={isSaving}>Delete</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      </GlassCard>
+
+      {/* Info note */}
+      <GlassCard padding="20px" accent="purple">
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          <strong style={{ color: 'var(--text-primary)' }}>Note:</strong> Keys marked as <span style={{ color: '#EF4444', fontWeight: 600 }}>SECRET</span> should also be set as Supabase Edge Function secrets
+          via <code style={{ background: 'var(--surface-input)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>supabase secrets set KEY_NAME=value</code> for
+          server-side access. Values stored here are for admin reference and can be used by client-side features.
+        </p>
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -1148,6 +1592,7 @@ export function SystemOperationsTab() {
   const tabs: TabItem[] = useMemo(
     () => [
       { key: 'settings', label: 'Settings', content: <SettingsContent /> },
+      { key: 'api-keys', label: 'API Keys', content: <ApiKeysContent /> },
       { key: 'business', label: 'Business Info', content: <BusinessInfoContent /> },
       { key: 'access', label: 'Access Controls', content: <AccessControlsContent /> },
       { key: '2fa', label: '2FA Management', content: <TwoFAManagementContent /> },

@@ -1,23 +1,31 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
-import {
-  PlatformOverviewTab,
-  TransactionsAdminTab,
-  SubscriptionsTab,
-  InvestmentsTab,
-  AiCenterTab,
-  DatabaseManagementTab,
-  UserManagementTab,
-  FinancialAnalyticsTab,
-  NotificationsAdminTab,
-  ContentMarketingTab,
-  SeoGeoTab,
-  SystemOperationsTab,
-  MonitoringTab,
-  BadgesGamificationTab,
-  EmployeeManagementTab,
-} from '@/components/admin'
+import { supabaseAdmin } from '@/lib/supabase'
+
+const PlatformOverviewTab = lazy(() => import('@/components/admin/PlatformOverviewTab').then(m => ({ default: m.PlatformOverviewTab })))
+const TransactionsAdminTab = lazy(() => import('@/components/admin/TransactionsAdminTab').then(m => ({ default: m.TransactionsAdminTab })))
+const SubscriptionsTab = lazy(() => import('@/components/admin/SubscriptionsTab').then(m => ({ default: m.SubscriptionsTab })))
+const InvestmentsTab = lazy(() => import('@/components/admin/InvestmentsTab').then(m => ({ default: m.InvestmentsTab })))
+const AiCenterTab = lazy(() => import('@/components/admin/AiCenterTab').then(m => ({ default: m.AiCenterTab })))
+const DatabaseManagementTab = lazy(() => import('@/components/admin/DatabaseManagementTab').then(m => ({ default: m.DatabaseManagementTab })))
+const UserManagementTab = lazy(() => import('@/components/admin/UserManagementTab').then(m => ({ default: m.UserManagementTab })))
+const FinancialAnalyticsTab = lazy(() => import('@/components/admin/FinancialAnalyticsTab').then(m => ({ default: m.FinancialAnalyticsTab })))
+const NotificationsAdminTab = lazy(() => import('@/components/admin/NotificationsAdminTab').then(m => ({ default: m.NotificationsAdminTab })))
+const ContentMarketingTab = lazy(() => import('@/components/admin/ContentMarketingTab').then(m => ({ default: m.ContentMarketingTab })))
+const SeoGeoTab = lazy(() => import('@/components/admin/SeoGeoTab').then(m => ({ default: m.SeoGeoTab })))
+const SystemOperationsTab = lazy(() => import('@/components/admin/SystemOperationsTab').then(m => ({ default: m.SystemOperationsTab })))
+const MonitoringTab = lazy(() => import('@/components/admin/MonitoringTab').then(m => ({ default: m.MonitoringTab })))
+const BadgesGamificationTab = lazy(() => import('@/components/admin/BadgesGamificationTab').then(m => ({ default: m.BadgesGamificationTab })))
+const EmployeeManagementTab = lazy(() => import('@/components/admin/EmployeeManagementTab').then(m => ({ default: m.EmployeeManagementTab })))
+
+function TabLoading() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: 'var(--text-muted)' }}>
+      Loading...
+    </div>
+  )
+}
 
 const adminNavSections: NavSection[] = [
   {
@@ -96,6 +104,147 @@ function renderContent(activeTab: string) {
   }
 }
 
+/* ---- Delete All Data Button ---- */
+
+// Ordered child-first to respect foreign key constraints.
+// Does NOT delete: users, subscription_plans, admin_settings, api_balance (config/identity data).
+const TABLES_TO_CLEAR = [
+  // FK children of user_subscriptions / subscription_plans
+  'promo_code_usage',
+  'renewal_queue',
+  'renewal_history',
+  'subscription_analytics',
+  'subscription_changes',
+  'user_subscriptions',
+  'promo_codes',
+  // FK children of transactions
+  'roundup_ledger',
+  'market_queue',
+  'llm_mappings',
+  'ai_responses',
+  // FK children of users
+  'notifications',
+  'goals',
+  'portfolios',
+  'statements',
+  'user_settings',
+  'transactions',
+  // Membership tables (FK → users + families/businesses)
+  'family_members',
+  'business_members',
+  'families',
+  'businesses',
+  // Standalone tables
+  'system_events',
+  'advertisements',
+  'api_usage',
+  'contact_messages',
+  'blog_posts',
+] as const
+
+function DeleteAllButton() {
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
+
+  async function handleDelete() {
+    setDeleting(true)
+    setResult(null)
+    let deleted = 0
+    let failed = 0
+
+    for (const table of TABLES_TO_CLEAR) {
+      try {
+        const { error } = await supabaseAdmin.from(table).delete().gte('id', 0)
+        if (!error) deleted++
+        else failed++
+      } catch {
+        failed++
+      }
+    }
+
+    setDeleting(false)
+    setConfirming(false)
+    setResult(`Cleared ${deleted}/${TABLES_TO_CLEAR.length} tables${failed ? ` (${failed} skipped)` : ''}`)
+    setTimeout(() => setResult(null), 5000)
+  }
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+      {!confirming ? (
+        <button
+          onClick={() => setConfirming(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            border: '1px solid rgba(239,68,68,0.3)',
+            background: 'rgba(239,68,68,0.1)',
+            color: '#EF4444',
+            fontSize: '13px',
+            fontWeight: 600,
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            transition: 'all 200ms ease',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+          Delete All Data
+        </button>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '12px', color: '#EF4444', fontWeight: 600 }}>Are you sure?</span>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: 'none',
+              background: '#EF4444',
+              color: '#fff',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              cursor: deleting ? 'wait' : 'pointer',
+              opacity: deleting ? 0.6 : 1,
+            }}
+          >
+            {deleting ? 'Deleting...' : 'Yes, Delete'}
+          </button>
+          <button
+            onClick={() => setConfirming(false)}
+            disabled={deleting}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--surface-input)',
+              color: 'var(--text-secondary)',
+              fontSize: '12px',
+              fontWeight: 500,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+      {result && (
+        <span style={{ fontSize: '12px', color: '#34D399', fontWeight: 600 }}>
+          {result}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export default function AdminDashboard() {
   const { profile } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
@@ -115,6 +264,7 @@ export default function AdminDashboard() {
       sidebarUser={{ name: userName, role: 'Super Administrator', initials }}
       greeting={`Welcome back, ${userName}`}
       userInitials={initials}
+      headerActions={<DeleteAllButton />}
     >
       <h1 className="aurora-page-title">
         {activeTab === 'overview' ? 'Platform Overview' : adminNavSections[0].items.find(i => i.id === activeTab)?.label || 'Admin Dashboard'}
@@ -123,7 +273,9 @@ export default function AdminDashboard() {
         {subtitleMap[activeTab] || 'Platform management and monitoring'}
       </p>
 
-      {renderContent(activeTab)}
+      <Suspense fallback={<TabLoading />}>
+        {renderContent(activeTab)}
+      </Suspense>
     </DashboardLayout>
   )
 }

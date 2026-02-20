@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, KpiCard, Table, Badge } from '@/components/ui'
 import type { Column } from '@/components/ui'
 import BarChart from '@/components/charts/BarChart'
+import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
+import { CompanyLogo } from '@/components/common/CompanyLogo'
 
 /* ---- Types ---- */
 
@@ -81,135 +83,163 @@ const kpiGridStyle: React.CSSProperties = {
   marginBottom: '20px',
 }
 
-/* ---- Table columns ---- */
-
-const columns: Column<HoldingRow>[] = [
-  {
-    key: 'ticker',
-    header: 'Ticker',
-    width: '100px',
-    sortable: true,
-    render: (row) => (
-      <span style={{ fontWeight: 700, color: '#A78BFA', fontSize: '13px' }}>
-        {row.ticker}
-      </span>
-    ),
-  },
-  {
-    key: 'shares',
-    header: 'Shares',
-    align: 'right',
-    width: '100px',
-    sortable: true,
-    render: (row) => (
-      <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
-        {row.shares.toFixed(4)}
-      </span>
-    ),
-  },
-  {
-    key: 'avg_price',
-    header: 'Avg Price',
-    align: 'right',
-    width: '110px',
-    render: (row) => (
-      <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-        {formatCurrency(row.avg_price)}
-      </span>
-    ),
-  },
-  {
-    key: 'current_price',
-    header: 'Current Price',
-    align: 'right',
-    width: '120px',
-    render: (row) => (
-      <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '13px' }}>
-        {formatCurrency(row.current_price)}
-      </span>
-    ),
-  },
-  {
-    key: 'gainLoss',
-    header: 'Gain/Loss',
-    align: 'right',
-    width: '120px',
-    sortable: true,
-    render: (row) => {
-      const isPositive = row.gainLoss >= 0
-      return (
-        <Badge variant={isPositive ? 'success' : 'error'}>
-          {isPositive ? '+' : ''}{formatCurrency(row.gainLoss)}
-        </Badge>
-      )
-    },
-  },
-  {
-    key: 'memberName',
-    header: 'Member',
-    render: (row) => (
-      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-        {row.memberName}
-      </span>
-    ),
-  },
-]
-
 /* ---- Component ---- */
 
 export function FamilyPortfolioTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
-  const [holdingRows, setHoldingRows] = useState<HoldingRow[]>([])
+  const [rawHoldings, setRawHoldings] = useState<Holding[]>([])
+  const [memberNameMap, setMemberNameMap] = useState<Map<number, string>>(new Map())
+  const [prices, setPrices] = useState<Map<string, StockQuote>>(new Map())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchData() {
-      if (!profile?.id) { setLoading(false); return }
+      if (!userId) { setLoading(false); return }
 
-      const { data: memberRecord } = await supabase
+      const { data: memberRecord } = await supabaseAdmin
         .from('family_members')
         .select('family_id')
-        .eq('user_id', profile.id)
-        .single()
+        .eq('user_id', userId)
+        .maybeSingle()
 
       if (!memberRecord) { setLoading(false); return }
 
-      const { data: familyMembers } = await supabase
+      const { data: familyMembers } = await supabaseAdmin
         .from('family_members')
         .select('*, users(id, name)')
         .eq('family_id', memberRecord.family_id)
+        .limit(50)
 
       const membersData = (familyMembers ?? []) as FamilyMember[]
       const memberUserIds = membersData.map((m) => m.user_id)
 
       if (memberUserIds.length === 0) { setLoading(false); return }
 
-      const { data: holdingsData } = await supabase
+      const { data: holdingsData } = await supabaseAdmin
         .from('holdings')
         .select('*')
         .in('user_id', memberUserIds)
+        .limit(200)
 
-      const memberNameMap = new Map<number, string>()
+      const nameMap = new Map<number, string>()
       for (const m of membersData) {
-        memberNameMap.set(m.user_id, m.users?.name ?? 'Unknown')
+        nameMap.set(m.user_id, m.users?.name ?? 'Unknown')
       }
 
-      const rows: HoldingRow[] = ((holdingsData ?? []) as Holding[]).map((h) => ({
+      const holdingsArr = (holdingsData ?? []) as Holding[]
+      setRawHoldings(holdingsArr)
+      setMemberNameMap(nameMap)
+      setLoading(false)
+
+      // Fetch live stock prices
+      if (holdingsArr.length > 0) {
+        const tickers = [...new Set(holdingsArr.map(h => h.ticker))]
+        const quotes = await fetchStockPrices(tickers)
+        if (quotes.size > 0) setPrices(quotes)
+      }
+    }
+    if (!userLoading) fetchData()
+  }, [userId, userLoading])
+
+  /* ---- Derive holdingRows from raw data + live prices ---- */
+
+  const holdingRows = useMemo<HoldingRow[]>(() => {
+    return rawHoldings.map((h) => {
+      const livePrice = prices.get(h.ticker)?.price ?? h.current_price
+      return {
         id: h.id,
         ticker: h.ticker,
         shares: h.shares,
         avg_price: h.avg_price,
-        current_price: h.current_price,
-        gainLoss: (h.current_price - h.avg_price) * h.shares,
+        current_price: livePrice,
+        gainLoss: (livePrice - h.avg_price) * h.shares,
         memberName: memberNameMap.get(h.user_id) ?? 'Unknown',
-      }))
+      }
+    })
+  }, [rawHoldings, memberNameMap, prices])
 
-      setHoldingRows(rows)
-      setLoading(false)
-    }
-    fetchData()
-  }, [profile?.id])
+  /* ---- Table columns (inside component to access prices) ---- */
+
+  const columns = useMemo<Column<HoldingRow>[]>(() => [
+    {
+      key: 'ticker',
+      header: 'Ticker',
+      sortable: true,
+      render: (row) => (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#A78BFA', fontSize: '13px' }}>
+          <CompanyLogo name={row.ticker} size={22} />
+          {row.ticker}
+        </span>
+      ),
+    },
+    {
+      key: 'shares',
+      header: 'Shares',
+      align: 'right',
+      sortable: true,
+      render: (row) => (
+        <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
+          {row.shares.toFixed(4)}
+        </span>
+      ),
+    },
+    {
+      key: 'avg_price',
+      header: 'Avg Price',
+      align: 'right',
+      render: (row) => (
+        <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+          {formatCurrency(row.avg_price)}
+        </span>
+      ),
+    },
+    {
+      key: 'current_price',
+      header: 'Current Price',
+      align: 'right',
+      render: (row) => {
+        const quote = prices.get(row.ticker)
+        const dayChange = quote?.changePercent ?? 0
+        const isUp = dayChange >= 0
+        return (
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '13px' }}>
+              {formatCurrency(row.current_price)}
+            </div>
+            {quote && (
+              <div style={{ fontSize: '11px', fontWeight: 600, color: isUp ? '#34D399' : '#F87171' }}>
+                {isUp ? '+' : ''}{dayChange.toFixed(2)}%
+              </div>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      key: 'gainLoss',
+      header: 'Gain/Loss',
+      align: 'right',
+      sortable: true,
+      render: (row) => {
+        const isPositive = row.gainLoss >= 0
+        return (
+          <Badge variant={isPositive ? 'success' : 'error'}>
+            {isPositive ? '+' : ''}{formatCurrency(row.gainLoss)}
+          </Badge>
+        )
+      },
+    },
+    {
+      key: 'memberName',
+      header: 'Member',
+      render: (row) => (
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+          {row.memberName}
+        </span>
+      ),
+    },
+  ], [prices])
 
   /* ---- Computed KPIs ---- */
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { useUserId } from '@/hooks/useUserId';
 import { KpiCard, GlassCard } from '@/components/ui';
 import LineChart from '@/components/charts/LineChart';
 import AreaChart from '@/components/charts/AreaChart';
@@ -66,20 +66,21 @@ interface MerchantTotal {
 }
 
 export function AnalyticsTab() {
-  const { profile } = useAuth();
+  const { userId, loading: userLoading } = useUserId();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTransactions = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return; }
+    if (!userId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('transactions')
         .select('*')
-        .eq('user_id', profile.id)
-        .order('date', { ascending: true });
+        .eq('user_id', userId)
+        .order('date', { ascending: true })
+        .limit(500);
 
       if (error) throw error;
       setTransactions(data ?? []);
@@ -88,11 +89,11 @@ export function AnalyticsTab() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.id]);
+  }, [userId]);
 
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+    if (!userLoading) fetchTransactions();
+  }, [fetchTransactions, userLoading]);
 
   // Current month KPIs
   const currentMonthStats = useMemo(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Badge } from '@/components/ui'
 
 /* ------------------------------------------------------------------ */
@@ -59,7 +59,7 @@ const typeBadgeVariant: Record<NotificationType, 'purple' | 'info' | 'success' |
 /* ------------------------------------------------------------------ */
 
 export function BusinessNotificationsTab() {
-  const { profile } = useAuth()
+  const { userId, loading: userLoading } = useUserId()
 
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,25 +70,26 @@ export function BusinessNotificationsTab() {
   /* ---- Fetch ---- */
 
   const fetchNotifications = useCallback(async () => {
-    if (!profile?.id) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
     setLoading(true)
 
     try {
       // Get all member user IDs for this business
-      const { data: bizData } = await supabase
+      const { data: bizData } = await supabaseAdmin
         .from('businesses')
         .select('id')
-        .eq('created_by', profile.id)
+        .eq('created_by', userId)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (!bizData) {
         // Also try just fetching notifications for the user
-        const { data: notifData } = await supabase
+        const { data: notifData } = await supabaseAdmin
           .from('notifications')
           .select('*')
-          .eq('user_id', profile.id)
+          .eq('user_id', userId)
           .order('created_at', { ascending: false })
+          .limit(200)
 
         setNotifications((notifData as Notification[] | null) ?? [])
         setLoading(false)
@@ -96,11 +97,12 @@ export function BusinessNotificationsTab() {
       }
 
       // Get notifications for business owner
-      const { data: notifData, error } = await supabase
+      const { data: notifData, error } = await supabaseAdmin
         .from('notifications')
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
+        .limit(200)
 
       if (error) throw error
       setNotifications((notifData as Notification[] | null) ?? [])
@@ -109,11 +111,11 @@ export function BusinessNotificationsTab() {
     } finally {
       setLoading(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   useEffect(() => {
-    void fetchNotifications()
-  }, [fetchNotifications])
+    if (!userLoading) void fetchNotifications()
+  }, [fetchNotifications, userLoading])
 
   /* ---- Derived ---- */
 
@@ -142,13 +144,13 @@ export function BusinessNotificationsTab() {
   /* ---- Actions ---- */
 
   const markAllRead = useCallback(async () => {
-    if (!profile?.id) return
+    if (!userId) return
     setMarkingAll(true)
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('notifications')
         .update({ read: true })
-        .eq('user_id', profile.id)
+        .eq('user_id', userId)
         .eq('read', false)
 
       if (error) throw error
@@ -158,11 +160,11 @@ export function BusinessNotificationsTab() {
     } finally {
       setMarkingAll(false)
     }
-  }, [profile?.id])
+  }, [userId])
 
   const markSingleRead = useCallback(async (id: number) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('notifications')
         .update({ read: true })
         .eq('id', id)
@@ -178,7 +180,7 @@ export function BusinessNotificationsTab() {
 
   const markSingleUnread = useCallback(async (id: number) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('notifications')
         .update({ read: false })
         .eq('id', id)
@@ -206,7 +208,7 @@ export function BusinessNotificationsTab() {
     const ids = Array.from(selectedIds)
 
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('notifications')
         .update({ read: true })
         .in('id', ids)
