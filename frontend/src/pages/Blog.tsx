@@ -22,43 +22,10 @@ interface BlogPost {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Styles                                                             */
+/*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const sectionStyle: React.CSSProperties = {
-  maxWidth: 1200,
-  margin: '0 auto',
-  padding: '80px 40px',
-}
-
-const heroStyle: React.CSSProperties = {
-  textAlign: 'center',
-  marginBottom: 56,
-}
-
-const h1Style: React.CSSProperties = {
-  fontSize: 'clamp(32px, 5vw, 48px)',
-  fontWeight: 800,
-  lineHeight: 1.15,
-  marginBottom: 16,
-  background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-}
-
-const subtitleStyle: React.CSSProperties = {
-  fontSize: 18,
-  color: 'var(--text-secondary)',
-  maxWidth: 520,
-  margin: '0 auto',
-  lineHeight: 1.6,
-}
-
-const gridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
-  gap: 24,
-}
+const POSTS_PER_PAGE = 9
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
   Investing: 'linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%)',
@@ -73,20 +40,6 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
 function getGradient(category?: string | null): string {
   if (category && CATEGORY_GRADIENTS[category]) return CATEGORY_GRADIENTS[category]
   return 'linear-gradient(135deg, #7C3AED 0%, #3B82F6 50%, #06B6D4 100%)'
-}
-
-const emptyStyle: React.CSSProperties = {
-  textAlign: 'center',
-  padding: '60px 20px',
-  color: 'var(--text-muted)',
-  fontSize: 16,
-}
-
-const loadingStyle: React.CSSProperties = {
-  textAlign: 'center',
-  padding: '60px 20px',
-  color: 'var(--text-muted)',
-  fontSize: 16,
 }
 
 /* ------------------------------------------------------------------ */
@@ -107,20 +60,20 @@ function formatDate(dateStr: string): string {
 
 function stripMarkdown(text: string): string {
   return text
-    .replace(/^#{1,6}\s+/gm, '')        // headings
-    .replace(/\*\*(.+?)\*\*/g, '$1')    // bold
-    .replace(/\*(.+?)\*/g, '$1')        // italic
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // images
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
-    .replace(/`([^`]+)`/g, '$1')        // inline code
-    .replace(/^[-*]\s+/gm, '')          // list bullets
-    .replace(/^\d+\.\s+/gm, '')         // ordered lists
-    .replace(/^>\s+/gm, '')             // blockquotes
-    .replace(/```[\s\S]*?```/g, '')     // code blocks
-    .replace(/[-*_]{3,}/g, '')          // horizontal rules
-    .replace(/<[^>]*>/g, '')            // HTML tags
-    .replace(/\n+/g, ' ')              // newlines to spaces
-    .replace(/\s+/g, ' ')              // collapse spaces
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^[-*]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/^>\s+/gm, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/[-*_]{3,}/g, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
 }
 
@@ -200,20 +153,13 @@ function PostCard({ post }: { post: BlogPost }) {
 
         {/* Content */}
         <div style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-          {/* Date */}
           <time
             dateTime={post.created_at}
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              color: 'var(--text-muted)',
-              marginBottom: 8,
-            }}
+            style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginBottom: 8 }}
           >
             {formatDate(post.created_at)}
           </time>
 
-          {/* Title */}
           <h2
             style={{
               fontSize: 18,
@@ -226,7 +172,6 @@ function PostCard({ post }: { post: BlogPost }) {
             {post.title}
           </h2>
 
-          {/* Excerpt */}
           <p
             style={{
               fontSize: 14,
@@ -239,19 +184,97 @@ function PostCard({ post }: { post: BlogPost }) {
             {getExcerpt(post)}
           </p>
 
-          {/* Read more */}
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: '#06B6D4',
-            }}
-          >
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#06B6D4' }}>
             Read more &rarr;
           </span>
         </div>
       </GlassCard>
     </Link>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Pagination                                                         */
+/* ------------------------------------------------------------------ */
+
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}) {
+  if (totalPages <= 1) return null
+
+  const pages: (number | '...')[] = []
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+      pages.push(i)
+    } else if (pages[pages.length - 1] !== '...') {
+      pages.push('...')
+    }
+  }
+
+  const btnBase: React.CSSProperties = {
+    fontFamily: 'inherit',
+    fontSize: 14,
+    fontWeight: 600,
+    minWidth: 40,
+    height: 40,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    border: '1px solid var(--border-subtle)',
+    background: 'var(--surface-card)',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
+  }
+
+  const activeBtn: React.CSSProperties = {
+    ...btnBase,
+    background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+    color: '#fff',
+    border: 'none',
+  }
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 48 }}>
+      <button
+        style={{ ...btnBase, padding: '0 12px', opacity: currentPage === 1 ? 0.4 : 1 }}
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        &larr; Prev
+      </button>
+
+      {pages.map((p, i) =>
+        p === '...' ? (
+          <span key={`dots-${i}`} style={{ ...btnBase, border: 'none', background: 'transparent', cursor: 'default' }}>
+            ...
+          </span>
+        ) : (
+          <button
+            key={p}
+            style={p === currentPage ? activeBtn : btnBase}
+            onClick={() => onPageChange(p)}
+          >
+            {p}
+          </button>
+        ),
+      )}
+
+      <button
+        style={{ ...btnBase, padding: '0 12px', opacity: currentPage === totalPages ? 0.4 : 1 }}
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        Next &rarr;
+      </button>
+    </div>
   )
 }
 
@@ -263,6 +286,7 @@ export default function Blog() {
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
   const [, setError] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     let cancelled = false
@@ -275,7 +299,7 @@ export default function Blog() {
           .select('id,slug,title,content,excerpt,featured_image,category,status,author,created_at')
           .eq('status', 'published')
           .order('created_at', { ascending: false })
-          .limit(50)
+          .limit(200)
 
         if (error) throw error
         if (!cancelled && data) {
@@ -298,6 +322,15 @@ export default function Blog() {
     }
   }, [])
 
+  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE)
+  const startIdx = (currentPage - 1) * POSTS_PER_PAGE
+  const visiblePosts = posts.slice(startIdx, startIdx + POSTS_PER_PAGE)
+
+  function handlePageChange(page: number) {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <PublicLayout>
       <SEO
@@ -305,30 +338,62 @@ export default function Blog() {
         description="Insights on investing, fintech, and building wealth from the Kamioi team."
       />
 
-      <section style={sectionStyle}>
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 40px' }}>
         {/* Hero */}
-        <div style={heroStyle}>
-          <h1 style={h1Style}>Kamioi Blog</h1>
-          <p style={subtitleStyle}>
+        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <h1
+            style={{
+              fontSize: 'clamp(32px, 5vw, 48px)',
+              fontWeight: 800,
+              lineHeight: 1.15,
+              marginBottom: 16,
+              background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Kamioi Blog
+          </h1>
+          <p style={{ fontSize: 18, color: 'var(--text-secondary)', maxWidth: 520, margin: '0 auto', lineHeight: 1.6 }}>
             Insights on investing, fintech, and building wealth.
           </p>
         </div>
 
         {/* Loading */}
-        {loading && <p style={loadingStyle}>Loading posts...</p>}
+        {loading && (
+          <p style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 16 }}>
+            Loading posts...
+          </p>
+        )}
 
         {/* Empty state */}
         {!loading && posts.length === 0 && (
-          <p style={emptyStyle}>No blog posts yet. Check back soon.</p>
+          <p style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 16 }}>
+            No blog posts yet. Check back soon.
+          </p>
         )}
 
         {/* Grid */}
-        {!loading && posts.length > 0 && (
-          <div style={gridStyle} className="blog-grid">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </div>
+        {!loading && visiblePosts.length > 0 && (
+          <>
+            <div className="blog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+              {visiblePosts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+
+            {/* Page info */}
+            <div style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--text-muted)' }}>
+              Showing {startIdx + 1}–{Math.min(startIdx + POSTS_PER_PAGE, posts.length)} of {posts.length} posts
+            </div>
+
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </>
         )}
       </section>
 
