@@ -1,9 +1,6 @@
 # Kamioi Platform - Supabase Configuration
 # See: https://supabase.com/docs/guides/cli/config
 
-[project]
-id = "" # Set via SUPABASE_PROJECT_ID env variable
-
 [api]
 enabled = true
 port = 54321
@@ -14,7 +11,7 @@ max_rows = 1000
 [db]
 port = 54322
 shadow_port = 54320
-major_version = 15
+major_version = 17
 
 [studio]
 enabled = true
@@ -38,5 +35,32 @@ enabled = false
 enabled = true
 file_size_limit = "50MiB"
 
-[functions]
+[functions.ai-mapping]
+verify_jwt = true
+
+[functions.ai-recommendations]
+verify_jwt = true
+
+[functions.blog-generate]
+verify_jwt = true
+
+[functions.bulk-upload]
+verify_jwt = true
+
+[functions.contact-submit]
+verify_jwt = false
+
+[functions.export-data]
+verify_jwt = true
+
+[functions.process-roundup]
+verify_jwt = true
+
+[functions.seo-audit]
+verify_jwt = true
+
+[functions.stock-prices]
+verify_jwt = true
+
+[functions.subscription-manage]
 verify_jwt = true
