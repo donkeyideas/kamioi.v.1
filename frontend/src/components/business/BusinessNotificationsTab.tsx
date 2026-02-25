@@ -238,39 +238,17 @@ export function BusinessNotificationsTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Top bar */}
+      {/* Filter bar + actions */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
           gap: '12px',
+          flexWrap: 'wrap',
         }}
       >
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-          Notifications
-        </h2>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {selectedIds.size > 0 && (
-            <Button variant="secondary" size="sm" onClick={() => void bulkMarkRead()}>
-              Mark Selected Read ({selectedIds.size})
-            </Button>
-          )}
-          <Button
-            variant="secondary"
-            size="sm"
-            loading={markingAll}
-            disabled={unreadCount === 0}
-            onClick={() => void markAllRead()}
-          >
-            Mark All Read
-          </Button>
-        </div>
-      </div>
-
-      {/* Filter tabs */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
         {filters.map((f) => {
           const isActive = activeFilter === f.key
           return (
@@ -300,6 +278,23 @@ export function BusinessNotificationsTab() {
             </button>
           )
         })}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {selectedIds.size > 0 && (
+            <Button variant="secondary" size="sm" onClick={() => void bulkMarkRead()}>
+              Mark Selected Read ({selectedIds.size})
+            </Button>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={markingAll}
+            disabled={unreadCount === 0}
+            onClick={() => void markAllRead()}
+          >
+            Mark All Read
+          </Button>
+        </div>
       </div>
 
       {/* Loading */}

@@ -238,46 +238,24 @@ export function FamilyNotificationsTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Top bar */}
+      {/* Filter bar + Mark All Read */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
           gap: '12px',
+          flexWrap: 'wrap',
         }}
       >
-        <h2
+        <div
           style={{
-            fontSize: '20px',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            flexWrap: 'wrap',
           }}
         >
-          Family Notifications
-        </h2>
-        <Button
-          variant="secondary"
-          size="sm"
-          loading={markingAll}
-          disabled={unreadCount === 0}
-          onClick={() => void markAllRead()}
-        >
-          Mark All Read
-        </Button>
-      </div>
-
-      {/* Filter tabs */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          flexWrap: 'wrap',
-        }}
-      >
         {filters.map((f) => {
           const isActive = activeFilter === f.key
           return (
@@ -311,6 +289,16 @@ export function FamilyNotificationsTab() {
             </button>
           )
         })}
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={markingAll}
+          disabled={unreadCount === 0}
+          onClick={() => void markAllRead()}
+        >
+          Mark All Read
+        </Button>
       </div>
 
       {/* Loading state */}
