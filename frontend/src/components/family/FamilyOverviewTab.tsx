@@ -7,7 +7,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { Table } from '@/components/ui/Table'
 import type { Column } from '@/components/ui/Table'
 import AreaChart from '@/components/charts/AreaChart'
-import { COMPANY_LOOKUP, CompanyLogo, CompanyLink } from '@/components/common/CompanyLogo'
+import { COMPANY_LOOKUP, CompanyLogo, CompanyLink, formatMerchantName } from '@/components/common/CompanyLogo'
 
 /* ---- Types ---- */
 
@@ -180,7 +180,7 @@ const recentTxColumns: Column<FamilyTransaction>[] = [
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {row.merchant && <CompanyLogo name={row.merchant} size={20} />}
           <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
-            {row.merchant ?? '--'}
+            {row.merchant ? formatMerchantName(row.merchant) : '--'}
           </span>
         </div>
       )

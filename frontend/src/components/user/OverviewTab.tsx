@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Table } from '@/components/ui/Table'
 import type { Column } from '@/components/ui/Table'
 import AreaChart from '@/components/charts/AreaChart'
-import { CompanyLogo } from '@/components/common/CompanyLogo'
+import { CompanyLogo, formatMerchantName } from '@/components/common/CompanyLogo'
 import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
 import type { Database } from '@/types/database'
 
@@ -191,7 +191,7 @@ export function OverviewTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <CompanyLogo name={row.merchant} size={20} />
             <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>
-              {row.merchant}
+              {formatMerchantName(row.merchant)}
             </span>
           </div>
         ),
