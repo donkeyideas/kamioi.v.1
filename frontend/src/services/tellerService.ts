@@ -47,7 +47,26 @@ export interface SyncResult {
 /*  Edge Function helpers                                              */
 /* ------------------------------------------------------------------ */
 
+async function waitForSession(): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) return
+
+  // Session not ready yet — wait for auth state change (up to 5s)
+  return new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 5000)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        clearTimeout(timeout)
+        subscription.unsubscribe()
+        resolve()
+      }
+    })
+  })
+}
+
 async function invokeFunction<T>(name: string, body?: Record<string, unknown>): Promise<T> {
+  await waitForSession()
+
   const { data, error } = await supabase.functions.invoke(name, {
     body: body ?? {},
   })
