@@ -110,6 +110,24 @@ function MoonIcon() {
   )
 }
 
+function DollarIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  )
+}
+
 function MenuIcon() {
   return (
     <svg
@@ -145,7 +163,7 @@ export function Header({
   onMenuToggle,
   headerActions,
 }: HeaderProps) {
-  const { isDark, toggleTheme } = useTheme()
+  const { theme, toggleTheme } = useTheme()
   const [searchValue, setSearchValue] = useState('')
 
   const handleSearchChange = useCallback(
@@ -195,15 +213,23 @@ export function Header({
           />
         </div>
 
-        {/* Theme toggle */}
+        {/* Theme toggle (dark → light → green → dark) */}
         <button
           type="button"
           className="aurora-header-btn"
           onClick={toggleTheme}
-          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={
+            theme === 'dark' ? 'Switch to light mode'
+              : theme === 'light' ? 'Switch to money green mode'
+              : 'Switch to dark mode'
+          }
+          title={
+            theme === 'dark' ? 'Switch to light mode'
+              : theme === 'light' ? 'Switch to money green mode'
+              : 'Switch to dark mode'
+          }
         >
-          {isDark ? <SunIcon /> : <MoonIcon />}
+          {theme === 'dark' ? <SunIcon /> : theme === 'light' ? <DollarIcon /> : <MoonIcon />}
         </button>
 
         {/* Notifications */}
