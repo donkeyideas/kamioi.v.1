@@ -42,10 +42,7 @@ function mapCategory(tellerCategory: string | null, categoryMap: CategoryMap): s
 
 function calculateRoundUp(amount: number, roundUpAmount: number): number {
   if (amount <= 0) return 0
-  const cents = amount % 1
-  if (cents === 0) return roundUpAmount
-  const roundUp = parseFloat((Math.ceil(amount) - amount).toFixed(2))
-  return roundUp < 0.01 ? roundUpAmount : roundUp
+  return roundUpAmount
 }
 
 /* ------------------------------------------------------------------ */
