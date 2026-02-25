@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserId } from '@/hooks/useUserId'
-import { GlassCard, Button, Input } from '@/components/ui'
+import { GlassCard, Button, Input, Select, Badge } from '@/components/ui'
 import { LinkedAccountsCard } from '@/components/common/LinkedAccountsCard'
 
 /* ------------------------------------------------------------------ */
@@ -99,6 +99,14 @@ export function SettingsTab() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordToast, setPasswordToast] = useState<Toast | null>(null)
+
+  /* ---- AI Receipt Provider ---- */
+
+  const [aiProvider, setAiProvider] = useState('deepseek')
+  const [useOwnKey, setUseOwnKey] = useState(false)
+  const [aiApiKey, setAiApiKey] = useState('')
+  const [aiSaving, setAiSaving] = useState(false)
+  const [aiToast, setAiToast] = useState<Toast | null>(null)
 
   /* ---- Sign out ---- */
 
@@ -211,6 +219,106 @@ export function SettingsTab() {
     },
     [userId, clearToastAfterDelay],
   )
+
+  /* ---- Load AI provider settings ---- */
+
+  useEffect(() => {
+    if (!userId) return
+    const loadAiSettings = async () => {
+      try {
+        const { data } = await supabaseAdmin
+          .from('user_settings')
+          .select('setting_key, setting_value')
+          .eq('user_id', userId)
+          .in('setting_key', ['ai_vision_provider', 'deepseek_api_key', 'claude_api_key', 'openai_api_key'])
+
+        if (data) {
+          for (const row of data) {
+            if (row.setting_key === 'ai_vision_provider') setAiProvider(row.setting_value || 'deepseek')
+            if (row.setting_key === `${aiProvider}_api_key` && row.setting_value) {
+              setUseOwnKey(true)
+              setAiApiKey('••••••••••••••••') // masked
+            }
+          }
+        }
+      } catch {
+        // fall through
+      }
+    }
+    void loadAiSettings()
+  }, [userId])
+
+  /* ---- Save AI provider ---- */
+
+  const saveAiProvider = useCallback(async (provider: string) => {
+    if (!userId) return
+    setAiProvider(provider)
+    setAiSaving(true)
+    setAiToast(null)
+    try {
+      // Upsert the provider setting
+      const { error } = await supabaseAdmin
+        .from('user_settings')
+        .upsert({
+          user_id: userId,
+          setting_key: 'ai_vision_provider',
+          setting_value: provider,
+        }, { onConflict: 'user_id,setting_key' })
+
+      if (error) throw error
+      setAiToast({ type: 'success', message: `AI provider set to ${provider}.` })
+    } catch {
+      setAiToast({ type: 'error', message: 'Failed to save AI provider.' })
+    } finally {
+      setAiSaving(false)
+      clearToastAfterDelay(setAiToast)
+    }
+  }, [userId, clearToastAfterDelay])
+
+  const saveAiApiKey = useCallback(async () => {
+    if (!userId || !aiApiKey || aiApiKey.startsWith('••')) return
+    setAiSaving(true)
+    setAiToast(null)
+    try {
+      const { error } = await supabaseAdmin
+        .from('user_settings')
+        .upsert({
+          user_id: userId,
+          setting_key: `${aiProvider}_api_key`,
+          setting_value: aiApiKey,
+        }, { onConflict: 'user_id,setting_key' })
+
+      if (error) throw error
+      setAiApiKey('••••••••••••••••')
+      setAiToast({ type: 'success', message: 'API key saved successfully.' })
+    } catch {
+      setAiToast({ type: 'error', message: 'Failed to save API key.' })
+    } finally {
+      setAiSaving(false)
+      clearToastAfterDelay(setAiToast)
+    }
+  }, [userId, aiProvider, aiApiKey, clearToastAfterDelay])
+
+  const removeAiApiKey = useCallback(async () => {
+    if (!userId) return
+    setAiSaving(true)
+    try {
+      await supabaseAdmin
+        .from('user_settings')
+        .delete()
+        .eq('user_id', userId)
+        .eq('setting_key', `${aiProvider}_api_key`)
+
+      setUseOwnKey(false)
+      setAiApiKey('')
+      setAiToast({ type: 'success', message: 'API key removed. Platform key will be used.' })
+    } catch {
+      setAiToast({ type: 'error', message: 'Failed to remove API key.' })
+    } finally {
+      setAiSaving(false)
+      clearToastAfterDelay(setAiToast)
+    }
+  }, [userId, aiProvider, clearToastAfterDelay])
 
   /* ---- Change password ---- */
 
@@ -478,7 +586,97 @@ export function SettingsTab() {
       <LinkedAccountsCard />
 
       {/* ============================================================ */}
-      {/* Section 5: Security                                          */}
+      {/* Section 5: AI Receipt Processing                             */}
+      {/* ============================================================ */}
+      <GlassCard accent="blue">
+        <h3 style={sectionTitleStyle}>AI Receipt Processing</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+          Choose which AI provider to use for extracting data from uploaded receipts.
+        </p>
+
+        {aiToast && <ToastBanner toast={aiToast} />}
+
+        {/* Provider Selection */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          {['deepseek', 'claude', 'openai'].map((p) => (
+            <button
+              key={p}
+              onClick={() => void saveAiProvider(p)}
+              disabled={aiSaving}
+              style={{
+                flex: 1,
+                padding: '12px',
+                borderRadius: '10px',
+                border: `2px solid ${aiProvider === p ? 'var(--aurora-purple)' : 'var(--border-subtle)'}`,
+                background: aiProvider === p ? 'rgba(124, 58, 237, 0.1)' : 'var(--surface-input)',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 200ms ease',
+              }}
+            >
+              <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '2px' }}>
+                {p === 'deepseek' ? 'DeepSeek' : p === 'claude' ? 'Claude' : 'OpenAI'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                {p === 'deepseek' ? 'Most affordable' : p === 'claude' ? 'Most accurate' : 'Balanced'}
+              </div>
+              {aiProvider === p && (
+                <Badge variant="success" style={{ marginTop: '6px' }}>Active</Badge>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* BYOK Toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <input
+              type="checkbox"
+              checked={useOwnKey}
+              onChange={(e) => {
+                setUseOwnKey(e.target.checked)
+                if (!e.target.checked) void removeAiApiKey()
+              }}
+              style={{ width: '16px', height: '16px' }}
+            />
+            Use my own API key (optional)
+          </label>
+          <Badge variant="info">BYOK</Badge>
+        </div>
+
+        {useOwnKey && (
+          <div style={{ display: 'flex', gap: '8px', maxWidth: '500px' }}>
+            <Input
+              label={`${aiProvider === 'deepseek' ? 'DeepSeek' : aiProvider === 'claude' ? 'Anthropic' : 'OpenAI'} API Key`}
+              type="password"
+              value={aiApiKey}
+              onChange={(e) => setAiApiKey(e.target.value)}
+              placeholder="sk-..."
+            />
+            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={aiSaving}
+                onClick={() => void saveAiApiKey()}
+                disabled={!aiApiKey || aiApiKey.startsWith('••')}
+              >
+                Save Key
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!useOwnKey && (
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            Using platform API key. Processing costs are tracked in your account balance.
+          </p>
+        )}
+      </GlassCard>
+
+      {/* ============================================================ */}
+      {/* Section 6: Security                                          */}
       {/* ============================================================ */}
       <GlassCard accent="pink">
         <h3 style={sectionTitleStyle}>Security</h3>

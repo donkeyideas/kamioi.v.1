@@ -3060,23 +3060,146 @@ function FlowContent() {
 /* ========================================================================== */
 
 function ReceiptMappingsContent() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '16px' }}>
-      <div style={{
-        width: '64px', height: '64px', borderRadius: '16px',
-        background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '28px',
-      }}>
-        <span role="img" aria-label="receipt">R</span>
+  const [loading, setLoading] = useState(true);
+  const [receipts, setReceipts] = useState<Array<{
+    id: number;
+    user_id: number;
+    filename: string;
+    status: string;
+    ai_provider: string | null;
+    round_up_amount: number | null;
+    parsed_data: { retailer?: { name?: string }; items?: Array<{ name: string }>; totalAmount?: number } | null;
+    allocation_data: { allocations?: Array<{ stockSymbol: string; amount: number }> } | null;
+    created_at: string;
+    user_name?: string;
+  }>>([]);
+  const [stats, setStats] = useState({ total: 0, completed: 0, failed: 0, totalRoundUp: 0 });
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        // Fetch all receipts with user info
+        const { data, error } = await supabaseAdmin
+          .from('receipts')
+          .select('*, users(name)')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (!error && data) {
+          const mapped = data.map((r: Record<string, unknown>) => ({
+            ...r,
+            user_name: (r.users as { name?: string } | null)?.name || 'Unknown',
+          }));
+          setReceipts(mapped as typeof receipts);
+
+          // Calculate stats
+          const completed = data.filter((r: { status: string }) => r.status === 'completed').length;
+          const failed = data.filter((r: { status: string }) => r.status === 'failed').length;
+          const totalRoundUp = data.reduce((sum: number, r: { round_up_amount: number | null }) => sum + (r.round_up_amount || 0), 0);
+          setStats({ total: data.length, completed, failed, totalRoundUp });
+        }
+      } catch {
+        // fall through
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+        Loading receipt data...
       </div>
-      <p style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-        Receipt Mappings
-      </p>
-      <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, textAlign: 'center', maxWidth: '440px', lineHeight: '1.6' }}>
-        This feature allows users to upload receipt images which are then OCR-processed to extract merchant names, amounts, and dates. The extracted data is automatically mapped to stock tickers using the AI mapping pipeline. This feature is not yet implemented.
-      </p>
-      <Badge variant="warning">Coming Soon</Badge>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* KPI Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+        <GlassCard padding="16px">
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Total Receipts</div>
+          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>{stats.total}</div>
+        </GlassCard>
+        <GlassCard padding="16px">
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Completed</div>
+          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--status-success)' }}>{stats.completed}</div>
+        </GlassCard>
+        <GlassCard padding="16px">
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Failed</div>
+          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--status-error)' }}>{stats.failed}</div>
+        </GlassCard>
+        <GlassCard padding="16px">
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Total Round-Ups</div>
+          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--aurora-purple)' }}>${stats.totalRoundUp.toFixed(2)}</div>
+        </GlassCard>
+      </div>
+
+      {/* Receipts Table */}
+      <GlassCard>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          Receipt Submissions
+        </h3>
+        {receipts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '14px' }}>
+            No receipts have been uploaded yet.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 500 }}>Date</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 500 }}>User</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 500 }}>Retailer</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-muted)', fontWeight: 500 }}>Total</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-muted)', fontWeight: 500 }}>Round-Up</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500 }}>Stocks</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500 }}>Provider</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500 }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {receipts.map((r) => {
+                  const retailer = r.parsed_data?.retailer?.name || r.filename;
+                  const total = r.parsed_data?.totalAmount || 0;
+                  const stocks = r.allocation_data?.allocations?.map(a => a.stockSymbol).join(', ') || '-';
+                  const date = new Date(r.created_at).toLocaleDateString();
+                  return (
+                    <tr key={r.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{date}</td>
+                      <td style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>{r.user_name}</td>
+                      <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 500 }}>{retailer}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-primary)' }}>${total.toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--aurora-green, #10b981)', fontWeight: 500 }}>
+                        ${(r.round_up_amount || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>{stocks}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                        {r.ai_provider && (
+                          <Badge variant="info">{r.ai_provider.toUpperCase()}</Badge>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                        <Badge variant={
+                          r.status === 'completed' ? 'success' :
+                          r.status === 'failed' ? 'error' :
+                          r.status === 'processing' ? 'warning' : 'info'
+                        }>
+                          {r.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </GlassCard>
     </div>
   );
 }

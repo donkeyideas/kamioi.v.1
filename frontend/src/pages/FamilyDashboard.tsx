@@ -2,6 +2,7 @@ import { useState, useCallback, lazy, Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
 import { BankSyncButton } from '@/components/common/BankSyncButton'
+import { UploadReceiptButton } from '@/components/common/UploadReceiptButton'
 
 const FamilyOverviewTab = lazy(() => import('@/components/family/FamilyOverviewTab').then(m => ({ default: m.FamilyOverviewTab })))
 const FamilyTransactionsTab = lazy(() => import('@/components/family/FamilyTransactionsTab').then(m => ({ default: m.FamilyTransactionsTab })))
@@ -88,7 +89,12 @@ export default function FamilyDashboard() {
       sidebarUser={{ name: userName, role: 'Family Member', initials }}
       greeting={`Welcome back, ${userName}`}
       userInitials={initials}
-      headerActions={<BankSyncButton onSyncComplete={() => setActiveTab('transactions')} />}
+      headerActions={
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <UploadReceiptButton onUploadComplete={() => setActiveTab('transactions')} dashboardType="family" />
+          <BankSyncButton onSyncComplete={() => setActiveTab('transactions')} />
+        </div>
+      }
     >
       <h1 className="aurora-page-title">
         {activeTab === 'overview' ? 'Family Dashboard' : familyNavSections[0].items.find(i => i.id === activeTab)?.label || 'Family Dashboard'}

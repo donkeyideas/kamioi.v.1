@@ -11,6 +11,9 @@ type EdgeFunctionName =
   | 'bulk-upload'
   | 'export-data'
   | 'stock-prices'
+  | 'receipt-upload'
+  | 'receipt-process'
+  | 'receipt-confirm'
 
 async function invokeEdge<T = Record<string, unknown>>(
   fn: EdgeFunctionName,
@@ -222,4 +225,106 @@ export async function getStockPrices(tickers: string[]) {
 
 export async function getStockPrice(ticker: string) {
   return invokeEdge<StockPrice>('stock-prices', { tickers: [ticker] })
+}
+
+/* ------------------------------------------------------------------ */
+/*  Smart Receipt Processing                                           */
+/* ------------------------------------------------------------------ */
+
+export interface ReceiptAllocation {
+  stockSymbol: string
+  stockName: string
+  amount: number
+  percentage: number
+  reason: string
+  confidence: number
+}
+
+export interface ReceiptParsedData {
+  retailer: { name: string; stockSymbol: string | null }
+  items: Array<{
+    name: string
+    brand: string | null
+    amount: number
+    brandSymbol: string | null
+    brandConfidence: number
+  }>
+  totalAmount: number
+  timestamp: string
+}
+
+interface ReceiptUploadResult {
+  receipt_id: number
+  filename: string
+  storage_path: string
+  file_type: string
+  file_size_bytes: number
+}
+
+interface ReceiptProcessResult {
+  receipt_id: number
+  status: string
+  parsed_data: ReceiptParsedData
+  allocation_data: { allocations: ReceiptAllocation[]; totalRoundUp: number }
+  ai_provider: string
+  processing_time_ms: number
+}
+
+interface ReceiptConfirmResult {
+  transaction_id: number
+  receipt_id: number
+  merchant: string
+  amount: number
+  round_up: number
+  fee: number
+  net_investment: number
+  allocations: ReceiptAllocation[]
+  status: string
+}
+
+/**
+ * Upload a receipt image to Supabase Storage and create a receipt record.
+ * Uses FormData instead of JSON since we're sending a file.
+ */
+export async function uploadReceipt(file: File): Promise<{ data: ReceiptUploadResult | null; error: string | null }> {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return { data: null, error: 'Not authenticated' }
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
+    const res = await fetch(`${supabaseUrl}/functions/v1/receipt-upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: formData,
+    })
+
+    const result = await res.json()
+    if (!res.ok) return { data: null, error: result.error || `Upload failed (${res.status})` }
+    return { data: result as ReceiptUploadResult, error: null }
+  } catch {
+    return { data: null, error: 'Receipt upload failed. Check your connection.' }
+  }
+}
+
+/** Trigger AI extraction & allocation on an uploaded receipt */
+export async function processReceipt(receiptId: number) {
+  return invokeEdge<ReceiptProcessResult>('receipt-process', { receipt_id: receiptId })
+}
+
+/** Confirm receipt → create transaction + allocations */
+export async function confirmReceipt(
+  receiptId: number,
+  editedData?: { parsed_data: ReceiptParsedData; allocation_data: { allocations: ReceiptAllocation[]; totalRoundUp: number } },
+  corrections?: Record<string, unknown>,
+) {
+  return invokeEdge<ReceiptConfirmResult>('receipt-confirm', {
+    receipt_id: receiptId,
+    edited_data: editedData,
+    corrections,
+  })
 }

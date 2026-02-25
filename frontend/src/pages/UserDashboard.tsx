@@ -2,6 +2,7 @@ import { useState, useCallback, lazy, Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
 import { BankSyncButton } from '@/components/common/BankSyncButton'
+import { UploadReceiptButton } from '@/components/common/UploadReceiptButton'
 
 const OverviewTab = lazy(() => import('@/components/user/OverviewTab').then(m => ({ default: m.OverviewTab })))
 const PortfolioTab = lazy(() => import('@/components/user/PortfolioTab').then(m => ({ default: m.PortfolioTab })))
@@ -90,7 +91,12 @@ export default function UserDashboard() {
       sidebarUser={{ name: userName, role: 'Investor', initials }}
       greeting={`Welcome back, ${userName}`}
       userInitials={initials}
-      headerActions={<BankSyncButton onSyncComplete={() => setActiveTab('transactions')} />}
+      headerActions={
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <UploadReceiptButton onUploadComplete={() => setActiveTab('transactions')} dashboardType="individual" />
+          <BankSyncButton onSyncComplete={() => setActiveTab('transactions')} />
+        </div>
+      }
     >
       <h1 className="aurora-page-title">
         {activeTab === 'overview' ? 'Dashboard Overview' : userNavSections[0].items.find(i => i.id === activeTab)?.label || 'Dashboard'}
