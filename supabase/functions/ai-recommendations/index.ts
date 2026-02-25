@@ -200,8 +200,8 @@ serve(async (req: Request) => {
     return corsResponse()
   }
 
-  if (req.method !== 'GET') {
-    return errorResponse('Method not allowed. Use GET.', 405)
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return errorResponse('Method not allowed', 405)
   }
 
   try {

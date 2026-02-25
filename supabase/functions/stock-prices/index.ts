@@ -98,7 +98,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    if (req.method !== 'GET') {
+    if (req.method !== 'GET' && req.method !== 'POST') {
       return errorResponse('Method not allowed', 405)
     }
 
