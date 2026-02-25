@@ -47,9 +47,9 @@ export interface SyncResult {
 /*  Edge Function helpers                                              */
 /* ------------------------------------------------------------------ */
 
-async function invokeFunction<T>(name: string, body?: unknown): Promise<T> {
+async function invokeFunction<T>(name: string, body?: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke(name, {
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ?? {},
   })
 
   if (error) {
