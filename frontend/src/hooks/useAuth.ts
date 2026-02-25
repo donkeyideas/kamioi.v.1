@@ -72,12 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
+    // IMPORTANT: This callback must NOT be async — Supabase JS v2.97+ awaits
+    // async callbacks before signInWithPassword/signOut resolve, which would
+    // block the login flow if we do async work (like fetching profile) here.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted) return
 
         if (event === 'TOKEN_REFRESHED') {
-          // Just update the session token — don't re-fetch profile or cause re-renders
           setState(prev => prev.user ? { ...prev, session } : prev)
           return
         }
@@ -96,14 +98,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (session?.user && !profileLoadedRef.current) {
           profileLoadedRef.current = true
-          const profile = await fetchProfile(session.user.id)
-          if (!mounted) return
-          setState({
+          // Set user/session immediately so ProtectedRoute works
+          setState(prev => ({
+            ...prev,
             user: session.user,
             session,
-            profile,
             loading: false,
-            isAdmin: profile?.account_type === 'admin',
+          }))
+          // Fetch profile in background (non-blocking)
+          fetchProfile(session.user.id).then(profile => {
+            if (!mounted) return
+            setState(prev => ({
+              ...prev,
+              profile,
+              isAdmin: profile?.account_type === 'admin',
+            }))
           })
         }
       }
