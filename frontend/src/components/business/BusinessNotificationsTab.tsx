@@ -348,8 +348,8 @@ export function BusinessNotificationsTab() {
 
       {/* Notification list */}
       {!loading && filtered.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filtered.map((n) => {
+        <GlassCard accent="purple" padding="0">
+          {filtered.map((n, idx) => {
             const dotColor =
               typeDotColors[n.type as NotificationType] ?? 'var(--text-muted)'
             const badgeVar =
@@ -358,15 +358,33 @@ export function BusinessNotificationsTab() {
             const isSelected = selectedIds.has(n.id)
 
             return (
-              <GlassCard
-                key={n.id}
-                padding="16px 20px"
-                style={{
-                  cursor: 'pointer',
-                  borderColor: isSelected ? 'rgba(124,58,237,0.4)' : undefined,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+              <div key={n.id}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '14px',
+                    padding: '16px 24px',
+                    cursor: 'pointer',
+                    borderLeft: isUnread ? '3px solid #7C3AED' : '3px solid transparent',
+                    background: isSelected
+                      ? 'rgba(124,58,237,0.1)'
+                      : isUnread
+                        ? 'var(--surface-hover)'
+                        : 'transparent',
+                    transition: 'background 200ms ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = 'var(--surface-row-hover)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = isSelected
+                      ? 'rgba(124,58,237,0.1)'
+                      : isUnread
+                        ? 'var(--surface-hover)'
+                        : 'transparent'
+                  }}
+                >
                   {/* Checkbox */}
                   <input
                     type="checkbox"
@@ -383,12 +401,13 @@ export function BusinessNotificationsTab() {
                   <span
                     aria-hidden="true"
                     style={{
-                      width: '8px',
-                      height: '8px',
+                      width: '10px',
+                      height: '10px',
                       borderRadius: '50%',
                       background: dotColor,
                       flexShrink: 0,
-                      marginTop: '5px',
+                      marginTop: '4px',
+                      boxShadow: `0 0 6px ${dotColor}40`,
                     }}
                   />
 
@@ -436,8 +455,8 @@ export function BusinessNotificationsTab() {
                     {/* Message */}
                     <p
                       style={{
-                        fontSize: '14px',
-                        color: 'var(--text-muted)',
+                        fontSize: '13px',
+                        color: 'var(--text-secondary)',
                         margin: '0 0 8px',
                         lineHeight: 1.5,
                       }}
@@ -489,10 +508,18 @@ export function BusinessNotificationsTab() {
                     </div>
                   </div>
                 </div>
-              </GlassCard>
+                {idx < filtered.length - 1 && (
+                  <div
+                    style={{
+                      height: '1px',
+                      background: 'linear-gradient(90deg, transparent, var(--border-subtle), transparent)',
+                    }}
+                  />
+                )}
+              </div>
             )
           })}
-        </div>
+        </GlassCard>
       )}
     </div>
   )

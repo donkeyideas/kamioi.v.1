@@ -365,39 +365,45 @@ export function FamilyNotificationsTab() {
 
       {/* Notifications list */}
       {!loading && filtered.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filtered.map((n) => {
+        <GlassCard accent="purple" padding="0">
+          {filtered.map((n, idx) => {
             const dotColor = typeDotColors[n.type] ?? 'var(--text-muted)'
             const isUnread = !n.read
 
             return (
-              <GlassCard
-                key={n.id}
-                padding="16px 20px"
-                onClick={() => {
-                  if (isUnread) void markSingleRead(n.id)
-                }}
-                style={{
-                  cursor: isUnread ? 'pointer' : 'default',
-                }}
-              >
+              <div key={n.id}>
                 <div
+                  onClick={() => {
+                    if (isUnread) void markSingleRead(n.id)
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '14px',
+                    padding: '16px 24px',
+                    cursor: isUnread ? 'pointer' : 'default',
+                    borderLeft: isUnread ? '3px solid #7C3AED' : '3px solid transparent',
+                    background: isUnread ? 'var(--surface-hover)' : 'transparent',
+                    transition: 'background 200ms ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--surface-row-hover)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = isUnread ? 'var(--surface-hover)' : 'transparent'
                   }}
                 >
                   {/* Type dot */}
                   <span
                     aria-hidden="true"
                     style={{
-                      width: '8px',
-                      height: '8px',
+                      width: '10px',
+                      height: '10px',
                       borderRadius: '50%',
                       background: dotColor,
                       flexShrink: 0,
-                      marginTop: '5px',
+                      marginTop: '4px',
+                      boxShadow: `0 0 6px ${dotColor}40`,
                     }}
                   />
 
@@ -416,7 +422,7 @@ export function FamilyNotificationsTab() {
                       <span
                         style={{
                           fontSize: '14px',
-                          fontWeight: 600,
+                          fontWeight: isUnread ? 700 : 500,
                           color: 'var(--text-primary)',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -440,8 +446,8 @@ export function FamilyNotificationsTab() {
                     {/* Message */}
                     <p
                       style={{
-                        fontSize: '14px',
-                        color: 'var(--text-muted)',
+                        fontSize: '13px',
+                        color: 'var(--text-secondary)',
                         margin: '0 0 8px 0',
                         lineHeight: 1.5,
                       }}
@@ -460,10 +466,18 @@ export function FamilyNotificationsTab() {
                     </div>
                   </div>
                 </div>
-              </GlassCard>
+                {idx < filtered.length - 1 && (
+                  <div
+                    style={{
+                      height: '1px',
+                      background: 'linear-gradient(90deg, transparent, var(--border-subtle), transparent)',
+                    }}
+                  />
+                )}
+              </div>
             )
           })}
-        </div>
+        </GlassCard>
       )}
     </div>
   )
