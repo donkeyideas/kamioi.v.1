@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { useUserId } from '@/hooks/useUserId';
 import { GlassCard, Table, Badge } from '@/components/ui';
 import type { Column } from '@/components/ui';
-import { CompanyLogo, formatMerchantName } from '@/components/common/CompanyLogo';
+import { CompanyLogo } from '@/components/common/CompanyLogo';
 import BarChart from '@/components/charts/BarChart';
 import { getAiRecommendations } from '@/services/api';
 import type { Database } from '@/types/database';
@@ -250,7 +250,7 @@ export function AiInsightsTab() {
       header: 'Merchant',
       sortable: true,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatMerchantName(row.merchant_name)}</span>
+        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.merchant_name}</span>
       ),
     },
     {

@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Table, Badge, Select, KpiCard, Button, Modal, Input } from '@/components/ui'
 import type { Column } from '@/components/ui'
-import { COMPANY_LOOKUP, CompanyLogo, CompanyLink, formatMerchantName } from '@/components/common/CompanyLogo'
+import { COMPANY_LOOKUP, CompanyLogo, CompanyLink } from '@/components/common/CompanyLogo'
 
 /* ---- Types ---- */
 
@@ -169,7 +169,7 @@ export function FamilyTransactionsTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {row.merchant && <CompanyLogo name={row.merchant} size={22} />}
             <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-              {row.merchant ? formatMerchantName(row.merchant) : '--'}
+              {row.merchant ?? '--'}
             </span>
           </div>
         )
@@ -411,7 +411,7 @@ export function FamilyTransactionsTab() {
                   color: 'var(--text-primary)',
                   fontSize: '14px',
                 }}>
-                  {mapTransaction?.merchant ? formatMerchantName(mapTransaction.merchant) : '--'}
+                  {mapTransaction?.merchant ?? '--'}
                 </div>
               </div>
 

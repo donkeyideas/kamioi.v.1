@@ -6,7 +6,7 @@ import { KpiCard, GlassCard, ActivityFeed, QuickActions } from '@/components/ui'
 import type { ActivityItem, QuickAction } from '@/components/ui'
 import LineChart from '@/components/charts/LineChart'
 import BarChart from '@/components/charts/BarChart'
-import { CompanyLogo, formatMerchantName } from '@/components/common/CompanyLogo'
+import { CompanyLogo } from '@/components/common/CompanyLogo'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -338,7 +338,7 @@ export function BusinessOverviewTab() {
       text: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {tx.merchant && <CompanyLogo name={tx.merchant} size={18} />}
-          {tx.merchant ? formatMerchantName(tx.merchant) : 'Transaction'} — {formatCurrency(tx.amount)}
+          {tx.merchant ?? 'Transaction'} — {formatCurrency(tx.amount)}
         </span>
       ),
       time: timeAgo(tx.created_at),

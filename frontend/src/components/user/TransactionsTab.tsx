@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { useUserId } from '@/hooks/useUserId';
 import { GlassCard, Table, Badge, Input, KpiCard, Button, Select, Modal } from '@/components/ui';
 import type { Column } from '@/components/ui';
-import { COMPANY_LOOKUP, CompanyLogo, formatMerchantName } from '@/components/common/CompanyLogo';
+import { COMPANY_LOOKUP, CompanyLogo } from '@/components/common/CompanyLogo';
 
 /* ---- Types ---- */
 
@@ -206,13 +206,12 @@ export function TransactionsTab() {
       key: 'merchant',
       header: 'Merchant',
       render: (row) => {
-        const displayName = row.merchant ? formatMerchantName(row.merchant) : '--';
         const info = row.merchant ? COMPANY_LOOKUP[row.merchant] : null;
         const content = (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {row.merchant && <CompanyLogo name={row.merchant} size={22} />}
             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-              {displayName}
+              {row.merchant ?? '--'}
             </span>
           </div>
         );
@@ -223,7 +222,7 @@ export function TransactionsTab() {
               target="_blank"
               rel="noopener noreferrer"
               style={{ textDecoration: 'none', color: 'inherit' }}
-              title={`Visit ${displayName}`}
+              title={`Visit ${row.merchant}`}
             >
               {content}
             </a>
