@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input } from '@/components/ui'
+import { LinkedAccountsCard } from '@/components/common/LinkedAccountsCard'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -472,7 +473,12 @@ export function SettingsTab() {
       </GlassCard>
 
       {/* ============================================================ */}
-      {/* Section 4: Security                                          */}
+      {/* Section 4: Linked Bank Accounts                              */}
+      {/* ============================================================ */}
+      <LinkedAccountsCard />
+
+      {/* ============================================================ */}
+      {/* Section 5: Security                                          */}
       {/* ============================================================ */}
       <GlassCard accent="pink">
         <h3 style={sectionTitleStyle}>Security</h3>

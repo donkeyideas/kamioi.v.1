@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '@/lib/supabase'
 import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input, Select, Badge } from '@/components/ui'
+import { LinkedAccountsCard } from '@/components/common/LinkedAccountsCard'
 
 /* ---- Types ---- */
 
@@ -334,7 +335,10 @@ export function FamilySettingsTab() {
         </div>
       </GlassCard>
 
-      {/* Section 3: Member Permissions Overview */}
+      {/* Section 3: Linked Bank Accounts */}
+      <LinkedAccountsCard />
+
+      {/* Section 4: Member Permissions Overview */}
       <GlassCard accent="teal">
         <h3 style={sectionTitleStyle}>Member Permissions</h3>
 

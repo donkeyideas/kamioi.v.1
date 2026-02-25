@@ -64,3 +64,15 @@ verify_jwt = true
 
 [functions.subscription-manage]
 verify_jwt = true
+
+[functions.teller-save-enrollment]
+verify_jwt = true
+
+[functions.teller-list-accounts]
+verify_jwt = true
+
+[functions.teller-sync-transactions]
+verify_jwt = true
+
+[functions.teller-disconnect]
+verify_jwt = true

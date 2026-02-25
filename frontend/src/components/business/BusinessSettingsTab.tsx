@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '@/lib/supabase'
 import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input, Select } from '@/components/ui'
+import { LinkedAccountsCard } from '@/components/common/LinkedAccountsCard'
 import type { SelectOption } from '@/components/ui'
 
 /* ------------------------------------------------------------------ */
@@ -413,6 +414,11 @@ export function BusinessSettingsTab() {
           })}
         </div>
       </GlassCard>
+
+      {/* ======================================================== */}
+      {/* Linked Bank Accounts                                      */}
+      {/* ======================================================== */}
+      <LinkedAccountsCard />
 
       {/* ======================================================== */}
       {/* Notification Preferences                                  */}
