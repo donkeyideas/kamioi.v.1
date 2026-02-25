@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback, type CSSProperties } from 'react'
-import { Modal, Badge, Button } from '@/components/ui'
+import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
+import { Badge, Button } from '@/components/ui'
 import { CompanyLogo } from '@/components/common/CompanyLogo'
 import {
   uploadReceipt,
@@ -33,6 +34,58 @@ interface ManualItem {
 /* -------------------------------------------------------------------------- */
 
 const styles: Record<string, CSSProperties> = {
+  overlay: {
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(0, 0, 0, 0.75)',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+    padding: '20px',
+  },
+  panel: {
+    position: 'relative' as const,
+    width: '100%',
+    maxWidth: '720px',
+    maxHeight: '90vh',
+    overflowY: 'auto' as const,
+    background: 'var(--surface-modal, #1e1e2f)',
+    border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
+    borderRadius: '16px',
+    padding: '24px',
+    boxShadow: '0 12px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(124, 58, 237, 0.15)',
+  },
+  closeBtn: {
+    position: 'absolute' as const,
+    top: '12px',
+    right: '12px',
+    width: '40px',
+    height: '40px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'var(--surface-input, rgba(255,255,255,0.05))',
+    border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
+    borderRadius: '8px',
+    color: 'var(--text-secondary, #999)',
+    cursor: 'pointer',
+    fontSize: '16px',
+    lineHeight: 1,
+    padding: 0,
+  },
+  modalTitle: {
+    fontSize: '18px',
+    fontWeight: 700,
+    color: 'var(--text-primary, #fff)',
+    marginBottom: '16px',
+    paddingRight: '52px',
+  },
   header: {
     textAlign: 'center' as const,
     marginBottom: '24px',
@@ -501,12 +554,48 @@ export function ReceiptUploadModal({ isOpen, onClose, onComplete, dashboardType 
   const STEPS = ['Upload', 'Extract', 'Analyze', 'Complete']
   const stepIndex = step === 'uploading' ? 0 : step === 'extracting' ? 1 : step === 'analyzing' ? 2 : step === 'completed' ? 3 : -1
 
+  /* ---- Lock body scroll + Escape key ---- */
+  useEffect(() => {
+    if (!isOpen) return
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose() }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [isOpen, handleClose])
+
   /* ==================================================================== */
   /*  RENDER                                                               */
   /* ==================================================================== */
 
-  return (
-    <Modal open={isOpen} onClose={handleClose} title="Upload Receipt or Invoice" size="lg">
+  if (!isOpen) return null
+
+  return createPortal(
+    <div
+      style={styles.overlay}
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
+    >
+      <div style={styles.panel}>
+        {/* Top glow line */}
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent, var(--highlight-line, rgba(124,58,237,0.4)), transparent)',
+            pointerEvents: 'none',
+            borderRadius: '16px 16px 0 0',
+          }}
+        />
+        {/* Close button */}
+        <button style={styles.closeBtn} onClick={handleClose} aria-label="Close modal">&#x2715;</button>
+        <h2 style={styles.modalTitle}>Upload Receipt or Invoice</h2>
+
       {/* ---- IDLE: Upload zone ---- */}
       {step === 'idle' && (
         <>
@@ -851,7 +940,9 @@ export function ReceiptUploadModal({ isOpen, onClose, onComplete, dashboardType 
           </div>
         </div>
       )}
-    </Modal>
+      </div>
+    </div>,
+    document.body
   )
 }
 

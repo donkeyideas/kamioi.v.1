@@ -6,13 +6,16 @@
 --              receipt-sourced transaction tracking
 -- ============================================================================
 
+-- Ensure search_path includes public
+SET search_path TO public, storage, auth;
+
 -- ============================================================================
 -- TABLE: receipts
 -- Stores uploaded receipt images and their AI-extracted data
 -- ============================================================================
-CREATE TABLE receipts (
+CREATE TABLE IF NOT EXISTS public.receipts (
     id               SERIAL PRIMARY KEY,
-    user_id          INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id          INT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     filename         TEXT NOT NULL,
     storage_path     TEXT NOT NULL,
     file_type        TEXT NOT NULL
@@ -31,25 +34,34 @@ CREATE TABLE receipts (
     updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_receipts_user_id ON receipts(user_id);
-CREATE INDEX idx_receipts_status ON receipts(status);
-CREATE INDEX idx_receipts_created_at ON receipts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_receipts_user_id ON public.receipts(user_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_status ON public.receipts(status);
+CREATE INDEX IF NOT EXISTS idx_receipts_created_at ON public.receipts(created_at DESC);
 
-CREATE TRIGGER set_receipts_updated_at
-    BEFORE UPDATE ON receipts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- updated_at trigger (re-uses the function from 001_schema.sql)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'set_receipts_updated_at'
+    ) THEN
+        CREATE TRIGGER set_receipts_updated_at
+            BEFORE UPDATE ON public.receipts
+            FOR EACH ROW
+            EXECUTE FUNCTION public.update_updated_at_column();
+    END IF;
+END
+$$;
 
-ALTER TABLE receipts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- TABLE: receipt_allocations
 -- Links receipt → stock allocation with amounts and confidence
 -- ============================================================================
-CREATE TABLE receipt_allocations (
+CREATE TABLE IF NOT EXISTS public.receipt_allocations (
     id                    SERIAL PRIMARY KEY,
-    receipt_id            INT NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
-    transaction_id        INT REFERENCES transactions(id) ON DELETE SET NULL,
+    receipt_id            INT NOT NULL REFERENCES public.receipts(id) ON DELETE CASCADE,
+    transaction_id        INT REFERENCES public.transactions(id) ON DELETE SET NULL,
     stock_symbol          VARCHAR(10) NOT NULL,
     stock_name            TEXT,
     allocation_amount     DECIMAL(10,2) NOT NULL,
@@ -59,19 +71,19 @@ CREATE TABLE receipt_allocations (
     created_at            TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_receipt_alloc_receipt ON receipt_allocations(receipt_id);
-CREATE INDEX idx_receipt_alloc_txn ON receipt_allocations(transaction_id);
-CREATE INDEX idx_receipt_alloc_symbol ON receipt_allocations(stock_symbol);
+CREATE INDEX IF NOT EXISTS idx_receipt_alloc_receipt ON public.receipt_allocations(receipt_id);
+CREATE INDEX IF NOT EXISTS idx_receipt_alloc_txn ON public.receipt_allocations(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_receipt_alloc_symbol ON public.receipt_allocations(stock_symbol);
 
-ALTER TABLE receipt_allocations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.receipt_allocations ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- ADD receipt_id to transactions (links receipt-sourced transactions)
 -- ============================================================================
-ALTER TABLE transactions
-    ADD COLUMN IF NOT EXISTS receipt_id INT REFERENCES receipts(id) ON DELETE SET NULL;
+ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS receipt_id INT REFERENCES public.receipts(id) ON DELETE SET NULL;
 
-CREATE INDEX idx_transactions_receipt ON transactions(receipt_id)
+CREATE INDEX IF NOT EXISTS idx_transactions_receipt ON public.transactions(receipt_id)
     WHERE receipt_id IS NOT NULL;
 
 -- ============================================================================
