@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { ThemeProvider } from '@/context/ThemeContext'
-import { useAuth } from '@/hooks/useAuth'
+import { AuthProvider, useAuth } from '@/hooks/useAuth'
 
 // Lazy-loaded pages
 const Home = lazy(() => import('@/pages/Home'))
@@ -75,6 +75,7 @@ function AppRedirect() {
 
 export default function App() {
   return (
+    <AuthProvider>
     <ThemeProvider>
       <Suspense fallback={<LoadingScreen />}>
         <Routes>
@@ -121,5 +122,6 @@ export default function App() {
         </Routes>
       </Suspense>
     </ThemeProvider>
+    </AuthProvider>
   )
 }

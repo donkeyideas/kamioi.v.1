@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Table, Badge, Select, Button, Modal, GradientDivider, KpiCard, Input } from '@/components/ui'
 import type { Column, SelectOption } from '@/components/ui'
-import { COMPANY_LOOKUP, CompanyLogo, CompanyLink } from '@/components/common/CompanyLogo'
+import { COMPANY_LOOKUP, CompanyLogo, CompanyLink, formatMerchantName } from '@/components/common/CompanyLogo'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -155,7 +155,7 @@ export function BusinessTransactionsTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {row.merchant && <CompanyLogo name={row.merchant} size={22} />}
             <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-              {row.merchant ?? '--'}
+              {row.merchant ? formatMerchantName(row.merchant) : '--'}
             </span>
           </div>
         )
@@ -498,7 +498,7 @@ export function BusinessTransactionsTab() {
             <DetailRow label="Date" value={formatDate(selectedTx.created_at)} />
             <DetailRow label="Employee" value={selectedTx.employee_name} />
             <DetailRow label="Department" value={selectedTx.department} />
-            <DetailRow label="Merchant" value={selectedTx.merchant ?? '--'} />
+            <DetailRow label="Merchant" value={selectedTx.merchant ? formatMerchantName(selectedTx.merchant) : '--'} />
             <DetailRow label="Category" value={selectedTx.category ?? '--'} />
             <GradientDivider margin="4px 0" />
             <DetailRow label="Amount" value={formatCurrency(selectedTx.amount)} highlight />
