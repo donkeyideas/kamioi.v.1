@@ -36,43 +36,43 @@ enabled = true
 file_size_limit = "50MiB"
 
 [functions.ai-mapping]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-recommendations]
-verify_jwt = true
+verify_jwt = false
 
 [functions.blog-generate]
-verify_jwt = true
+verify_jwt = false
 
 [functions.bulk-upload]
-verify_jwt = true
+verify_jwt = false
 
 [functions.contact-submit]
 verify_jwt = false
 
 [functions.export-data]
-verify_jwt = true
+verify_jwt = false
 
 [functions.process-roundup]
-verify_jwt = true
+verify_jwt = false
 
 [functions.seo-audit]
-verify_jwt = true
+verify_jwt = false
 
 [functions.stock-prices]
-verify_jwt = true
+verify_jwt = false
 
 [functions.subscription-manage]
-verify_jwt = true
+verify_jwt = false
 
 [functions.teller-save-enrollment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.teller-list-accounts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.teller-sync-transactions]
-verify_jwt = true
+verify_jwt = false
 
 [functions.teller-disconnect]
-verify_jwt = true
+verify_jwt = false
