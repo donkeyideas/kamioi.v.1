@@ -18,6 +18,7 @@ const SystemOperationsTab = lazy(() => import('@/components/admin/SystemOperatio
 const MonitoringTab = lazy(() => import('@/components/admin/MonitoringTab').then(m => ({ default: m.MonitoringTab })))
 const BadgesGamificationTab = lazy(() => import('@/components/admin/BadgesGamificationTab').then(m => ({ default: m.BadgesGamificationTab })))
 const EmployeeManagementTab = lazy(() => import('@/components/admin/EmployeeManagementTab').then(m => ({ default: m.EmployeeManagementTab })))
+const SocialPostsTab = lazy(() => import('@/components/admin/SocialPostsTab').then(m => ({ default: m.SocialPostsTab })))
 
 function TabLoading() {
   return (
@@ -45,6 +46,7 @@ const adminNavSections: NavSection[] = [
       { id: 'monitoring', label: 'Monitoring', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
       { id: 'badges', label: 'Badges & Gamification', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg> },
       { id: 'employees', label: 'Employee Management', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> },
+      { id: 'social', label: 'Social Posts', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4l7.07 17 2.51-7.39L21 11.07z"/></svg> },
     ],
   },
 ]
@@ -65,6 +67,7 @@ const subtitleMap: Record<string, string> = {
   monitoring: 'Loading reports, API tracking, and error logs',
   badges: 'Badge definitions, award queue, and gamification rules',
   employees: 'Employee directory, roles, and permissions',
+  social: 'AI-powered social media post generation and scheduling',
 }
 
 function renderContent(activeTab: string) {
@@ -99,6 +102,8 @@ function renderContent(activeTab: string) {
       return <BadgesGamificationTab />
     case 'employees':
       return <EmployeeManagementTab />
+    case 'social':
+      return <SocialPostsTab />
     default:
       return <PlatformOverviewTab />
   }
@@ -134,6 +139,8 @@ const TABLES_TO_CLEAR = [
   'business_members',
   'families',
   'businesses',
+  // Social media posts
+  'social_media_posts',
   // Standalone tables
   'system_events',
   'advertisements',

@@ -14,6 +14,12 @@ type EdgeFunctionName =
   | 'receipt-upload'
   | 'receipt-process'
   | 'receipt-confirm'
+  | 'social-posts'
+  | 'social-posts-generate'
+  | 'social-posts-publish'
+  | 'social-posts-automation'
+  | 'social-posts-credentials'
+  | 'social-posts-test-connection'
 
 async function invokeEdge<T = Record<string, unknown>>(
   fn: EdgeFunctionName,
@@ -327,4 +333,97 @@ export async function confirmReceipt(
     edited_data: editedData,
     corrections,
   })
+}
+
+/* ------------------------------------------------------------------ */
+/*  Social Media Posts                                                 */
+/* ------------------------------------------------------------------ */
+
+export type SocialPlatform = 'TWITTER' | 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM' | 'TIKTOK'
+export type SocialPostStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'FAILED' | 'CANCELLED'
+
+export interface SocialPost {
+  id: string
+  platform: SocialPlatform
+  content: string
+  status: SocialPostStatus
+  hashtags: string[]
+  image_prompt: string | null
+  scheduled_at: string | null
+  published_at: string | null
+  error_message: string | null
+  platform_post_id: string | null
+  created_by: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface GeneratedSocialPost {
+  platform: string
+  content: string
+  hashtags: string[]
+  image_prompt: string | null
+}
+
+export async function listSocialPosts(filters?: { status?: string; platform?: string }) {
+  return invokeEdge<{ data: SocialPost[]; count: number }>('social-posts', {
+    method: 'list',
+    ...filters,
+  })
+}
+
+export async function createSocialPost(post: {
+  platform: string
+  content: string
+  hashtags?: string[]
+  image_prompt?: string
+  status?: string
+  scheduled_at?: string
+}) {
+  return invokeEdge<SocialPost>('social-posts', { method: 'create', ...post })
+}
+
+export async function updateSocialPost(id: string, updates: Record<string, unknown>) {
+  return invokeEdge<SocialPost>('social-posts', { method: 'update', id, ...updates })
+}
+
+export async function deleteSocialPost(id: string) {
+  return invokeEdge<{ deleted: boolean }>('social-posts', { method: 'delete', id })
+}
+
+export async function generateSocialPosts(topic: string, tone: string, platforms: string[]) {
+  return invokeEdge<{ generated: GeneratedSocialPost[]; errors: Array<{ platform: string; error: string }>; cost: number }>(
+    'social-posts-generate',
+    { topic, tone, platforms },
+  )
+}
+
+export async function publishSocialPost(postId: string) {
+  return invokeEdge<{ success: boolean; platform_post_id?: string }>(
+    'social-posts-publish',
+    { post_id: postId },
+  )
+}
+
+export async function getSocialAutomation() {
+  return invokeEdge<Record<string, string>>('social-posts-automation', { method: 'get' })
+}
+
+export async function saveSocialAutomation(settings: Record<string, string>) {
+  return invokeEdge<{ saved: boolean }>('social-posts-automation', { method: 'save', settings })
+}
+
+export async function getSocialCredentials() {
+  return invokeEdge<Record<string, { masked: string; configured: boolean }>>('social-posts-credentials', { method: 'get' })
+}
+
+export async function saveSocialCredentials(credentials: Record<string, string>) {
+  return invokeEdge<{ saved: boolean }>('social-posts-credentials', { method: 'save', credentials })
+}
+
+export async function testSocialConnection(platform: string) {
+  return invokeEdge<{ connected: boolean; account_name?: string; error?: string }>(
+    'social-posts-test-connection',
+    { platform },
+  )
 }
