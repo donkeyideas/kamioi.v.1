@@ -32,8 +32,7 @@ export function SeoAnalyticsTab() {
               boxShadow: active === t.key ? '0 4px 16px rgba(124,58,237,0.3)' : 'none',
             }}
           >
-            <div>{t.label}</div>
-            <div style={{ fontSize: '10px', fontWeight: 400, opacity: 0.8, marginTop: '2px' }}>{t.desc}</div>
+            {t.label}
           </button>
         ))}
       </div>

@@ -56,19 +56,28 @@ interface GscData {
 }
 
 /* ================================================================
+   Helpers
+   ================================================================ */
+
+function formatStatus(s: string) {
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+/* ================================================================
    Sub-sections
    ================================================================ */
 
 function SeoOverview() {
-  const { data, loading } = useSeoData<OverviewData>('overview')
+  const { data, loading, refetch: refetchOverview } = useSeoData<OverviewData>('overview')
   const [auditing, setAuditing] = useState(false)
   const { refetch: runAudit } = useSeoData('run_audit', false)
+  const { data: gscData } = useSeoData<GscData>('gsc_data')
 
   const handleAudit = async () => {
     setAuditing(true)
     await runAudit()
+    await refetchOverview()
     setAuditing(false)
-    window.location.reload()
   }
 
   const scores = data?.scores
@@ -106,7 +115,6 @@ function SeoOverview() {
           <KpiCard label="Schema Types" value={stats.schema_types_active} accent="teal" />
           <KpiCard label="AI Crawlers Allowed" value={stats.ai_crawlers_allowed} accent="blue" />
           <KpiCard label="Open Recommendations" value={stats.open_recommendations} accent="pink" />
-          <KpiCard label="Resolved" value={stats.resolved_recommendations} accent="teal" />
         </div>
       )}
 
@@ -121,6 +129,71 @@ function SeoOverview() {
           height={280}
         />
       )}
+
+      {/* Daily Search Traffic Chart */}
+      {gscData?.traffic?.daily && gscData.traffic.daily.length > 0 && (
+        <LineChart
+          data={gscData.traffic.daily.map(d => ({ name: d.date.slice(5), clicks: d.clicks }))}
+          dataKey="clicks"
+          xKey="name"
+          title="Daily Search Clicks (30 days)"
+          color="#3B82F6"
+          height={280}
+        />
+      )}
+
+      {/* Traffic Sources + Issues Breakdown side by side */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+        {/* Traffic Sources */}
+        {gscData?.traffic?.sources && gscData.traffic.sources.length > 0 && (
+          <GlassCard>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px' }}>Traffic Sources</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {gscData.traffic.sources.map(s => (
+                <div key={s.source}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{s.source}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{s.percentage}%</span>
+                  </div>
+                  <div style={{ height: '8px', background: 'var(--surface-input)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${s.percentage}%`, height: '100%', background: 'linear-gradient(90deg, #7C3AED, #3B82F6)', borderRadius: '4px', transition: 'width 600ms ease' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        )}
+
+        {/* Issues Breakdown */}
+        {data?.issues_by_category && Object.keys(data.issues_by_category).length > 0 && (
+          <BarChart
+            data={Object.entries(data.issues_by_category).map(([category, count]) => ({ name: category, count: count as number }))}
+            dataKey="count"
+            xKey="name"
+            title="Issues by Category"
+            color="#F59E0B"
+            height={280}
+          />
+        )}
+      </div>
+
+      {/* Keyword Rankings Preview */}
+      {gscData?.rankings?.keywords && gscData.rankings.keywords.length > 0 && (
+        <GlassCard>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px' }}>Top Keywords</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
+            {gscData.rankings.keywords.slice(0, 6).map(kw => (
+              <div key={kw.keyword} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', background: 'var(--surface-input)' }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{kw.keyword}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{kw.clicks} clicks &middot; {kw.impressions} impressions</div>
+                </div>
+                <Badge variant={kw.position <= 3 ? 'success' : kw.position <= 10 ? 'info' : 'warning'}>#{kw.position}</Badge>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
     </div>
   )
 }
@@ -134,9 +207,9 @@ function TechnicalAudit() {
   const pageColumns: Column<TechnicalData['pages'][0]>[] = [
     { key: 'page_name', header: 'Page', sortable: true },
     { key: 'score', header: 'Score', sortable: true, align: 'center', render: (r) => <Badge variant={r.score >= 80 ? 'success' : r.score >= 60 ? 'warning' : 'error'}>{r.score}</Badge> },
-    { key: 'title', header: 'Title', align: 'center', render: (r) => <Badge variant={r.title.status === 'good' ? 'success' : 'warning'}>{r.title.status}</Badge> },
-    { key: 'meta', header: 'Meta Desc', align: 'center', render: (r) => <Badge variant={r.meta_description.status === 'good' ? 'success' : 'warning'}>{r.meta_description.status}</Badge> },
-    { key: 'h1', header: 'H1', align: 'center', render: (r) => <Badge variant={r.h1.status === 'good' ? 'success' : 'error'}>{r.h1.status}</Badge> },
+    { key: 'title', header: 'Title', align: 'center', render: (r) => <Badge variant={r.title.status === 'good' ? 'success' : 'warning'}>{formatStatus(r.title.status)}</Badge> },
+    { key: 'meta', header: 'Meta Desc', align: 'center', render: (r) => <Badge variant={r.meta_description.status === 'good' ? 'success' : 'warning'}>{formatStatus(r.meta_description.status)}</Badge> },
+    { key: 'h1', header: 'H1', align: 'center', render: (r) => <Badge variant={r.h1.status === 'good' ? 'success' : 'error'}>{formatStatus(r.h1.status)}</Badge> },
     { key: 'schema', header: 'Schema', align: 'center', render: (r) => <Badge variant={r.structured_data.types.length >= 2 ? 'success' : 'warning'}>{r.structured_data.types.length}</Badge> },
     { key: 'og', header: 'OG Tags', align: 'center', render: (r) => <Badge variant={r.og_tags.complete ? 'success' : 'error'}>{r.og_tags.complete ? 'Yes' : 'No'}</Badge> },
     { key: 'issues', header: 'Issues', align: 'center', render: (r) => r.issues.length > 0 ? <Badge variant="warning">{r.issues.length}</Badge> : <Badge variant="success">0</Badge> },

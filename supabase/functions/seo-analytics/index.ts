@@ -11,7 +11,7 @@ const PUBLIC_PAGES = [
   {
     url: '/', name: 'Homepage',
     expected_title: 'Kamioi - Turn Everyday Spending into Stock Ownership',
-    expected_description: 'Kamioi automatically rounds up your everyday purchases and invests the spare change into real stocks. Transform your spending into wealth — no minimum balance required.',
+    expected_description: 'Kamioi rounds up your everyday purchases and invests the spare change into real stocks. Transform spending into ownership — no minimum balance required.',
     expected_schemas: ['Organization', 'WebSite', 'SoftwareApplication', 'WebPage'],
     has_faq: false, faq_count: 0, expected_h1: true, priority: 1.0,
   },
@@ -53,14 +53,14 @@ const PUBLIC_PAGES = [
   {
     url: '/register', name: 'Sign Up',
     expected_title: 'Sign Up for Kamioi: Start Investing Automatically',
-    expected_description: 'Create your free Kamioi account and start building wealth with automatic round-up investing. No hidden fees.',
+    expected_description: 'Create your free Kamioi account and start building wealth with automatic round-up investing. No hidden fees, no minimum balance required.',
     expected_schemas: ['Organization', 'WebSite'],
     has_faq: false, faq_count: 0, expected_h1: true, priority: 0.7,
   },
   {
     url: '/contact', name: 'Contact',
-    expected_title: 'Contact Kamioi - Get in Touch',
-    expected_description: 'Contact the Kamioi team for support, partnerships, or press inquiries.',
+    expected_title: 'Contact Kamioi - Get in Touch With Our Team',
+    expected_description: 'Contact the Kamioi team for support, partnership inquiries, or press requests. We are here to help you get started with micro-investing.',
     expected_schemas: ['Organization', 'WebSite'],
     has_faq: false, faq_count: 0, expected_h1: true, priority: 0.5,
   },
@@ -75,8 +75,8 @@ const AI_CRAWLERS = [
   { name: 'Google-Extended', user_agent: 'Google-Extended', owner: 'Google', allowed: true },
   { name: 'Diffbot', user_agent: 'Diffbot', owner: 'Diffbot', allowed: true },
   { name: 'cohere-ai', user_agent: 'cohere-ai', owner: 'Cohere', allowed: true },
-  { name: 'CCBot', user_agent: 'CCBot', owner: 'Common Crawl', allowed: false },
-  { name: 'Bytespider', user_agent: 'Bytespider', owner: 'ByteDance', allowed: false },
+  { name: 'CCBot', user_agent: 'CCBot', owner: 'Common Crawl', allowed: true },
+  { name: 'Bytespider', user_agent: 'Bytespider', owner: 'ByteDance', allowed: true },
 ]
 
 const SCHEMA_TYPES = ['Organization', 'WebSite', 'SoftwareApplication', 'FAQPage', 'BreadcrumbList', 'FinancialProduct', 'HowTo']
