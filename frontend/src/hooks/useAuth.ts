@@ -39,6 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Prevent duplicate profile fetches
   const profileLoadedRef = useRef(false)
+  // Track whether the initial getSession() check has completed
+  const initialCheckDoneRef = useRef(false)
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -54,7 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // Initial session check
+    // Initial session check — waits for profile before setting loading: false
+    // so that AdminRoute/ProtectedRoute don't redirect prematurely on refresh
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return
       if (session?.user && !profileLoadedRef.current) {
@@ -71,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (!session) {
         setState(prev => ({ ...prev, loading: false }))
       }
+      initialCheckDoneRef.current = true
     })
 
     // IMPORTANT: This callback must NOT be async — Supabase JS v2.97+ awaits
@@ -99,7 +103,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        // Sign in / initial session — set user immediately, fetch profile in background
+        // Before getSession() completes, skip — let getSession() handle
+        // the initial load so profile + isAdmin are ready before loading: false
+        if (!initialCheckDoneRef.current) return
+
+        // Sign in (after initial check) — set user immediately, fetch profile in background
         if (session?.user && !profileLoadedRef.current) {
           profileLoadedRef.current = true
           // Set user/session immediately so ProtectedRoute unblocks
