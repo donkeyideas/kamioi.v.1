@@ -65,13 +65,14 @@ async function runLlmMatching(
 
   const merchantNames = [...new Set(txns.map((t: { merchant: string }) => t.merchant).filter(Boolean))]
 
-  // Case-insensitive matching for Teller ALL CAPS merchant names
-  // Double-quote values to handle special chars (apostrophes, ampersands, etc.)
-  const orConditions = merchantNames.map((name: string) => `merchant_name.ilike."${name.replace(/"/g, '\\"')}"`).join(',')
+  // Generate case variants (original, lowercase, Title Case) for indexed .in() lookup
+  const toTitleCase = (s: string) => s.toLowerCase().split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  const allVariants = [...new Set(merchantNames.flatMap((name: string) => [name, name.toLowerCase(), toTitleCase(name)]))]
+
   const { data: mappings } = await supabase
     .from('llm_mappings')
     .select('merchant_name, ticker, confidence, company_name')
-    .or(orConditions)
+    .in('merchant_name', allVariants)
     .eq('status', 'approved')
 
   // Lowercase keys for case-insensitive lookup
