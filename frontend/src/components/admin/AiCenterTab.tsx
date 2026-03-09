@@ -433,12 +433,12 @@ function LlmCenterContent() {
     setLoading(true);
     try {
       const [totalResult, approvedResult, rejectedResult, pendingResult, avgConfResult, recentResult] = await Promise.all([
-        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }),
-        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabaseAdmin.from('llm_mappings').select('confidence').not('confidence', 'is', null).limit(5000),
-        supabaseAdmin.from('llm_mappings').select('*').order('created_at', { ascending: false }).limit(20),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }).eq('status', 'approved'),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }).eq('status', 'rejected'),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }).eq('status', 'pending'),
+        supabaseAdmin.from('llm_mappings').select('confidence').not('confidence', 'is', null).order('id', { ascending: false }).limit(1000),
+        supabaseAdmin.from('llm_mappings').select('id, merchant_name, ticker, category, confidence, status, company_name, created_at').order('created_at', { ascending: false }).limit(20),
       ]);
 
       setTotalMappings(totalResult.count ?? 0);
@@ -1683,9 +1683,9 @@ function MlDashboardContent() {
     try {
       const [respResult, mapResult, respCount, mapCount] = await Promise.all([
         supabaseAdmin.from('ai_responses').select('*').order('created_at', { ascending: false }).limit(500),
-        supabaseAdmin.from('llm_mappings').select('*').order('created_at', { ascending: false }).limit(500),
+        supabaseAdmin.from('llm_mappings').select('id, merchant_name, ticker, category, confidence, status, company_name, created_at').order('created_at', { ascending: false }).limit(500),
         supabaseAdmin.from('ai_responses').select('id', { count: 'exact', head: true }),
-        supabaseAdmin.from('llm_mappings').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }),
       ]);
       setResponses((respResult.data ?? []) as AiResponse[]);
       setMappings((mapResult.data ?? []) as LlmMapping[]);
@@ -2025,9 +2025,9 @@ function DataManagementContent() {
     try {
       const [respResult, mapResult, respCount, mapCount] = await Promise.all([
         supabaseAdmin.from('ai_responses').select('*').order('created_at', { ascending: false }).limit(500),
-        supabaseAdmin.from('llm_mappings').select('*').order('created_at', { ascending: false }).limit(500),
+        supabaseAdmin.from('llm_mappings').select('id, merchant_name, ticker, category, confidence, status, company_name, created_at').order('created_at', { ascending: false }).limit(500),
         supabaseAdmin.from('ai_responses').select('id', { count: 'exact', head: true }),
-        supabaseAdmin.from('llm_mappings').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }),
       ]);
       setResponses((respResult.data ?? []) as AiResponse[]);
       setMappings((mapResult.data ?? []) as LlmMapping[]);
@@ -2277,9 +2277,9 @@ function AiAnalyticsContent() {
       try {
         const [respResult, mapResult, respCount, mapCount] = await Promise.all([
           supabaseAdmin.from('ai_responses').select('*').order('created_at', { ascending: false }).limit(500),
-          supabaseAdmin.from('llm_mappings').select('*').order('created_at', { ascending: false }).limit(500),
+          supabaseAdmin.from('llm_mappings').select('id, merchant_name, ticker, category, confidence, status, company_name, created_at').order('created_at', { ascending: false }).limit(500),
           supabaseAdmin.from('ai_responses').select('id', { count: 'exact', head: true }),
-          supabaseAdmin.from('llm_mappings').select('id', { count: 'exact', head: true }),
+          supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }),
         ]);
         setResponses((respResult.data ?? []) as AiResponse[]);
         setMappings((mapResult.data ?? []) as LlmMapping[]);
@@ -2604,13 +2604,13 @@ function FlowContent() {
         supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
         supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).not('ticker', 'is', null),
         supabaseAdmin.from('transactions').select('*', { count: 'exact', head: true }).gt('round_up', 0),
-        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }),
-        supabaseAdmin.from('llm_mappings').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }),
+        supabaseAdmin.from('llm_mappings').select('id', { count: 'estimated', head: true }).eq('status', 'approved'),
         supabaseAdmin.from('ai_responses').select('*', { count: 'exact', head: true }),
         supabaseAdmin.from('ai_responses').select('*', { count: 'exact', head: true }).eq('is_error', true),
         supabaseAdmin.from('roundup_ledger').select('id, round_up_amount, status, fee_amount').limit(1000),
         supabaseAdmin.from('market_queue').select('id, amount, status, ticker').limit(1000),
-        supabaseAdmin.from('llm_mappings').select('confidence').not('confidence', 'is', null).limit(5000),
+        supabaseAdmin.from('llm_mappings').select('confidence').not('confidence', 'is', null).order('id', { ascending: false }).limit(1000),
         supabaseAdmin.from('transactions').select('round_up').gt('round_up', 0).limit(5000),
       ]);
 

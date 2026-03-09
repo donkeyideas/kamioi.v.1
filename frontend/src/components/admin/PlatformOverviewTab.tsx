@@ -131,7 +131,7 @@ export function PlatformOverviewTab() {
           /* Pending mappings count */
           supabaseAdmin
             .from('llm_mappings')
-            .select('id', { count: 'exact', head: true })
+            .select('id', { count: 'estimated', head: true })
             .eq('status', 'pending'),
 
           /* Failed mappings count (transactions that failed LLM matching) */
