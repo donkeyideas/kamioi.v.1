@@ -141,18 +141,22 @@ export async function processTransactionsLlmMatching(
 
   const merchantNames = [...new Set(txns.map(t => t.merchant).filter(Boolean))] as string[]
 
+  // Use case-insensitive matching (ilike) to handle Teller ALL CAPS names
+  const orConditions = merchantNames.map(name => `merchant_name.ilike.${name}`).join(',')
   const { data: mappings } = await supabaseAdmin
     .from('llm_mappings')
     .select('merchant_name, ticker, confidence, company_name')
-    .in('merchant_name', merchantNames)
+    .or(orConditions)
     .eq('status', 'approved')
 
+  // Build lookup map with lowercase keys for case-insensitive matching
   const mappingLookup = new Map<string, { ticker: string; confidence: number; company_name: string | null }>()
   for (const m of (mappings ?? [])) {
     if (!m.ticker) continue
-    const existing = mappingLookup.get(m.merchant_name)
+    const key = m.merchant_name.toLowerCase()
+    const existing = mappingLookup.get(key)
     if (!existing || (m.confidence ?? 0) > existing.confidence) {
-      mappingLookup.set(m.merchant_name, {
+      mappingLookup.set(key, {
         ticker: m.ticker,
         confidence: Number(m.confidence) || 0,
         company_name: m.company_name,
@@ -164,7 +168,7 @@ export async function processTransactionsLlmMatching(
   const unmatchedIds: number[] = []
 
   for (const tx of txns) {
-    const mapping = tx.merchant ? mappingLookup.get(tx.merchant) : null
+    const mapping = tx.merchant ? mappingLookup.get(tx.merchant.toLowerCase()) : null
     if (mapping) {
       matchedTxs.push({ id: tx.id, ticker: mapping.ticker, roundUp: tx.round_up, merchant: tx.merchant!, confidence: mapping.confidence, companyName: mapping.company_name })
     } else {
