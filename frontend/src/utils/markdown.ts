@@ -36,6 +36,11 @@ function processInline(line: string): string {
 export function renderMarkdown(markdown: string): string {
   if (!markdown) return '';
 
+  // If content is already HTML (from AI generator), return as-is
+  if (/<(?:p|h[1-6]|div|ul|ol|blockquote|section|article)\b/i.test(markdown)) {
+    return markdown;
+  }
+
   const lines = markdown.split('\n');
   const html: string[] = [];
   let inList = false;

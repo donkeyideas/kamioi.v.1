@@ -1337,6 +1337,7 @@ function BlogPostsContent() {
               </p>
             )}
             <div
+              className="blog-content"
               style={{ fontSize: '15px', color: 'var(--text-primary)' }}
               dangerouslySetInnerHTML={{ __html: renderMarkdown(previewPost.content ?? '') }}
             />

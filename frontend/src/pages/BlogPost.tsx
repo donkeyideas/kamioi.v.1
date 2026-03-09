@@ -17,6 +17,7 @@ interface BlogPostData {
   author?: string | null
   category?: string | null
   read_time?: number | null
+  featured_image?: string | null
   status: string
   created_at: string
 }
@@ -101,11 +102,6 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr
   }
-}
-
-/** Detect if content looks like HTML */
-function isHTML(str: string): boolean {
-  return /<[a-z][\s\S]*>/i.test(str)
 }
 
 /* ------------------------------------------------------------------ */
@@ -212,8 +208,6 @@ export default function BlogPost() {
   }
 
   /* Post content */
-  const htmlContent = isHTML(post.content)
-
   return (
     <PublicLayout>
       <SEO
@@ -229,8 +223,10 @@ export default function BlogPost() {
           width: '100%',
           maxWidth: 1200,
           margin: '0 auto',
-          height: 280,
-          background: getGradient(post.category),
+          height: 320,
+          background: post.featured_image
+            ? `url(${post.featured_image}) center/cover no-repeat`
+            : getGradient(post.category),
           borderRadius: '0 0 16px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -239,18 +235,20 @@ export default function BlogPost() {
           overflow: 'hidden',
         }}
       >
-        <span
-          style={{
-            fontSize: 72,
-            opacity: 0.1,
-            fontWeight: 800,
-            color: '#fff',
-            textTransform: 'uppercase',
-            letterSpacing: 6,
-          }}
-        >
-          {post.category || 'Kamioi'}
-        </span>
+        {!post.featured_image && (
+          <span
+            style={{
+              fontSize: 72,
+              opacity: 0.1,
+              fontWeight: 800,
+              color: '#fff',
+              textTransform: 'uppercase',
+              letterSpacing: 6,
+            }}
+          >
+            {post.category || 'Kamioi'}
+          </span>
+        )}
         {post.category && (
           <span
             style={{
@@ -305,17 +303,11 @@ export default function BlogPost() {
         </div>
 
         {/* Content */}
-        {htmlContent ? (
-          <div
-            style={contentStyle}
-            dangerouslySetInnerHTML={{ __html: post.content }}
-          />
-        ) : (
-          <div
-            style={contentStyle}
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
-          />
-        )}
+        <div
+          className="blog-content"
+          style={contentStyle}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
+        />
       </section>
     </PublicLayout>
   )
