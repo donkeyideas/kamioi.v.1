@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 import type { Database } from '@/types/database';
@@ -677,42 +677,116 @@ function AccessControlsContent() {
 /* ------------------------------------------------------------------ */
 
 function TwoFAManagementContent() {
-  const { settings, loading, refetch } = useAdminSettings();
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [totpCode, setTotpCode] = useState('');
-  const [verifyResult, setVerifyResult] = useState<string | null>(null);
+  const [enabled, setEnabled] = useState(false);
+  const [factorId, setFactorId] = useState<string | null>(null);
+  const [step, setStep] = useState<'idle' | 'qr' | 'disable'>('idle');
+  const [qrCode, setQrCode] = useState('');
+  const [secret, setSecret] = useState('');
+  const [code, setCode] = useState('');
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const twoFaSetting = settings.find((s) => s.setting_key === '2fa_enabled');
-  const is2FAEnabled = twoFaSetting?.setting_value?.toLowerCase() === 'true';
+  function clearToast() {
+    setTimeout(() => setToast(null), 4000);
+  }
 
-  async function toggle2FA() {
-    if (!twoFaSetting) return;
-    setSaving(true);
-    try {
-      const { error } = await supabaseAdmin
-        .from('admin_settings')
-        .update({ setting_value: is2FAEnabled ? 'false' : 'true' })
-        .eq('id', twoFaSetting.id);
-
-      if (error) {
-        console.error('Failed to toggle 2FA:', error.message);
-        return;
+  // Load MFA status on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase.auth.mfa.listFactors();
+        const verified = data?.totp?.filter(f => f.status === 'verified') ?? [];
+        setEnabled(verified.length > 0);
+        if (verified.length > 0) setFactorId(verified[0].id);
+      } catch {
+        // fall through
+      } finally {
+        setLoading(false);
       }
-      await refetch();
+    })();
+  }, []);
+
+  // Start enrollment
+  async function startSetup() {
+    setSaving(true);
+    setToast(null);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        friendlyName: 'Admin Authenticator',
+      });
+      if (error) throw error;
+      setQrCode(data.totp.qr_code);
+      setSecret(data.totp.secret);
+      setFactorId(data.id);
+      setStep('qr');
     } catch (err) {
-      console.error('Unexpected error toggling 2FA:', err);
+      setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to start 2FA setup.' });
+      clearToast();
     } finally {
       setSaving(false);
     }
   }
 
-  function handleVerify() {
-    setVerifyResult(null);
-    const trimmed = totpCode.trim();
-    if (/^\d{6}$/.test(trimmed)) {
-      setVerifyResult('Valid TOTP format. Actual verification requires an Edge Function.');
-    } else {
-      setVerifyResult('Invalid format. TOTP code must be exactly 6 digits.');
+  // Verify enrollment code
+  async function verifySetup() {
+    if (!factorId || code.length !== 6) return;
+    setSaving(true);
+    setToast(null);
+    try {
+      const { data: challengeData, error: cErr } = await supabase.auth.mfa.challenge({ factorId });
+      if (cErr) throw cErr;
+      const { error: vErr } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challengeData.id,
+        code,
+      });
+      if (vErr) throw vErr;
+      setEnabled(true);
+      setStep('idle');
+      setCode('');
+      setQrCode('');
+      setSecret('');
+      setToast({ type: 'success', message: 'Two-factor authentication enabled successfully.' });
+      clearToast();
+    } catch (err) {
+      setToast({ type: 'error', message: err instanceof Error ? err.message : 'Invalid code. Please try again.' });
+      setCode('');
+      clearToast();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Disable 2FA
+  async function disable2FA() {
+    if (!factorId || code.length !== 6) return;
+    setSaving(true);
+    setToast(null);
+    try {
+      const { data: challengeData, error: cErr } = await supabase.auth.mfa.challenge({ factorId });
+      if (cErr) throw cErr;
+      const { error: vErr } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challengeData.id,
+        code,
+      });
+      if (vErr) throw vErr;
+      const { error: uErr } = await supabase.auth.mfa.unenroll({ factorId });
+      if (uErr) throw uErr;
+      setEnabled(false);
+      setFactorId(null);
+      setStep('idle');
+      setCode('');
+      setToast({ type: 'success', message: 'Two-factor authentication disabled.' });
+      clearToast();
+    } catch (err) {
+      setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to disable 2FA.' });
+      setCode('');
+      clearToast();
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -720,7 +794,7 @@ function TwoFAManagementContent() {
     return (
       <GlassCard padding="28px">
         <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-          Loading 2FA settings...
+          Loading 2FA status...
         </p>
       </GlassCard>
     );
@@ -733,71 +807,154 @@ function TwoFAManagementContent() {
           Two-Factor Authentication
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
-          Two-Factor Authentication adds an extra layer of security for admin accounts.
+          Add an extra layer of security to your admin account using an authenticator app.
         </p>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        {toast && (
+          <div style={{
+            padding: '10px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 500,
+            marginBottom: '16px',
+            background: toast.type === 'success' ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)',
+            color: toast.type === 'success' ? '#34D399' : '#EF4444',
+            border: `1px solid ${toast.type === 'success' ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)'}`,
+          }}>
+            {toast.message}
+          </div>
+        )}
+
+        {/* Status + action */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
-            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>2FA Status</p>
-            <Badge variant={is2FAEnabled ? 'success' : 'warning'}>
-              {is2FAEnabled ? 'Enabled' : 'Disabled'}
+            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
+              2FA Status
+            </p>
+            <Badge variant={enabled ? 'success' : 'warning'}>
+              {enabled ? 'Enabled' : 'Disabled'}
             </Badge>
           </div>
-          <Button
-            variant={is2FAEnabled ? 'danger' : 'primary'}
-            size="sm"
-            onClick={toggle2FA}
-            loading={saving}
-            disabled={!twoFaSetting}
-          >
-            {is2FAEnabled ? 'Disable 2FA' : 'Enable 2FA'}
-          </Button>
+          {step === 'idle' && (
+            <Button
+              variant={enabled ? 'danger' : 'primary'}
+              size="sm"
+              loading={saving}
+              onClick={enabled ? () => setStep('disable') : () => void startSetup()}
+            >
+              {enabled ? 'Disable 2FA' : 'Enable 2FA'}
+            </Button>
+          )}
         </div>
 
-        {is2FAEnabled && (
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '8px' }}>
-            2FA is managed through Supabase Auth. Admin users can set up TOTP via their account settings.
-          </p>
+        {/* QR Code setup step */}
+        {step === 'qr' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '440px' }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: '12px',
+              padding: '16px',
+              width: 'fit-content',
+            }}>
+              <img src={qrCode} alt="2FA QR Code" style={{ width: 200, height: 200, display: 'block' }} />
+            </div>
+
+            <div>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                Or enter this code manually:
+              </p>
+              <code style={{
+                fontSize: '13px',
+                fontFamily: 'monospace',
+                background: 'var(--surface-input)',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                display: 'inline-block',
+                letterSpacing: '1px',
+                wordBreak: 'break-all',
+                color: 'var(--text-primary)',
+              }}>
+                {secret}
+              </code>
+            </div>
+
+            <Input
+              label="Enter 6-digit verification code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              style={{ maxWidth: '200px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={saving}
+                onClick={() => void verifySetup()}
+                disabled={code.length !== 6}
+              >
+                Verify &amp; Enable
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStep('idle');
+                  setCode('');
+                  setQrCode('');
+                  setSecret('');
+                  if (factorId) void supabase.auth.mfa.unenroll({ factorId });
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         )}
 
-        {!twoFaSetting && (
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            The "2fa_enabled" setting key was not found. Add it via Supabase dashboard to manage 2FA.
-          </p>
+        {/* Disable confirmation step */}
+        {step === 'disable' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '440px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Enter your authenticator code to confirm disabling 2FA.
+            </p>
+            <Input
+              label="Verification code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              style={{ maxWidth: '200px' }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                variant="danger"
+                size="sm"
+                loading={saving}
+                onClick={() => void disable2FA()}
+                disabled={code.length !== 6}
+              >
+                Disable 2FA
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setStep('idle'); setCode(''); }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         )}
-      </GlassCard>
 
-      <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
-          TOTP Verification (Test)
-        </h3>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-          Enter a 6-digit TOTP code to validate the format. Actual verification needs an Edge Function.
-        </p>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-          <Input
-            label="TOTP Code"
-            value={totpCode}
-            onChange={(e) => {
-              setTotpCode(e.target.value);
-              setVerifyResult(null);
-            }}
-            placeholder="123456"
-            style={{ maxWidth: '200px' }}
-          />
-          <Button size="sm" onClick={handleVerify} disabled={!totpCode.trim()}>
-            Verify
-          </Button>
-        </div>
-        {verifyResult && (
-          <p
-            style={{
-              fontSize: '13px',
-              marginTop: '10px',
-              color: verifyResult.startsWith('Valid') ? '#34D399' : '#EF4444',
-            }}
-          >
-            {verifyResult}
+        {/* Info when enabled */}
+        {enabled && step === 'idle' && (
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            Your account is protected with TOTP two-factor authentication.
+            You will be prompted for a code from your authenticator app on each login.
           </p>
         )}
       </GlassCard>
