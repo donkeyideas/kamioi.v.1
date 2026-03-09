@@ -142,7 +142,8 @@ export async function processTransactionsLlmMatching(
   const merchantNames = [...new Set(txns.map(t => t.merchant).filter(Boolean))] as string[]
 
   // Use case-insensitive matching (ilike) to handle Teller ALL CAPS names
-  const orConditions = merchantNames.map(name => `merchant_name.ilike.${name}`).join(',')
+  // Double-quote values to handle special chars (apostrophes, ampersands, etc.)
+  const orConditions = merchantNames.map(name => `merchant_name.ilike."${name.replace(/"/g, '\\"')}"`).join(',')
   const { data: mappings } = await supabaseAdmin
     .from('llm_mappings')
     .select('merchant_name, ticker, confidence, company_name')
