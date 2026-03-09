@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useUserId } from '@/hooks/useUserId';
 import { GlassCard, Table, Badge } from '@/components/ui';
 import type { Column } from '@/components/ui';
@@ -179,7 +179,7 @@ export function AiInsightsTab() {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', userId)
@@ -227,7 +227,7 @@ export function AiInsightsTab() {
     async function fetchMappings() {
       if (!userId) { setMappingsLoading(false); return; }
       try {
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await supabase
           .from('llm_mappings')
           .select('id, merchant_name, ticker, company_name, confidence, status, admin_approved, ai_processed, created_at')
           .eq('category', 'user_submitted')
