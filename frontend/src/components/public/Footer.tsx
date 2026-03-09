@@ -108,25 +108,33 @@ export function Footer() {
           </p>
           {/* App download badges */}
           {(content.app_store_url || content.play_store_url) && (
-            <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {content.app_store_url && (
-                <a href={content.app_store_url} target="_blank" rel="noopener noreferrer" aria-label="Download on the App Store" style={{ opacity: 0.8, transition: 'opacity 200ms' }} onMouseEnter={e => { e.currentTarget.style.opacity = '1' }} onMouseLeave={e => { e.currentTarget.style.opacity = '0.8' }}>
-                  <svg width="120" height="40" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="180" height="60" rx="10" fill="#000"/>
-                    <text x="65" y="22" fill="#fff" fontSize="9" fontFamily="system-ui, sans-serif" fontWeight="400">Download on the</text>
-                    <text x="65" y="40" fill="#fff" fontSize="17" fontFamily="system-ui, sans-serif" fontWeight="600">App Store</text>
-                    <g transform="translate(18, 12)" fill="#fff"><path d="M28.9 27.5c-.1 3.1 2.5 4.6 2.6 4.6-.1.3-0.4 1.4-1.3 2.7-.8 1.2-1.6 2.3-2.9 2.4-1.3.1-1.7-.7-3.1-.7-1.5 0-1.9.7-3.1.8-1.2 0-2.2-1.3-3-2.5-1.6-2.4-2.9-6.8-1.2-9.7.8-1.5 2.3-2.4 3.9-2.4 1.2 0 2.4.8 3.1.8.8 0 2.2-1 3.7-.9.6 0 2.4.3 3.5 2-0.1.1-2.1 1.2-2.2 3.9zM26.1 20.9c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/></g>
-                  </svg>
+                <a
+                  href={content.app_store_url !== '#' ? content.app_store_url : undefined}
+                  onClick={content.app_store_url === '#' ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+                  target={content.app_store_url !== '#' ? '_blank' : undefined}
+                  rel="noopener noreferrer"
+                  aria-label="Download on the App Store"
+                  style={{ opacity: content.app_store_url === '#' ? 0.4 : 0.7, transition: 'opacity 200ms', cursor: content.app_store_url === '#' ? 'default' : 'pointer' }}
+                  onMouseEnter={e => { if (content.app_store_url !== '#') e.currentTarget.style.opacity = '1' }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = content.app_store_url === '#' ? '0.4' : '0.7' }}
+                >
+                  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="36" style={{ display: 'block' }} />
                 </a>
               )}
               {content.play_store_url && (
-                <a href={content.play_store_url} target="_blank" rel="noopener noreferrer" aria-label="Get it on Google Play" style={{ opacity: 0.8, transition: 'opacity 200ms' }} onMouseEnter={e => { e.currentTarget.style.opacity = '1' }} onMouseLeave={e => { e.currentTarget.style.opacity = '0.8' }}>
-                  <svg width="120" height="40" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="180" height="60" rx="10" fill="#000"/>
-                    <text x="65" y="22" fill="#fff" fontSize="9" fontFamily="system-ui, sans-serif" fontWeight="400">GET IT ON</text>
-                    <text x="65" y="40" fill="#fff" fontSize="16" fontFamily="system-ui, sans-serif" fontWeight="600">Google Play</text>
-                    <g transform="translate(16, 13)"><path d="M4 2.5l16.5 12.5L4 27.5V2.5z" fill="#34A853"/><path d="M4 2.5l20 12.5-3.5 2.7L4 7.5V2.5z" fill="#FBBC04"/><path d="M4 27.5l16.5-10.2-3.5-2.7L4 22.5v5z" fill="#EA4335"/><path d="M20.5 15L24 17.5 20.5 20l-3.5-2.5 3.5-2.5z" fill="#4285F4"/></g>
-                  </svg>
+                <a
+                  href={content.play_store_url !== '#' ? content.play_store_url : undefined}
+                  onClick={content.play_store_url === '#' ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+                  target={content.play_store_url !== '#' ? '_blank' : undefined}
+                  rel="noopener noreferrer"
+                  aria-label="Get it on Google Play"
+                  style={{ opacity: content.play_store_url === '#' ? 0.4 : 0.7, transition: 'opacity 200ms', cursor: content.play_store_url === '#' ? 'default' : 'pointer' }}
+                  onMouseEnter={e => { if (content.play_store_url !== '#') e.currentTarget.style.opacity = '1' }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = content.play_store_url === '#' ? '0.4' : '0.7' }}
+                >
+                  <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="54" style={{ display: 'block', marginTop: '-9px', marginBottom: '-9px' }} />
                 </a>
               )}
             </div>

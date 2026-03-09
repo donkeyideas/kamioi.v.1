@@ -485,59 +485,65 @@ export default function Home() {
       {/* ============================================================
           SECTION 5 — MOBILE APP DOWNLOAD
           ============================================================ */}
-      {hasAppLinks && (
-        <section style={sectionStyle}>
-          <h2 style={sectionHeading}>{c.app_section_heading}</h2>
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '16px', maxWidth: '500px', margin: '0 auto 40px', lineHeight: 1.6 }}>
-            {c.app_section_subtext}
+      <section style={sectionStyle}>
+        <h2 style={sectionHeading}>{c.app_section_heading}</h2>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '16px', maxWidth: '500px', margin: '0 auto 40px', lineHeight: 1.6 }}>
+          {c.app_section_subtext}
+        </p>
+        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* App Store Badge */}
+          <a
+            href={c.app_store_url && c.app_store_url !== '#' ? c.app_store_url : undefined}
+            onClick={(!c.app_store_url || c.app_store_url === '#') ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+            target={c.app_store_url && c.app_store_url !== '#' ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            aria-label="Download on the App Store"
+            style={{
+              display: 'inline-block',
+              transition: 'transform 200ms ease, opacity 200ms ease',
+              opacity: (!c.app_store_url || c.app_store_url === '#') ? 0.5 : 1,
+              cursor: (!c.app_store_url || c.app_store_url === '#') ? 'default' : 'pointer',
+            }}
+            onMouseEnter={(e) => { if (c.app_store_url && c.app_store_url !== '#') { e.currentTarget.style.transform = 'scale(1.05)' } }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            <img
+              src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+              alt="Download on the App Store"
+              height="54"
+              style={{ display: 'block' }}
+            />
+          </a>
+          {/* Google Play Badge */}
+          <a
+            href={c.play_store_url && c.play_store_url !== '#' ? c.play_store_url : undefined}
+            onClick={(!c.play_store_url || c.play_store_url === '#') ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+            target={c.play_store_url && c.play_store_url !== '#' ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            aria-label="Get it on Google Play"
+            style={{
+              display: 'inline-block',
+              transition: 'transform 200ms ease, opacity 200ms ease',
+              opacity: (!c.play_store_url || c.play_store_url === '#') ? 0.5 : 1,
+              cursor: (!c.play_store_url || c.play_store_url === '#') ? 'default' : 'pointer',
+            }}
+            onMouseEnter={(e) => { if (c.play_store_url && c.play_store_url !== '#') { e.currentTarget.style.transform = 'scale(1.05)' } }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            <img
+              src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+              alt="Get it on Google Play"
+              height="80"
+              style={{ display: 'block', marginTop: '-13px', marginBottom: '-13px' }}
+            />
+          </a>
+        </div>
+        {(!c.app_store_url || c.app_store_url === '#' || !c.play_store_url || c.play_store_url === '#') && (
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', marginTop: '16px', fontStyle: 'italic' }}>
+            Coming soon to the App Store and Google Play
           </p>
-          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {c.app_store_url && (
-              <a
-                href={c.app_store_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Download on the App Store"
-                style={{ transition: 'transform 200ms ease, opacity 200ms ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.opacity = '0.9' }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.opacity = '1' }}
-              >
-                <svg width="180" height="60" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="180" height="60" rx="10" fill="#000"/>
-                  <text x="65" y="22" fill="#fff" fontSize="9" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="400">Download on the</text>
-                  <text x="65" y="40" fill="#fff" fontSize="17" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="600">App Store</text>
-                  <g transform="translate(18, 12)" fill="#fff">
-                    <path d="M28.9 27.5c-.1 3.1 2.5 4.6 2.6 4.6-.1.3-0.4 1.4-1.3 2.7-.8 1.2-1.6 2.3-2.9 2.4-1.3.1-1.7-.7-3.1-.7-1.5 0-1.9.7-3.1.8-1.2 0-2.2-1.3-3-2.5-1.6-2.4-2.9-6.8-1.2-9.7.8-1.5 2.3-2.4 3.9-2.4 1.2 0 2.4.8 3.1.8.8 0 2.2-1 3.7-.9.6 0 2.4.3 3.5 2-0.1.1-2.1 1.2-2.2 3.9zM26.1 20.9c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/>
-                  </g>
-                </svg>
-              </a>
-            )}
-            {c.play_store_url && (
-              <a
-                href={c.play_store_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Get it on Google Play"
-                style={{ transition: 'transform 200ms ease, opacity 200ms ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.opacity = '0.9' }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.opacity = '1' }}
-              >
-                <svg width="180" height="60" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="180" height="60" rx="10" fill="#000"/>
-                  <text x="65" y="22" fill="#fff" fontSize="9" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="400">GET IT ON</text>
-                  <text x="65" y="40" fill="#fff" fontSize="16" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="600">Google Play</text>
-                  <g transform="translate(16, 13)">
-                    <path d="M4 2.5l16.5 12.5L4 27.5V2.5z" fill="#34A853"/>
-                    <path d="M4 2.5l20 12.5-3.5 2.7L4 7.5V2.5z" fill="#FBBC04"/>
-                    <path d="M4 27.5l16.5-10.2-3.5-2.7L4 22.5v5z" fill="#EA4335"/>
-                    <path d="M20.5 15L24 17.5 20.5 20l-3.5-2.5 3.5-2.5z" fill="#4285F4"/>
-                  </g>
-                </svg>
-              </a>
-            )}
-          </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* ============================================================
           SECTION 6 — CTA BANNER
