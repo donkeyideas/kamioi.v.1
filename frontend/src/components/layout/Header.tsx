@@ -229,7 +229,7 @@ export function Header({
               : 'Switch to dark mode'
           }
         >
-          {theme === 'dark' ? <SunIcon /> : theme === 'light' ? <DollarIcon /> : <MoonIcon />}
+          {theme === 'dark' ? <MoonIcon /> : theme === 'light' ? <SunIcon /> : <DollarIcon />}
         </button>
 
         {/* Notifications */}
