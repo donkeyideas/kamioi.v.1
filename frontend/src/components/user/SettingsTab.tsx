@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input, Select, Badge } from '@/components/ui'
@@ -107,6 +107,18 @@ export function SettingsTab() {
   const [aiApiKey, setAiApiKey] = useState('')
   const [aiSaving, setAiSaving] = useState(false)
   const [aiToast, setAiToast] = useState<Toast | null>(null)
+
+  /* ---- 2FA ---- */
+
+  const [twoFAEnabled, setTwoFAEnabled] = useState(false)
+  const [twoFALoading, setTwoFALoading] = useState(true)
+  const [twoFASetupStep, setTwoFASetupStep] = useState<'idle' | 'qr' | 'verify' | 'disable'>('idle')
+  const [twoFAQrCode, setTwoFAQrCode] = useState('')
+  const [twoFASecret, setTwoFASecret] = useState('')
+  const [twoFAFactorId, setTwoFAFactorId] = useState<string | null>(null)
+  const [twoFACode, setTwoFACode] = useState('')
+  const [twoFASaving, setTwoFASaving] = useState(false)
+  const [twoFAToast, setTwoFAToast] = useState<Toast | null>(null)
 
   /* ---- Sign out ---- */
 
@@ -363,6 +375,115 @@ export function SettingsTab() {
       setSigningOut(false)
     }
   }, [signOut, navigate])
+
+  /* ---- 2FA: Load status ---- */
+
+  useEffect(() => {
+    const loadMfaStatus = async () => {
+      try {
+        const { data } = await supabase.auth.mfa.listFactors()
+        const verified = data?.totp?.filter(f => f.status === 'verified') ?? []
+        setTwoFAEnabled(verified.length > 0)
+        if (verified.length > 0) setTwoFAFactorId(verified[0].id)
+      } catch {
+        // fall through
+      } finally {
+        setTwoFALoading(false)
+      }
+    }
+    void loadMfaStatus()
+  }, [])
+
+  /* ---- 2FA: Enable ---- */
+
+  const startTwoFASetup = useCallback(async () => {
+    setTwoFASaving(true)
+    setTwoFAToast(null)
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        friendlyName: 'Authenticator',
+      })
+      if (error) throw error
+      setTwoFAQrCode(data.totp.qr_code)
+      setTwoFASecret(data.totp.secret)
+      setTwoFAFactorId(data.id)
+      setTwoFASetupStep('qr')
+    } catch (err) {
+      setTwoFAToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to start 2FA setup.' })
+      clearToastAfterDelay(setTwoFAToast)
+    } finally {
+      setTwoFASaving(false)
+    }
+  }, [clearToastAfterDelay])
+
+  const verifyTwoFASetup = useCallback(async () => {
+    if (!twoFAFactorId || twoFACode.length !== 6) return
+    setTwoFASaving(true)
+    setTwoFAToast(null)
+    try {
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: twoFAFactorId })
+      if (challengeError) throw challengeError
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: twoFAFactorId,
+        challengeId: challengeData.id,
+        code: twoFACode,
+      })
+      if (verifyError) throw verifyError
+
+      setTwoFAEnabled(true)
+      setTwoFASetupStep('idle')
+      setTwoFACode('')
+      setTwoFAQrCode('')
+      setTwoFASecret('')
+      setTwoFAToast({ type: 'success', message: 'Two-factor authentication enabled successfully.' })
+      clearToastAfterDelay(setTwoFAToast)
+    } catch (err) {
+      setTwoFAToast({ type: 'error', message: err instanceof Error ? err.message : 'Invalid code. Please try again.' })
+      setTwoFACode('')
+      clearToastAfterDelay(setTwoFAToast)
+    } finally {
+      setTwoFASaving(false)
+    }
+  }, [twoFAFactorId, twoFACode, clearToastAfterDelay])
+
+  /* ---- 2FA: Disable ---- */
+
+  const disableTwoFA = useCallback(async () => {
+    if (!twoFAFactorId || twoFACode.length !== 6) return
+    setTwoFASaving(true)
+    setTwoFAToast(null)
+    try {
+      // Verify the code first to confirm identity
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: twoFAFactorId })
+      if (challengeError) throw challengeError
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: twoFAFactorId,
+        challengeId: challengeData.id,
+        code: twoFACode,
+      })
+      if (verifyError) throw verifyError
+
+      // Unenroll the factor
+      const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId: twoFAFactorId })
+      if (unenrollError) throw unenrollError
+
+      setTwoFAEnabled(false)
+      setTwoFAFactorId(null)
+      setTwoFASetupStep('idle')
+      setTwoFACode('')
+      setTwoFAToast({ type: 'success', message: 'Two-factor authentication disabled.' })
+      clearToastAfterDelay(setTwoFAToast)
+    } catch (err) {
+      setTwoFAToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to disable 2FA.' })
+      setTwoFACode('')
+      clearToastAfterDelay(setTwoFAToast)
+    } finally {
+      setTwoFASaving(false)
+    }
+  }, [twoFAFactorId, twoFACode, clearToastAfterDelay])
 
   /* ---- Loading state ---- */
 
@@ -740,6 +861,164 @@ export function SettingsTab() {
               </div>
             </div>
           )}
+
+          {/* Two-Factor Authentication */}
+          <div style={{
+            borderTop: '1px solid var(--color-border-subtle)',
+            paddingTop: 16,
+            marginTop: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <h4 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
+                  Two-Factor Authentication
+                </h4>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                  Add an extra layer of security to your account
+                </p>
+              </div>
+              {!twoFALoading && (
+                <Badge variant={twoFAEnabled ? 'success' : 'default'}>
+                  {twoFAEnabled ? 'Enabled' : 'Disabled'}
+                </Badge>
+              )}
+            </div>
+
+            {twoFAToast && <ToastBanner toast={twoFAToast} />}
+
+            {/* Idle state: show enable/disable button */}
+            {twoFASetupStep === 'idle' && !twoFALoading && (
+              <div>
+                {twoFAEnabled ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setTwoFASetupStep('disable')}
+                  >
+                    Disable 2FA
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    loading={twoFASaving}
+                    onClick={() => void startTwoFASetup()}
+                  >
+                    Enable 2FA
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* QR code step */}
+            {twoFASetupStep === 'qr' && (
+              <div style={{ maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{
+                  background: '#fff',
+                  borderRadius: 12,
+                  padding: 16,
+                  width: 'fit-content',
+                }}>
+                  <img src={twoFAQrCode} alt="2FA QR Code" style={{ width: 200, height: 200, display: 'block' }} />
+                </div>
+
+                <div>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                    Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                    Or enter this code manually:
+                  </p>
+                  <code style={{
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                    background: 'var(--surface-input)',
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    display: 'inline-block',
+                    letterSpacing: 1,
+                    wordBreak: 'break-all',
+                    color: 'var(--text-primary)',
+                  }}>
+                    {twoFASecret}
+                  </code>
+                </div>
+
+                <div>
+                  <Input
+                    label="Enter 6-digit verification code"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={twoFACode}
+                    onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button
+                    variant="primary"
+                    loading={twoFASaving}
+                    onClick={() => void verifyTwoFASetup()}
+                    disabled={twoFACode.length !== 6}
+                  >
+                    Verify & Enable
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setTwoFASetupStep('idle')
+                      setTwoFACode('')
+                      setTwoFAQrCode('')
+                      setTwoFASecret('')
+                      // Unenroll the pending factor
+                      if (twoFAFactorId) {
+                        void supabase.auth.mfa.unenroll({ factorId: twoFAFactorId })
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Disable confirmation step */}
+            {twoFASetupStep === 'disable' && (
+              <div style={{ maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+                  Enter your authenticator code to confirm disabling 2FA.
+                </p>
+                <Input
+                  label="Verification code"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={twoFACode}
+                  onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button
+                    variant="danger"
+                    loading={twoFASaving}
+                    onClick={() => void disableTwoFA()}
+                    disabled={twoFACode.length !== 6}
+                  >
+                    Disable 2FA
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setTwoFASetupStep('idle')
+                      setTwoFACode('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div style={{ marginTop: '8px' }}>
             <Button

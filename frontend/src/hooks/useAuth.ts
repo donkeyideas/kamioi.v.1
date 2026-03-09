@@ -18,12 +18,16 @@ interface AuthState {
   profile: UserProfile | null
   loading: boolean
   isAdmin: boolean
+  mfaRequired: boolean
+  mfaFactorId: string | null
 }
 
 interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<unknown>
   signUp: (email: string, password: string, name: string, accountType?: string) => Promise<unknown>
   signOut: () => Promise<void>
+  verifyMfa: (code: string) => Promise<void>
+  cancelMfa: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -35,6 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile: null,
     loading: true,
     isAdmin: false,
+    mfaRequired: false,
+    mfaFactorId: null,
   })
 
   // Prevent duplicate profile fetches
@@ -70,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profile,
           loading: false,
           isAdmin: profile?.account_type === 'admin',
+          mfaRequired: false,
+          mfaFactorId: null,
         })
       } else if (!session) {
         setState(prev => ({ ...prev, loading: false }))
@@ -99,6 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             profile: null,
             loading: false,
             isAdmin: false,
+            mfaRequired: false,
+            mfaFactorId: null,
           })
           return
         }
@@ -140,6 +150,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileLoadedRef.current = false
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+
+    // Check if user has MFA enrolled
+    const { data: factorsData } = await supabase.auth.mfa.listFactors()
+    const verifiedFactors = factorsData?.totp?.filter(f => f.status === 'verified') ?? []
+
+    if (verifiedFactors.length > 0) {
+      setState(prev => ({
+        ...prev,
+        mfaRequired: true,
+        mfaFactorId: verifiedFactors[0].id,
+      }))
+      return { mfaRequired: true }
+    }
+
     return data
   }, [])
 
@@ -170,11 +194,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }, [])
 
+  const verifyMfa = useCallback(async (code: string) => {
+    const factorId = state.mfaFactorId
+    if (!factorId) throw new Error('No MFA factor found')
+
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
+    if (challengeError) throw challengeError
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challengeData.id,
+      code,
+    })
+    if (verifyError) throw verifyError
+
+    setState(prev => ({
+      ...prev,
+      mfaRequired: false,
+      mfaFactorId: null,
+    }))
+  }, [state.mfaFactorId])
+
+  const cancelMfa = useCallback(async () => {
+    await supabase.auth.signOut()
+    setState(prev => ({
+      ...prev,
+      mfaRequired: false,
+      mfaFactorId: null,
+    }))
+  }, [])
+
   const value: AuthContextValue = {
     ...state,
     signIn,
     signUp,
     signOut,
+    verifyMfa,
+    cancelMfa,
   }
 
   return createElement(AuthContext.Provider, { value }, children)
