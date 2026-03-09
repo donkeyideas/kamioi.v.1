@@ -81,12 +81,6 @@ interface GeneratedBlog {
   category: string;
 }
 
-interface AiGenerateForm {
-  topic: string;
-  keywords: string;
-  tone: string;
-}
-
 interface BlogFormData {
   title: string;
   slug: string;
@@ -220,20 +214,6 @@ const META_ROBOTS_OPTIONS: SelectOption[] = [
   { value: 'noindex,nofollow', label: 'No Index, No Follow' },
 ];
 
-const EMPTY_AI_FORM: AiGenerateForm = {
-  topic: '',
-  keywords: '',
-  tone: 'professional',
-};
-
-const TONE_OPTIONS: SelectOption[] = [
-  { value: 'professional', label: 'Professional' },
-  { value: 'conversational', label: 'Conversational' },
-  { value: 'educational', label: 'Educational' },
-  { value: 'persuasive', label: 'Persuasive' },
-  { value: 'friendly', label: 'Friendly' },
-];
-
 const EMPTY_AD_FORM: AdFormData = {
   title: '',
   subtitle: '',
@@ -332,18 +312,32 @@ function calcReadTime(wordCount: number): number {
 
 function calcSeoScore(form: BlogFormData): number {
   let score = 0;
-  if (form.title.length >= 10) score += 10;
-  if (form.title.length >= 30 && form.title.length <= 70) score += 5;
-  if (form.slug) score += 5;
-  if (form.excerpt && form.excerpt.length >= 50) score += 10;
-  if (form.content && countWords(form.content) >= 300) score += 15;
-  if (form.seo_title && form.seo_title.length >= 30 && form.seo_title.length <= 60) score += 15;
-  if (form.seo_description && form.seo_description.length >= 120 && form.seo_description.length <= 160) score += 15;
+  // SEO fundamentals (40pts)
+  if (form.title.length >= 10) score += 5;
+  if (form.title.length >= 30 && form.title.length <= 70) score += 3;
+  if (form.slug) score += 2;
+  if (form.seo_title && form.seo_title.length >= 30 && form.seo_title.length <= 60) score += 10;
+  if (form.seo_description && form.seo_description.length >= 120 && form.seo_description.length <= 160) score += 10;
   if (form.seo_keywords) score += 5;
   if (form.canonical_url) score += 5;
+  // Content quality — GEO/AEO (30pts)
+  const wc = countWords(form.content);
+  if (wc >= 800) score += 10; else if (wc >= 300) score += 5;
+  if (form.excerpt && form.excerpt.length >= 50) score += 5;
+  const hasInternalLinks = /\[.*?\]\(\//.test(form.content) || /href=["']\//.test(form.content);
+  if (hasInternalLinks) score += 5;
+  const hasExternalLinks = /\[.*?\]\(https?:\/\//.test(form.content) || /href=["']https?:\/\//.test(form.content);
+  if (hasExternalLinks) score += 5;
+  const hasStructuredContent = /<h[23]|<ul|<ol|<blockquote/.test(form.content);
+  if (hasStructuredContent) score += 5;
+  // Metadata & discoverability — CRO (20pts)
   if (form.category) score += 5;
   if (form.tags) score += 5;
+  if (form.og_title || form.og_description) score += 5;
   if (form.featured_image || form.og_image) score += 5;
+  // Bonus (10pts)
+  if (form.meta_robots === 'index,follow') score += 5;
+  if (wc >= 1200) score += 5;
   return Math.min(100, score);
 }
 
@@ -380,8 +374,6 @@ function BlogPostsContent() {
   const [form, setForm] = useState<BlogFormData>(EMPTY_BLOG_FORM);
   const [saving, setSaving] = useState(false);
   const [modalEditorTab, setModalEditorTab] = useState<'content' | 'seo'>('content');
-  const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [aiForm, setAiForm] = useState<AiGenerateForm>(EMPTY_AI_FORM);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -508,15 +500,9 @@ function BlogPostsContent() {
     }
   }
 
-  function openAiModal() {
-    setAiForm(EMPTY_AI_FORM);
-    setAiError(null);
-    setAiModalOpen(true);
-  }
-
   async function handleAiGenerate() {
-    if (!aiForm.topic.trim()) {
-      setAiError('Please enter a topic for the blog post.');
+    if (!form.title.trim()) {
+      setAiError('Please enter a title first.');
       return;
     }
 
@@ -524,12 +510,7 @@ function BlogPostsContent() {
     setAiError(null);
 
     try {
-      const keywords = aiForm.keywords.trim()
-        ? aiForm.keywords.split(',').map((k) => k.trim()).filter(Boolean)
-        : undefined;
-      const tone = aiForm.tone || undefined;
-
-      const { data, error } = await generateBlogPost(aiForm.topic.trim(), keywords, tone);
+      const { data, error } = await generateBlogPost(form.title.trim());
 
       if (error) {
         setAiError(error);
@@ -541,31 +522,23 @@ function BlogPostsContent() {
         return;
       }
 
-      // Populate the blog editor form with the generated data
-      setEditingPost(null);
+      // Populate ALL fields with the generated data
       setForm({
-        title: data.title ?? '',
-        slug: data.slug ?? '',
+        ...form,
+        title: data.title ?? form.title,
+        slug: data.slug ?? slugify(form.title),
         excerpt: data.excerpt ?? '',
         content: data.content ?? '',
-        featured_image: '',
-        author: '',
-        status: 'draft',
         category: data.category ?? '',
         tags: (data.tags ?? []).join(', '),
         seo_title: data.seo_title ?? '',
         seo_description: data.seo_description ?? '',
         seo_keywords: data.seo_keywords ?? '',
         meta_robots: 'index,follow',
-        canonical_url: '',
-        og_title: data.title ?? '',
+        canonical_url: `https://kamioi.com/blog/${data.slug ?? slugify(form.title)}`,
+        og_title: data.seo_title ?? data.title ?? form.title,
         og_description: data.seo_description ?? '',
-        og_image: '',
       });
-
-      // Close AI modal and open the blog editor modal
-      setAiModalOpen(false);
-      setModalOpen(true);
     } catch (err) {
       console.error('AI blog generation error:', err);
       setAiError('An unexpected error occurred. Please try again.');
@@ -768,9 +741,6 @@ function BlogPostsContent() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-        <Button variant="secondary" onClick={openAiModal}>
-          AI Generate
-        </Button>
         <Button onClick={openCreateModal}>Create Post</Button>
       </div>
 
@@ -880,13 +850,6 @@ function BlogPostsContent() {
                         options={BLOG_STATUS_OPTIONS}
                         value={form.status}
                         onChange={(e) => setForm({ ...form, status: e.target.value })}
-                      />
-                      <Input
-                        label="Author"
-                        value={form.author}
-                        onChange={(e) => setForm({ ...form, author: e.target.value })}
-                        placeholder="Author name"
-                        style={{ fontSize: '12px' }}
                       />
                     </div>
                   </GlassCard>
@@ -1016,27 +979,40 @@ function BlogPostsContent() {
                             </div>
                             <button
                               type="button"
-                              onClick={openAiModal}
+                              onClick={handleAiGenerate}
+                              disabled={aiGenerating || !form.title.trim()}
                               style={{
                                 padding: '8px 14px',
                                 borderRadius: '6px',
                                 border: '1px solid var(--border-subtle)',
-                                background: 'transparent',
-                                color: 'var(--text-muted)',
-                                cursor: 'pointer',
+                                background: aiGenerating ? 'rgba(124,58,237,0.15)' : 'transparent',
+                                color: aiGenerating ? '#7C3AED' : 'var(--text-muted)',
+                                cursor: aiGenerating || !form.title.trim() ? 'not-allowed' : 'pointer',
                                 fontSize: '12px',
                                 whiteSpace: 'nowrap',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px',
+                                opacity: !form.title.trim() ? 0.5 : 1,
                               }}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                              </svg>
-                              Generate with AI
+                              {aiGenerating ? (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                                </svg>
+                              ) : (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                              )}
+                              {aiGenerating ? 'Generating...' : 'Generate with AI'}
                             </button>
                           </div>
+                          {aiError && (
+                            <div style={{ padding: '8px 12px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', marginTop: '6px' }}>
+                              <p style={{ fontSize: '12px', color: '#EF4444', margin: 0 }}>{aiError}</p>
+                            </div>
+                          )}
                         </div>
 
                         <Input
@@ -1368,58 +1344,6 @@ function BlogPostsContent() {
         )}
       </Modal>
 
-      <Modal
-        open={aiModalOpen}
-        onClose={() => { if (!aiGenerating) setAiModalOpen(false); }}
-        title="AI Blog Generator"
-        size="md"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <GlassCard padding="16px">
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              Describe a topic and optionally provide keywords. The AI will generate a full blog
-              post including title, content, excerpt, and SEO metadata. You can review and edit
-              everything before saving.
-            </p>
-          </GlassCard>
-
-          <Input
-            label="Topic"
-            value={aiForm.topic}
-            onChange={(e) => setAiForm({ ...aiForm, topic: e.target.value })}
-            placeholder="e.g. How micro-investing helps college students build wealth"
-          />
-          <Input
-            label="Keywords (optional, comma-separated)"
-            value={aiForm.keywords}
-            onChange={(e) => setAiForm({ ...aiForm, keywords: e.target.value })}
-            placeholder="e.g. micro-investing, round-ups, savings"
-          />
-          <Select
-            label="Tone"
-            options={TONE_OPTIONS}
-            value={aiForm.tone}
-            onChange={(e) => setAiForm({ ...aiForm, tone: e.target.value })}
-          />
-
-          {aiError && (
-            <div
-              style={{
-                padding: '12px 16px',
-                borderRadius: '8px',
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.2)',
-              }}
-            >
-              <p style={{ fontSize: '13px', color: '#EF4444', margin: 0 }}>{aiError}</p>
-            </div>
-          )}
-
-          <Button onClick={handleAiGenerate} loading={aiGenerating} fullWidth>
-            {aiGenerating ? 'Generating...' : 'Generate Blog Post'}
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 }

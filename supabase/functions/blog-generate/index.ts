@@ -77,30 +77,49 @@ serve(async (req: Request) => {
         ? `Naturally incorporate these keywords throughout the article: ${keywords.join(', ')}.`
         : ''
 
-    const prompt = `You are a fintech content writer specializing in micro-investing and personal finance.
+    const prompt = `You are an expert fintech content writer for Kamioi, a micro-investing platform that rounds up everyday purchases and invests spare change into real stocks.
 
 Write a blog post about: ${topic.trim()}
 
-Requirements:
+CONTENT REQUIREMENTS:
 - Tone: ${resolvedTone}
 - Target word count: approximately ${resolvedWordCount} words
 - Focus on micro-investing, fintech, and personal finance perspectives
 - ${keywordsInstruction}
 - Do not use emojis anywhere in the content
-- Write clear, engaging content suitable for a fintech platform audience
-- Generate an SEO-friendly slug from the title (lowercase, hyphens, no special characters)
-- Write a concise excerpt (1-2 sentences) summarizing the article
-- Write a meta description optimized for search engines (under 160 characters)
-- Suggest relevant tags for categorization
 
-Respond with valid JSON only, no markdown fencing, in this exact structure:
+FORMATTING REQUIREMENTS (CRITICAL):
+- Write the content as clean HTML -use <h2>, <h3>, <p>, <ul>, <ol>, <li>, <blockquote>, <strong>, <em> tags
+- Do NOT use markdown syntax (no asterisks, hash symbols, dashes for lists, or code fences). Output pure HTML tags only
+- Do NOT include h1 tags - the title is displayed separately
+- Use <strong> for emphasis instead of **
+- Use <em> for italics instead of *
+
+LINK REQUIREMENTS:
+- Include 2-3 internal links to Kamioi pages using <a href="/features">features</a>, <a href="/how-it-works">how it works</a>, <a href="/pricing">pricing</a>, <a href="/learn">learn</a>, or <a href="/blog">blog</a>
+- Include 1-2 external links to reputable financial sources (Investopedia, SEC, NerdWallet, Forbes, etc.)
+- Links should be naturally woven into the content, not forced
+
+SEO/GEO/AEO/CRO OPTIMIZATION:
+- Structure content with clear H2/H3 headings for AI crawlers and featured snippets
+- Include a concise answer paragraph near the top (for voice search and answer engines)
+- Use question-based headings where natural (e.g., "What is...", "How does...")
+- Include a subtle call-to-action encouraging readers to try Kamioi
+- Write content that AI search engines can easily cite and reference
+
+RESPONSE FORMAT -valid JSON only, no markdown fencing:
 {
   "title": "string",
-  "slug": "string",
-  "content": "string (full article in markdown format)",
-  "excerpt": "string",
-  "meta_description": "string",
-  "tags": ["string"]
+  "slug": "string (lowercase-hyphenated)",
+  "content": "string (full article in clean HTML)",
+  "excerpt": "string (1-2 sentences)",
+  "category": "string (e.g., Investing, Personal Finance, Education)",
+  "seo_title": "string (30-60 chars, optimized for search)",
+  "seo_description": "string (120-160 chars, optimized for search)",
+  "seo_keywords": "string (comma-separated keywords)",
+  "tags": ["string"],
+  "og_title": "string (compelling for social sharing)",
+  "og_description": "string (optimized for social previews)"
 }`
 
     // 6. Call DeepSeek API
@@ -119,7 +138,7 @@ Respond with valid JSON only, no markdown fencing, in this exact structure:
             {
               role: 'system',
               content:
-                'You are a professional fintech content writer. Always respond with valid JSON only. Do not use emojis.',
+                'You are a professional fintech content writer for Kamioi. Always respond with valid JSON only. Write blog content as clean HTML (h2, h3, p, ul, ol, strong, em, a tags). Never use markdown syntax like **, ##, -, or ```. Do not use emojis.',
             },
             {
               role: 'user',
@@ -152,8 +171,14 @@ Respond with valid JSON only, no markdown fencing, in this exact structure:
       slug: string
       content: string
       excerpt: string
-      meta_description: string
+      category?: string
+      seo_title?: string
+      seo_description?: string
+      seo_keywords?: string
+      meta_description?: string
       tags: string[]
+      og_title?: string
+      og_description?: string
     }
 
     try {
@@ -178,14 +203,21 @@ Respond with valid JSON only, no markdown fencing, in this exact structure:
       !generated.slug ||
       !generated.content ||
       !generated.excerpt ||
-      !generated.meta_description ||
       !Array.isArray(generated.tags)
     ) {
       return errorResponse(
-        'AI response is missing required fields (title, slug, content, excerpt, meta_description, tags)',
+        'AI response is missing required fields (title, slug, content, excerpt, tags)',
         502,
       )
     }
+
+    // Strip any remaining markdown syntax from content (safety net)
+    generated.content = generated.content
+      .replace(/^#{1,6}\s+(.+)$/gm, '<h2>$1</h2>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/```[\s\S]*?```/g, '')
 
     // Calculate actual word count
     const actualWordCount = generated.content
@@ -237,8 +269,13 @@ Respond with valid JSON only, no markdown fencing, in this exact structure:
       slug: generated.slug,
       content: generated.content,
       excerpt: generated.excerpt,
-      meta_description: generated.meta_description,
+      category: generated.category ?? 'Investing',
+      seo_title: generated.seo_title ?? generated.title,
+      seo_description: generated.seo_description ?? generated.meta_description ?? generated.excerpt,
+      seo_keywords: generated.seo_keywords ?? generated.tags.join(', '),
       tags: generated.tags,
+      og_title: generated.og_title ?? generated.seo_title ?? generated.title,
+      og_description: generated.og_description ?? generated.seo_description ?? generated.excerpt,
       word_count: actualWordCount,
       generated_at: generatedAt,
     })
