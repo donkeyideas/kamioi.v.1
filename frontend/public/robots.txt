@@ -1,0 +1,38 @@
+# Kamioi - AI-Powered Micro-Investing
+# https://kamioi.com
+
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /family/
+Disallow: /business/
+Disallow: /app
+
+# Allow AI crawlers for GEO/AEO
+User-agent: GPTBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+
+User-agent: Google-Extended
+Allow: /
+
+# Block unwanted crawlers
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+Sitemap: https://kamioi.com/sitemap.xml

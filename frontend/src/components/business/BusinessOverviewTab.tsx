@@ -7,6 +7,7 @@ import type { ActivityItem, QuickAction } from '@/components/ui'
 import LineChart from '@/components/charts/LineChart'
 import BarChart from '@/components/charts/BarChart'
 import { CompanyLogo, formatMerchantName } from '@/components/common/CompanyLogo'
+import { AppDownloadCard } from '@/components/common/AppDownloadCard'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -489,6 +490,8 @@ export function BusinessOverviewTab() {
           <QuickActions actions={quickActions} />
         </GlassCard>
       </div>
+
+      <AppDownloadCard />
     </div>
   )
 }

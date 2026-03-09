@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import PublicLayout from '@/components/public/PublicLayout'
+import { SEO } from '@/components/common/SEO'
+import { useHomeContent } from '@/hooks/useHomeContent'
 
 /* ------------------------------------------------------------------ */
 /*  Inline SVG icons for the feature cards                            */
@@ -68,8 +70,102 @@ const sectionHeading: React.CSSProperties = {
 /* ------------------------------------------------------------------ */
 
 export default function Home() {
+  const { content: c } = useHomeContent()
+
+  // Split hero heading on last two words for gradient effect
+  const headingWords = c.hero_heading.split(' ')
+  const gradientPart = headingWords.length > 2 ? headingWords.slice(-2).join(' ') : headingWords.slice(-1).join(' ')
+  const plainPart = headingWords.length > 2 ? headingWords.slice(0, -2).join(' ') : headingWords.slice(0, -1).join(' ')
+
+  const features = [
+    { title: c.feature_1, desc: c.feature_1_desc, icon: <RoundUpIcon />, accent: 'purple', color: '#7C3AED', bg: 'rgba(124,58,237,0.15)' },
+    { title: c.feature_2, desc: c.feature_2_desc, icon: <AiIcon />, accent: 'blue', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' },
+    { title: c.feature_3, desc: c.feature_3_desc, icon: <GoalIcon />, accent: 'teal', color: '#06B6D4', bg: 'rgba(6,182,212,0.15)' },
+  ]
+
+  const steps = [
+    { num: '1', title: c.step_1_title, desc: c.step_1_desc, gradient: 'linear-gradient(135deg, #7C3AED, #3B82F6)' },
+    { num: '2', title: c.step_2_title, desc: c.step_2_desc, gradient: 'linear-gradient(135deg, #3B82F6, #06B6D4)' },
+    { num: '3', title: c.step_3_title, desc: c.step_3_desc, gradient: 'linear-gradient(135deg, #06B6D4, #34D399)' },
+  ]
+
+  const stats = [
+    { value: c.stat_1_value, label: c.stat_1_label },
+    { value: c.stat_2_value, label: c.stat_2_label },
+    { value: c.stat_3_value, label: c.stat_3_label },
+    { value: c.stat_4_value, label: c.stat_4_label },
+  ]
+
+  const trustBadges = [c.trust_badge_1, c.trust_badge_2, c.trust_badge_3].filter(Boolean)
+
+  const hasAppLinks = c.app_store_url || c.play_store_url
+
   return (
     <PublicLayout>
+      <SEO
+        title="AI-Powered Micro-Investing"
+        description="Kamioi automatically rounds up your everyday purchases and invests the difference into diversified portfolios. Build wealth effortlessly with AI-powered micro-investing."
+        canonical="https://kamioi.com/"
+        ogType="website"
+      />
+
+      {/* Structured Data — Organization + WebSite */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'Organization',
+                '@id': 'https://kamioi.com/#organization',
+                name: 'Kamioi',
+                url: 'https://kamioi.com',
+                logo: 'https://kamioi.com/favicon.png',
+                description: 'AI-powered micro-investing platform that rounds up everyday purchases and invests the spare change into diversified portfolios.',
+                sameAs: [
+                  'https://twitter.com/kamioi',
+                  'https://linkedin.com/company/kamioi',
+                ],
+              },
+              {
+                '@type': 'WebSite',
+                '@id': 'https://kamioi.com/#website',
+                url: 'https://kamioi.com',
+                name: 'Kamioi',
+                publisher: { '@id': 'https://kamioi.com/#organization' },
+                potentialAction: {
+                  '@type': 'SearchAction',
+                  target: 'https://kamioi.com/blog?q={search_term_string}',
+                  'query-input': 'required name=search_term_string',
+                },
+              },
+              {
+                '@type': 'WebPage',
+                '@id': 'https://kamioi.com/#webpage',
+                url: 'https://kamioi.com',
+                name: 'Kamioi - AI-Powered Micro-Investing',
+                description: 'Round up your everyday purchases and invest the spare change automatically. Build wealth with AI-powered micro-investing.',
+                isPartOf: { '@id': 'https://kamioi.com/#website' },
+              },
+              {
+                '@type': 'SoftwareApplication',
+                name: 'Kamioi',
+                operatingSystem: 'iOS, Android',
+                applicationCategory: 'FinanceApplication',
+                offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+                aggregateRating: {
+                  '@type': 'AggregateRating',
+                  ratingValue: '4.8',
+                  ratingCount: '12000',
+                  bestRating: '5',
+                },
+              },
+            ],
+          }),
+        }}
+      />
+
       {/* ============================================================
           SECTION 1 — HERO
           ============================================================ */}
@@ -91,8 +187,8 @@ export default function Home() {
             color: 'var(--text-primary)',
           }}
         >
-          Invest Your{' '}
-          <span style={gradientText}>Spare Change</span>
+          {plainPart}{plainPart ? ' ' : ''}
+          <span style={gradientText}>{gradientPart}</span>
         </h1>
 
         <p
@@ -104,15 +200,13 @@ export default function Home() {
             lineHeight: 1.7,
           }}
         >
-          Kamioi automatically rounds up your everyday purchases and invests
-          the difference into diversified portfolios. Build wealth effortlessly
-          with AI-powered micro-investing.
+          {c.hero_subheading}
         </p>
 
         {/* CTA buttons */}
         <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link
-            to="/register"
+            to={c.hero_cta_link}
             style={{
               background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
               color: '#fff',
@@ -132,7 +226,7 @@ export default function Home() {
               e.currentTarget.style.transform = 'translateY(0)'
             }}
           >
-            Start Investing Free
+            {c.hero_cta_text}
           </Link>
           <Link
             to="/how-it-works"
@@ -163,42 +257,44 @@ export default function Home() {
         </div>
 
         {/* Trust indicators */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '32px',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            marginTop: '40px',
-          }}
-        >
-          {['No minimum investment', 'FDIC insured', 'Cancel anytime'].map((text) => (
-            <span
-              key={text}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '13px',
-                color: 'var(--text-muted)',
-                fontWeight: 500,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="8" fill="rgba(6,182,212,0.2)" />
-                <path d="M5 8l2 2 4-4" stroke="#06B6D4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {text}
-            </span>
-          ))}
-        </div>
+        {trustBadges.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              gap: '32px',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              marginTop: '40px',
+            }}
+          >
+            {trustBadges.map((text) => (
+              <span
+                key={text}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '13px',
+                  color: 'var(--text-muted)',
+                  fontWeight: 500,
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="8" fill="rgba(6,182,212,0.2)" />
+                  <path d="M5 8l2 2 4-4" stroke="#06B6D4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {text}
+              </span>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ============================================================
           SECTION 2 — FEATURES PREVIEW (3 cards)
           ============================================================ */}
       <section style={sectionStyle}>
-        <h2 style={sectionHeading}>Smart investing made simple</h2>
+        <h2 style={sectionHeading}>{c.features_heading}</h2>
 
         <div
           style={{
@@ -208,80 +304,31 @@ export default function Home() {
             marginTop: '48px',
           }}
         >
-          {/* Card 1 — Round-Ups */}
-          <div className="glass-card" data-accent="purple" style={{ padding: '32px' }}>
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                background: 'rgba(124,58,237,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#7C3AED',
-                marginBottom: '20px',
-              }}
-            >
-              <RoundUpIcon />
+          {features.map((f) => (
+            <div key={f.title} className="glass-card" data-accent={f.accent} style={{ padding: '32px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: f.bg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: f.color,
+                  marginBottom: '20px',
+                }}
+              >
+                {f.icon}
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
+                {f.title}
+              </h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                {f.desc}
+              </p>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
-              Automatic Round-Ups
-            </h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-              Every purchase is rounded up to the nearest dollar. The spare change is automatically invested.
-            </p>
-          </div>
-
-          {/* Card 2 — AI Insights */}
-          <div className="glass-card" data-accent="blue" style={{ padding: '32px' }}>
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                background: 'rgba(59,130,246,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#3B82F6',
-                marginBottom: '20px',
-              }}
-            >
-              <AiIcon />
-            </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
-              AI-Powered Insights
-            </h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-              Our AI analyzes your spending patterns and optimizes your investment strategy in real-time.
-            </p>
-          </div>
-
-          {/* Card 3 — Goals */}
-          <div className="glass-card" data-accent="teal" style={{ padding: '32px' }}>
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                background: 'rgba(6,182,212,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#06B6D4',
-                marginBottom: '20px',
-              }}
-            >
-              <GoalIcon />
-            </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
-              Goal-Based Investing
-            </h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-              Set savings goals and track your progress. Our AI adjusts your strategy to help you reach them faster.
-            </p>
-          </div>
+          ))}
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '40px' }}>
@@ -312,7 +359,7 @@ export default function Home() {
           SECTION 3 — HOW IT WORKS (3 steps)
           ============================================================ */}
       <section style={sectionStyle}>
-        <h2 style={sectionHeading}>Start in under 2 minutes</h2>
+        <h2 style={sectionHeading}>{c.steps_heading}</h2>
 
         <div
           style={{
@@ -322,26 +369,7 @@ export default function Home() {
             marginTop: '48px',
           }}
         >
-          {[
-            {
-              num: '1',
-              title: 'Create Your Account',
-              desc: 'Sign up in seconds with just your email. No paperwork needed.',
-              gradient: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
-            },
-            {
-              num: '2',
-              title: 'Connect Your Cards',
-              desc: 'Link your debit or credit cards securely. We never store your card details.',
-              gradient: 'linear-gradient(135deg, #3B82F6, #06B6D4)',
-            },
-            {
-              num: '3',
-              title: 'Watch Your Wealth Grow',
-              desc: 'Every purchase rounds up automatically. Watch your portfolio grow daily.',
-              gradient: 'linear-gradient(135deg, #06B6D4, #34D399)',
-            },
-          ].map((step) => (
+          {steps.map((step) => (
             <div key={step.num} style={{ textAlign: 'center' }}>
               <span
                 style={{
@@ -428,12 +456,7 @@ export default function Home() {
             textAlign: 'center',
           }}
         >
-          {[
-            { value: '$2.4M+', label: 'Invested by users' },
-            { value: '12,000+', label: 'Active investors' },
-            { value: '99.9%', label: 'Uptime' },
-            { value: '4.8/5', label: 'App Store rating' },
-          ].map((stat) => (
+          {stats.map((stat) => (
             <div key={stat.label}>
               <div
                 style={{
@@ -460,7 +483,64 @@ export default function Home() {
       </section>
 
       {/* ============================================================
-          SECTION 5 — CTA BANNER
+          SECTION 5 — MOBILE APP DOWNLOAD
+          ============================================================ */}
+      {hasAppLinks && (
+        <section style={sectionStyle}>
+          <h2 style={sectionHeading}>{c.app_section_heading}</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '16px', maxWidth: '500px', margin: '0 auto 40px', lineHeight: 1.6 }}>
+            {c.app_section_subtext}
+          </p>
+          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {c.app_store_url && (
+              <a
+                href={c.app_store_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Download on the App Store"
+                style={{ transition: 'transform 200ms ease, opacity 200ms ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.opacity = '0.9' }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.opacity = '1' }}
+              >
+                <svg width="180" height="60" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="180" height="60" rx="10" fill="#000"/>
+                  <text x="65" y="22" fill="#fff" fontSize="9" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="400">Download on the</text>
+                  <text x="65" y="40" fill="#fff" fontSize="17" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="600">App Store</text>
+                  <g transform="translate(18, 12)" fill="#fff">
+                    <path d="M28.9 27.5c-.1 3.1 2.5 4.6 2.6 4.6-.1.3-0.4 1.4-1.3 2.7-.8 1.2-1.6 2.3-2.9 2.4-1.3.1-1.7-.7-3.1-.7-1.5 0-1.9.7-3.1.8-1.2 0-2.2-1.3-3-2.5-1.6-2.4-2.9-6.8-1.2-9.7.8-1.5 2.3-2.4 3.9-2.4 1.2 0 2.4.8 3.1.8.8 0 2.2-1 3.7-.9.6 0 2.4.3 3.5 2-0.1.1-2.1 1.2-2.2 3.9zM26.1 20.9c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/>
+                  </g>
+                </svg>
+              </a>
+            )}
+            {c.play_store_url && (
+              <a
+                href={c.play_store_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Get it on Google Play"
+                style={{ transition: 'transform 200ms ease, opacity 200ms ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.opacity = '0.9' }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.opacity = '1' }}
+              >
+                <svg width="180" height="60" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="180" height="60" rx="10" fill="#000"/>
+                  <text x="65" y="22" fill="#fff" fontSize="9" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="400">GET IT ON</text>
+                  <text x="65" y="40" fill="#fff" fontSize="16" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="600">Google Play</text>
+                  <g transform="translate(16, 13)">
+                    <path d="M4 2.5l16.5 12.5L4 27.5V2.5z" fill="#34A853"/>
+                    <path d="M4 2.5l20 12.5-3.5 2.7L4 7.5V2.5z" fill="#FBBC04"/>
+                    <path d="M4 27.5l16.5-10.2-3.5-2.7L4 22.5v5z" fill="#EA4335"/>
+                    <path d="M20.5 15L24 17.5 20.5 20l-3.5-2.5 3.5-2.5z" fill="#4285F4"/>
+                  </g>
+                </svg>
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ============================================================
+          SECTION 6 — CTA BANNER
           ============================================================ */}
       <section style={sectionStyle}>
         <div
@@ -493,7 +573,7 @@ export default function Home() {
               position: 'relative',
             }}
           >
-            Ready to start building wealth?
+            {c.cta_heading}
           </h2>
           <p
             style={{
@@ -505,7 +585,7 @@ export default function Home() {
               position: 'relative',
             }}
           >
-            Join thousands of investors who are growing their portfolios with spare change.
+            {c.cta_subtext}
           </p>
           <Link
             to="/register"
@@ -530,7 +610,7 @@ export default function Home() {
               e.currentTarget.style.boxShadow = 'none'
             }}
           >
-            Create Free Account
+            {c.cta_button_text}
           </Link>
         </div>
       </section>

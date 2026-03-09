@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '@/components/public/PublicLayout.tsx'
+import { SEO } from '@/components/common/SEO'
 
 /* -----------------------------------------------
    Icon components for each feature card
@@ -153,6 +154,11 @@ const responsiveStyles = `
 export default function Features() {
   return (
     <PublicLayout>
+      <SEO
+        title="Features"
+        description="Discover Kamioi's powerful features: automatic round-ups, AI-powered investment insights, goal-based investing, family plans, business accounts, and real-time analytics."
+        canonical="https://kamioi.com/features"
+      />
       <style>{responsiveStyles}</style>
 
       {/* Hero section */}

@@ -8,6 +8,7 @@ import { Table } from '@/components/ui/Table'
 import type { Column } from '@/components/ui/Table'
 import AreaChart from '@/components/charts/AreaChart'
 import { COMPANY_LOOKUP, CompanyLogo, CompanyLink, formatMerchantName } from '@/components/common/CompanyLogo'
+import { AppDownloadCard } from '@/components/common/AppDownloadCard'
 
 /* ---- Types ---- */
 
@@ -551,6 +552,8 @@ export function FamilyOverviewTab() {
           )}
         </GlassCard>
       </div>
+
+      <AppDownloadCard />
     </div>
   )
 }

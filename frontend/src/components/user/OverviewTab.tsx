@@ -9,6 +9,7 @@ import type { Column } from '@/components/ui/Table'
 import AreaChart from '@/components/charts/AreaChart'
 import { CompanyLogo, formatMerchantName } from '@/components/common/CompanyLogo'
 import { fetchStockPrices, type StockQuote } from '@/services/stockPrices'
+import { AppDownloadCard } from '@/components/common/AppDownloadCard'
 import type { Database } from '@/types/database'
 
 /* ---- Types ---- */
@@ -458,6 +459,8 @@ export function OverviewTab() {
         </GlassCard>
       </div>
 
+      {/* App Download */}
+      <AppDownloadCard />
     </div>
   )
 }

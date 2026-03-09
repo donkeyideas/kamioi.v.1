@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { SEO } from '@/components/common/SEO'
 
 export default function Register() {
   const [name, setName] = useState('')
@@ -34,6 +35,8 @@ export default function Register() {
   ]
 
   return (
+    <>
+    <SEO title="Create Account" description="Sign up for Kamioi and start investing your spare change. Choose from Individual, Family, or Business accounts." canonical="https://kamioi.com/register" />
     <div style={{
       minHeight: '100vh',
       display: 'flex',
@@ -271,5 +274,6 @@ export default function Register() {
         </form>
       </div>
     </div>
+    </>
   )
 }

@@ -124,11 +124,40 @@ interface FrontendContentData {
   hero_cta_text: string;
   hero_cta_link: string;
   feature_1: string;
+  feature_1_desc: string;
   feature_2: string;
+  feature_2_desc: string;
   feature_3: string;
+  feature_3_desc: string;
+  features_heading: string;
+  step_1_title: string;
+  step_1_desc: string;
+  step_2_title: string;
+  step_2_desc: string;
+  step_3_title: string;
+  step_3_desc: string;
+  steps_heading: string;
+  stat_1_value: string;
+  stat_1_label: string;
+  stat_2_value: string;
+  stat_2_label: string;
+  stat_3_value: string;
+  stat_3_label: string;
+  stat_4_value: string;
+  stat_4_label: string;
+  cta_heading: string;
+  cta_subtext: string;
+  cta_button_text: string;
+  app_store_url: string;
+  play_store_url: string;
+  app_section_heading: string;
+  app_section_subtext: string;
   footer_company: string;
   footer_tagline: string;
   footer_copyright: string;
+  trust_badge_1: string;
+  trust_badge_2: string;
+  trust_badge_3: string;
 }
 
 interface SeoSettingsData {
@@ -222,11 +251,40 @@ const EMPTY_CONTENT: FrontendContentData = {
   hero_cta_text: '',
   hero_cta_link: '',
   feature_1: '',
+  feature_1_desc: '',
   feature_2: '',
+  feature_2_desc: '',
   feature_3: '',
+  feature_3_desc: '',
+  features_heading: '',
+  step_1_title: '',
+  step_1_desc: '',
+  step_2_title: '',
+  step_2_desc: '',
+  step_3_title: '',
+  step_3_desc: '',
+  steps_heading: '',
+  stat_1_value: '',
+  stat_1_label: '',
+  stat_2_value: '',
+  stat_2_label: '',
+  stat_3_value: '',
+  stat_3_label: '',
+  stat_4_value: '',
+  stat_4_label: '',
+  cta_heading: '',
+  cta_subtext: '',
+  cta_button_text: '',
+  app_store_url: '',
+  play_store_url: '',
+  app_section_heading: '',
+  app_section_subtext: '',
   footer_company: '',
   footer_tagline: '',
   footer_copyright: '',
+  trust_badge_1: '',
+  trust_badge_2: '',
+  trust_badge_3: '',
 };
 
 const EMPTY_SEO: SeoSettingsData = {
@@ -1652,18 +1710,11 @@ function FrontendContentTab() {
         for (const s of settings) {
           obj[s.setting_key] = s.setting_value ?? '';
         }
-        setContentData({
-          hero_heading: obj['hero_heading'] ?? '',
-          hero_subheading: obj['hero_subheading'] ?? '',
-          hero_cta_text: obj['hero_cta_text'] ?? '',
-          hero_cta_link: obj['hero_cta_link'] ?? '',
-          feature_1: obj['feature_1'] ?? '',
-          feature_2: obj['feature_2'] ?? '',
-          feature_3: obj['feature_3'] ?? '',
-          footer_company: obj['footer_company'] ?? '',
-          footer_tagline: obj['footer_tagline'] ?? '',
-          footer_copyright: obj['footer_copyright'] ?? '',
-        });
+        const result: Record<string, string> = {};
+        for (const key of Object.keys(EMPTY_CONTENT)) {
+          result[key] = obj[key] ?? '';
+        }
+        setContentData(result as unknown as FrontendContentData);
       } catch (err) {
         console.error('Fetch content error:', err);
       } finally {
@@ -1682,7 +1733,7 @@ function FrontendContentTab() {
           .from('admin_settings')
           .upsert(
             { setting_type: 'content', setting_key: key, setting_value: value },
-            { onConflict: 'setting_type,setting_key' },
+            { onConflict: 'setting_key' },
           );
         if (error) console.error(`Failed to save ${key}:`, error.message);
       }
@@ -1703,6 +1754,9 @@ function FrontendContentTab() {
     );
   }
 
+  const update = (key: keyof FrontendContentData) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setContentData(prev => ({ ...prev, [key]: e.target.value }));
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <GlassCard padding="24px">
@@ -1710,7 +1764,7 @@ function FrontendContentTab() {
           Frontend Content Management
         </p>
         <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          Frontend content management allows editing of public page sections.
+          Edit all public homepage content. Changes are live immediately — no rebuild required.
         </p>
       </GlassCard>
 
@@ -1723,77 +1777,121 @@ function FrontendContentTab() {
         </GlassCard>
       )}
 
+      {/* Hero */}
       <GlassCard padding="24px">
         <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Homepage Hero
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Input
-            label="Heading"
-            value={contentData.hero_heading}
-            onChange={(e) => setContentData({ ...contentData, hero_heading: e.target.value })}
-          />
-          <Input
-            label="Subheading"
-            value={contentData.hero_subheading}
-            onChange={(e) => setContentData({ ...contentData, hero_subheading: e.target.value })}
-          />
-          <Input
-            label="CTA Text"
-            value={contentData.hero_cta_text}
-            onChange={(e) => setContentData({ ...contentData, hero_cta_text: e.target.value })}
-          />
-          <Input
-            label="CTA Link"
-            value={contentData.hero_cta_link}
-            onChange={(e) => setContentData({ ...contentData, hero_cta_link: e.target.value })}
-          />
+          <Input label="Heading" placeholder="Invest Your Spare Change" value={contentData.hero_heading} onChange={update('hero_heading')} />
+          <Input label="Subheading" placeholder="Kamioi automatically rounds up..." value={contentData.hero_subheading} onChange={update('hero_subheading')} />
+          <Input label="CTA Text" placeholder="Start Investing Free" value={contentData.hero_cta_text} onChange={update('hero_cta_text')} />
+          <Input label="CTA Link" placeholder="/register" value={contentData.hero_cta_link} onChange={update('hero_cta_link')} />
         </div>
       </GlassCard>
 
+      {/* Trust Badges */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          Trust Badges
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Badge 1" placeholder="No minimum investment" value={contentData.trust_badge_1} onChange={update('trust_badge_1')} />
+          <Input label="Badge 2" placeholder="FDIC insured" value={contentData.trust_badge_2} onChange={update('trust_badge_2')} />
+          <Input label="Badge 3" placeholder="Cancel anytime" value={contentData.trust_badge_3} onChange={update('trust_badge_3')} />
+        </div>
+      </GlassCard>
+
+      {/* Features */}
       <GlassCard padding="24px">
         <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Features Section
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Input
-            label="Feature 1 Title"
-            value={contentData.feature_1}
-            onChange={(e) => setContentData({ ...contentData, feature_1: e.target.value })}
-          />
-          <Input
-            label="Feature 2 Title"
-            value={contentData.feature_2}
-            onChange={(e) => setContentData({ ...contentData, feature_2: e.target.value })}
-          />
-          <Input
-            label="Feature 3 Title"
-            value={contentData.feature_3}
-            onChange={(e) => setContentData({ ...contentData, feature_3: e.target.value })}
-          />
+          <Input label="Section Heading" placeholder="Smart investing made simple" value={contentData.features_heading} onChange={update('features_heading')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Feature 1 Title" placeholder="Automatic Round-Ups" value={contentData.feature_1} onChange={update('feature_1')} />
+            <Input label="Feature 1 Description" placeholder="Every purchase is rounded up..." value={contentData.feature_1_desc} onChange={update('feature_1_desc')} />
+            <Input label="Feature 2 Title" placeholder="AI-Powered Insights" value={contentData.feature_2} onChange={update('feature_2')} />
+            <Input label="Feature 2 Description" placeholder="Our AI analyzes your spending..." value={contentData.feature_2_desc} onChange={update('feature_2_desc')} />
+            <Input label="Feature 3 Title" placeholder="Goal-Based Investing" value={contentData.feature_3} onChange={update('feature_3')} />
+            <Input label="Feature 3 Description" placeholder="Set savings goals and track..." value={contentData.feature_3_desc} onChange={update('feature_3_desc')} />
+          </div>
         </div>
       </GlassCard>
 
+      {/* How It Works Steps */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          How It Works (3 Steps)
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Section Heading" placeholder="Start in under 2 minutes" value={contentData.steps_heading} onChange={update('steps_heading')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Step 1 Title" placeholder="Create Your Account" value={contentData.step_1_title} onChange={update('step_1_title')} />
+            <Input label="Step 1 Description" placeholder="Sign up in seconds..." value={contentData.step_1_desc} onChange={update('step_1_desc')} />
+            <Input label="Step 2 Title" placeholder="Connect Your Cards" value={contentData.step_2_title} onChange={update('step_2_title')} />
+            <Input label="Step 2 Description" placeholder="Link your debit or credit..." value={contentData.step_2_desc} onChange={update('step_2_desc')} />
+            <Input label="Step 3 Title" placeholder="Watch Your Wealth Grow" value={contentData.step_3_title} onChange={update('step_3_title')} />
+            <Input label="Step 3 Description" placeholder="Every purchase rounds up..." value={contentData.step_3_desc} onChange={update('step_3_desc')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Social Proof Stats */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          Social Proof Stats
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <Input label="Stat 1 Value" placeholder="$2.4M+" value={contentData.stat_1_value} onChange={update('stat_1_value')} />
+          <Input label="Stat 1 Label" placeholder="Invested by users" value={contentData.stat_1_label} onChange={update('stat_1_label')} />
+          <Input label="Stat 2 Value" placeholder="12,000+" value={contentData.stat_2_value} onChange={update('stat_2_value')} />
+          <Input label="Stat 2 Label" placeholder="Active investors" value={contentData.stat_2_label} onChange={update('stat_2_label')} />
+          <Input label="Stat 3 Value" placeholder="99.9%" value={contentData.stat_3_value} onChange={update('stat_3_value')} />
+          <Input label="Stat 3 Label" placeholder="Uptime" value={contentData.stat_3_label} onChange={update('stat_3_label')} />
+          <Input label="Stat 4 Value" placeholder="4.8/5" value={contentData.stat_4_value} onChange={update('stat_4_value')} />
+          <Input label="Stat 4 Label" placeholder="App Store rating" value={contentData.stat_4_label} onChange={update('stat_4_label')} />
+        </div>
+      </GlassCard>
+
+      {/* CTA Banner */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          CTA Banner
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Heading" placeholder="Ready to start building wealth?" value={contentData.cta_heading} onChange={update('cta_heading')} />
+          <Input label="Subtext" placeholder="Join thousands of investors..." value={contentData.cta_subtext} onChange={update('cta_subtext')} />
+          <Input label="Button Text" placeholder="Create Free Account" value={contentData.cta_button_text} onChange={update('cta_button_text')} />
+        </div>
+      </GlassCard>
+
+      {/* Mobile App Links */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          Mobile App Downloads
+        </p>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+          Set the App Store and Google Play URLs. These appear on the homepage and in user dashboards.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Section Heading" placeholder="Get the Kamioi App" value={contentData.app_section_heading} onChange={update('app_section_heading')} />
+          <Input label="Section Subtext" placeholder="Invest on the go..." value={contentData.app_section_subtext} onChange={update('app_section_subtext')} />
+          <Input label="Apple App Store URL" placeholder="https://apps.apple.com/app/kamioi/..." value={contentData.app_store_url} onChange={update('app_store_url')} />
+          <Input label="Google Play Store URL" placeholder="https://play.google.com/store/apps/details?id=..." value={contentData.play_store_url} onChange={update('play_store_url')} />
+        </div>
+      </GlassCard>
+
+      {/* Footer */}
       <GlassCard padding="24px">
         <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
           Footer
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Input
-            label="Company Name"
-            value={contentData.footer_company}
-            onChange={(e) => setContentData({ ...contentData, footer_company: e.target.value })}
-          />
-          <Input
-            label="Tagline"
-            value={contentData.footer_tagline}
-            onChange={(e) => setContentData({ ...contentData, footer_tagline: e.target.value })}
-          />
-          <Input
-            label="Copyright Text"
-            value={contentData.footer_copyright}
-            onChange={(e) => setContentData({ ...contentData, footer_copyright: e.target.value })}
-          />
+          <Input label="Company Name" placeholder="Kamioi" value={contentData.footer_company} onChange={update('footer_company')} />
+          <Input label="Tagline" placeholder="AI-powered micro-investing..." value={contentData.footer_tagline} onChange={update('footer_tagline')} />
+          <Input label="Copyright Text" placeholder="Kamioi. All rights reserved." value={contentData.footer_copyright} onChange={update('footer_copyright')} />
         </div>
       </GlassCard>
 
@@ -1802,12 +1900,6 @@ function FrontendContentTab() {
           Save Changes
         </Button>
       </div>
-
-      <GlassCard padding="16px">
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-          Note: Changes require frontend rebuild to take effect.
-        </p>
-      </GlassCard>
     </div>
   );
 }
@@ -1866,7 +1958,7 @@ function SeoSettingsContent() {
           .from('admin_settings')
           .upsert(
             { setting_type: 'seo', setting_key: key, setting_value: value },
-            { onConflict: 'setting_type,setting_key' },
+            { onConflict: 'setting_key' },
           );
         if (error) console.error(`Failed to save SEO ${key}:`, error.message);
       }

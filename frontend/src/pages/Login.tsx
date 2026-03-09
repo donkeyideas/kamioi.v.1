@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { SEO } from '@/components/common/SEO'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -26,6 +27,8 @@ export default function Login() {
   }
 
   return (
+    <>
+    <SEO title="Sign In" description="Sign in to your Kamioi account to manage your micro-investing portfolio." noindex />
     <div style={{
       minHeight: '100vh',
       display: 'flex',
@@ -203,5 +206,6 @@ export default function Login() {
         </form>
       </div>
     </div>
+    </>
   )
 }

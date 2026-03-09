@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '@/components/public/PublicLayout.tsx'
+import { SEO } from '@/components/common/SEO'
 
 /* -----------------------------------------------
    Step data
@@ -80,6 +81,11 @@ const responsiveStyles = `
 export default function HowItWorks() {
   return (
     <PublicLayout>
+      <SEO
+        title="How It Works"
+        description="Learn how Kamioi works in 3 simple steps: create your account, connect your cards, and watch your wealth grow through automatic round-up investing."
+        canonical="https://kamioi.com/how-it-works"
+      />
       <style>{responsiveStyles}</style>
 
       {/* Hero section */}

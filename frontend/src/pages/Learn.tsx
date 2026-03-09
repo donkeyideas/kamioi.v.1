@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '@/components/public/PublicLayout.tsx'
+import { SEO } from '@/components/common/SEO'
 
 /* -----------------------------------------------
    Topic data
@@ -266,6 +267,11 @@ export default function Learn() {
 
   return (
     <PublicLayout>
+      <SEO
+        title="Learn"
+        description="Learn about micro-investing, round-up strategies, portfolio diversification, and how Kamioi helps you build wealth automatically. FAQs and security information included."
+        canonical="https://kamioi.com/learn"
+      />
       <style>{responsiveStyles}</style>
 
       {/* Hero section */}
