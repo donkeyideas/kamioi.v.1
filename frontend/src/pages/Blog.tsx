@@ -108,27 +108,39 @@ function PostCard({ post }: { post: BlogPost }) {
         {/* Image / Gradient header */}
         <div
           style={{
-            height: 180,
+            height: 200,
             background: getGradient(post.category),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          <span
-            style={{
-              fontSize: 48,
-              opacity: 0.15,
-              fontWeight: 800,
-              color: '#fff',
-              textTransform: 'uppercase',
-              letterSpacing: 4,
-            }}
-          >
-            {post.category || 'Kamioi'}
-          </span>
+          {post.featured_image && !post.featured_image.startsWith('http://localhost') ? (
+            <img
+              src={post.featured_image}
+              alt={post.title}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span
+                style={{
+                  fontSize: 48,
+                  opacity: 0.15,
+                  fontWeight: 800,
+                  color: '#fff',
+                  textTransform: 'uppercase',
+                  letterSpacing: 4,
+                }}
+              >
+                {post.category || 'Kamioi'}
+              </span>
+            </div>
+          )}
           {post.category && (
             <span
               style={{

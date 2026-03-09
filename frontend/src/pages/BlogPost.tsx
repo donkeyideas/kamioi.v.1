@@ -208,6 +208,10 @@ export default function BlogPost() {
   }
 
   /* Post content */
+  const validImage = post.featured_image && !post.featured_image.startsWith('http://localhost')
+    ? post.featured_image
+    : null
+
   return (
     <PublicLayout>
       <SEO
@@ -224,9 +228,7 @@ export default function BlogPost() {
           maxWidth: 1200,
           margin: '0 auto',
           height: 320,
-          background: post.featured_image
-            ? `url(${post.featured_image}) center/cover no-repeat`
-            : getGradient(post.category),
+          background: getGradient(post.category),
           borderRadius: '0 0 16px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -235,7 +237,18 @@ export default function BlogPost() {
           overflow: 'hidden',
         }}
       >
-        {!post.featured_image && (
+        {validImage ? (
+          <img
+            src={validImage}
+            alt={post.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        ) : (
           <span
             style={{
               fontSize: 72,
