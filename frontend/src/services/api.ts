@@ -8,6 +8,7 @@ type EdgeFunctionName =
   | 'blog-generate'
   | 'contact-submit'
   | 'seo-audit'
+  | 'seo-analytics'
   | 'bulk-upload'
   | 'export-data'
   | 'stock-prices'
@@ -165,25 +166,53 @@ export async function submitContactForm(data: {
 }
 
 /* ------------------------------------------------------------------ */
-/*  SEO Audit                                                          */
+/*  SEO Analytics                                                      */
 /* ------------------------------------------------------------------ */
 
-interface SeoAuditResult {
-  overall_score: number
-  pages: Array<{
-    url: string
-    score: number
-    issues: string[]
-    suggestions: string[]
-  }>
+export async function seoRunAudit() {
+  return invokeEdge('seo-analytics', { action: 'run_audit' })
 }
-
-export async function runSeoAudit() {
-  return invokeEdge<SeoAuditResult>('seo-audit', { action: 'full_audit' })
+export async function seoGetOverview() {
+  return invokeEdge('seo-analytics', { action: 'overview' })
 }
-
-export async function auditSinglePage(url: string) {
-  return invokeEdge('seo-audit', { action: 'page_audit', url })
+export async function seoGetTechnicalAudit() {
+  return invokeEdge('seo-analytics', { action: 'technical_audit' })
+}
+export async function seoGetContentAudit() {
+  return invokeEdge('seo-analytics', { action: 'content_audit' })
+}
+export async function seoGetStructuredData() {
+  return invokeEdge('seo-analytics', { action: 'structured_data' })
+}
+export async function seoGetGeoAnalysis() {
+  return invokeEdge('seo-analytics', { action: 'geo_analysis' })
+}
+export async function seoGetAeoAnalysis() {
+  return invokeEdge('seo-analytics', { action: 'aeo_analysis' })
+}
+export async function seoGetCroAnalysis() {
+  return invokeEdge('seo-analytics', { action: 'cro_analysis' })
+}
+export async function seoGetRecommendations(filter?: { priority?: string; category?: string }) {
+  return invokeEdge('seo-analytics', { action: 'recommendations', ...filter })
+}
+export async function seoResolveRecommendation(id: string) {
+  return invokeEdge('seo-analytics', { action: 'resolve_rec', id })
+}
+export async function seoDismissRecommendation(id: string) {
+  return invokeEdge('seo-analytics', { action: 'dismiss_rec', id })
+}
+export async function seoGetGscStatus() {
+  return invokeEdge('seo-analytics', { action: 'gsc_status' })
+}
+export async function seoGetGscData() {
+  return invokeEdge('seo-analytics', { action: 'gsc_data' })
+}
+export async function seoGetGa4Status() {
+  return invokeEdge('seo-analytics', { action: 'ga4_status' })
+}
+export async function seoGetGa4Data() {
+  return invokeEdge('seo-analytics', { action: 'ga4_data' })
 }
 
 /* ------------------------------------------------------------------ */
