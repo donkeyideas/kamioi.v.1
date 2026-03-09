@@ -14,7 +14,8 @@ interface Recommendation {
   type: string;
   title: string;
   description: string;
-  confidence: number;
+  confidence?: number;
+  priority?: 'high' | 'medium' | 'low';
 }
 
 interface SubmittedMapping {
@@ -495,26 +496,14 @@ export function AiInsightsTab() {
                       {rec.description}
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                      <div
+                      <span
                         style={{
-                          width: '60px',
-                          height: '4px',
-                          background: 'var(--border-subtle)',
-                          borderRadius: '2px',
-                          overflow: 'hidden',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: rec.priority === 'high' ? '#34D399' : rec.priority === 'medium' ? '#FBBF24' : '#94A3B8',
                         }}
                       >
-                        <div
-                          style={{
-                            width: `${Math.round(rec.confidence * 100)}%`,
-                            height: '100%',
-                            background: accentColor,
-                            borderRadius: '2px',
-                          }}
-                        />
-                      </div>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {Math.round(rec.confidence * 100)}% confidence
+                        {rec.priority ? rec.priority.charAt(0).toUpperCase() + rec.priority.slice(1) : '--'} priority
                       </span>
                     </div>
                   </div>
