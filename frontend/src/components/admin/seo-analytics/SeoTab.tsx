@@ -186,7 +186,7 @@ function SeoOverview() {
               <div key={kw.keyword} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', background: 'var(--surface-input)' }}>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{kw.keyword}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{kw.clicks} clicks &middot; {kw.impressions} impressions</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{kw.clicks.toLocaleString()} clicks &middot; {kw.impressions.toLocaleString()} impressions</div>
                 </div>
                 <Badge variant={kw.position <= 3 ? 'success' : kw.position <= 10 ? 'info' : 'warning'}>#{kw.position}</Badge>
               </div>
@@ -318,8 +318,8 @@ function RankingsTraffic() {
     { key: 'position', header: 'Position', sortable: true, align: 'center', render: (r) => (
       <Badge variant={r.position <= 3 ? 'success' : r.position <= 10 ? 'info' : r.position <= 20 ? 'warning' : 'default'}>#{r.position}</Badge>
     )},
-    { key: 'impressions', header: 'Impressions', sortable: true, align: 'right' },
-    { key: 'clicks', header: 'Clicks', sortable: true, align: 'right' },
+    { key: 'impressions', header: 'Impressions', sortable: true, align: 'right', render: (r) => r.impressions.toLocaleString() },
+    { key: 'clicks', header: 'Clicks', sortable: true, align: 'right', render: (r) => r.clicks.toLocaleString() },
     { key: 'ctr', header: 'CTR', sortable: true, align: 'right', render: (r) => `${r.ctr.toFixed(1)}%` },
   ]
 
@@ -391,10 +391,10 @@ function StructuredData() {
           <div key={c.schema_type} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', minWidth: '160px' }}>{c.schema_type}</span>
             <div style={{ flex: 1, height: '8px', background: 'var(--surface-input)', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ width: `${c.coverage_pct}%`, height: '100%', background: c.coverage_pct >= 50 ? '#10B981' : c.coverage_pct >= 25 ? '#F59E0B' : '#EF4444', borderRadius: '4px', transition: 'width 600ms ease' }} />
+              <div style={{ width: `${Math.max(c.coverage_pct, c.count > 0 ? 4 : 0)}%`, height: '100%', background: c.count > 0 ? (c.coverage_pct >= 50 ? '#10B981' : '#3B82F6') : 'transparent', borderRadius: '4px', transition: 'width 600ms ease' }} />
             </div>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)', minWidth: '80px', textAlign: 'right' }}>
-              {c.count}/{c.total_pages} pages ({c.coverage_pct}%)
+            <span style={{ fontSize: '13px', color: c.count > 0 ? 'var(--text-secondary)' : 'var(--text-muted)', minWidth: '120px', textAlign: 'right' }}>
+              {c.count > 0 ? `${c.count}/${c.total_pages} pages (${c.coverage_pct}%)` : 'Not active'}
             </span>
           </div>
         ))}

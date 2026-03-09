@@ -102,7 +102,7 @@ export function RecommendationsPanel({ category }: { category?: string }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap' }}>
                     <Badge variant={priorityVariant[rec.priority] || 'default'}>{priorityLabel[rec.priority] || rec.priority}</Badge>
-                    <Badge variant="purple">{rec.category}</Badge>
+                    <Badge variant="purple">{rec.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</Badge>
                     {rec.impact === 'high' && <Badge variant="info">High Impact</Badge>}
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>{rec.title}</div>

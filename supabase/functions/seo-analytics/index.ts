@@ -40,7 +40,7 @@ const PUBLIC_PAGES = [
     url: '/learn', name: 'Learn',
     expected_title: 'Learn - Kamioi | Investing Education & Resources',
     expected_description: 'Learn about investing with Kamioi educational resources, guides, and tutorials. Beginner-friendly content for building wealth through automatic investing.',
-    expected_schemas: ['Organization', 'WebSite', 'BreadcrumbList'],
+    expected_schemas: ['Organization', 'WebSite', 'BreadcrumbList', 'FAQPage'],
     has_faq: true, faq_count: 4, expected_h1: true, priority: 0.9,
   },
   {
@@ -79,7 +79,7 @@ const AI_CRAWLERS = [
   { name: 'Bytespider', user_agent: 'Bytespider', owner: 'ByteDance', allowed: true },
 ]
 
-const SCHEMA_TYPES = ['Organization', 'WebSite', 'SoftwareApplication', 'FAQPage', 'BreadcrumbList', 'FinancialProduct', 'HowTo']
+const SCHEMA_TYPES = ['Organization', 'WebSite', 'SoftwareApplication', 'FAQPage', 'BreadcrumbList', 'FinancialProduct', 'HowTo', 'WebPage', 'CollectionPage']
 
 /* ================================================================
    Audit Logic
