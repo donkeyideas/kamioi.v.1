@@ -17,14 +17,10 @@ function RoundUpIcon() {
   )
 }
 
-function AiIcon() {
+function MatchIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
-      <path d="M6 10a2 2 0 0 0-2 2v1a2 2 0 0 0 4 0v-1a2 2 0 0 0-2-2z" />
-      <path d="M18 10a2 2 0 0 0-2 2v1a2 2 0 0 0 4 0v-1a2 2 0 0 0-2-2z" />
-      <path d="M12 16v4" />
-      <path d="M8 20h8" />
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
     </svg>
   )
 }
@@ -79,7 +75,7 @@ export default function Home() {
 
   const features = [
     { title: c.feature_1, desc: c.feature_1_desc, icon: <RoundUpIcon />, accent: 'purple', color: '#7C3AED', bg: 'rgba(124,58,237,0.15)' },
-    { title: c.feature_2, desc: c.feature_2_desc, icon: <AiIcon />, accent: 'blue', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' },
+    { title: c.feature_2, desc: c.feature_2_desc, icon: <MatchIcon />, accent: 'blue', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' },
     { title: c.feature_3, desc: c.feature_3_desc, icon: <GoalIcon />, accent: 'teal', color: '#06B6D4', bg: 'rgba(6,182,212,0.15)' },
   ]
 
@@ -103,8 +99,8 @@ export default function Home() {
   return (
     <PublicLayout>
       <SEO
-        title="AI-Powered Micro-Investing"
-        description="Kamioi automatically rounds up your everyday purchases and invests the difference into diversified portfolios. Build wealth effortlessly with AI-powered micro-investing."
+        title="Turn Everyday Spending into Stock Ownership"
+        description="Kamioi automatically rounds up your everyday purchases and invests the spare change into real stocks. Transform your spending into wealth — no minimum balance required."
         canonical="https://kamioi.com/"
         ogType="website"
       />
@@ -122,7 +118,7 @@ export default function Home() {
                 name: 'Kamioi',
                 url: 'https://kamioi.com',
                 logo: 'https://kamioi.com/favicon.png',
-                description: 'AI-powered micro-investing platform that rounds up everyday purchases and invests the spare change into diversified portfolios.',
+                description: 'Micro-investing platform that automatically transforms your everyday spending into stock ownership.',
                 sameAs: [
                   'https://twitter.com/kamioi',
                   'https://linkedin.com/company/kamioi',
@@ -144,8 +140,8 @@ export default function Home() {
                 '@type': 'WebPage',
                 '@id': 'https://kamioi.com/#webpage',
                 url: 'https://kamioi.com',
-                name: 'Kamioi - AI-Powered Micro-Investing',
-                description: 'Round up your everyday purchases and invest the spare change automatically. Build wealth with AI-powered micro-investing.',
+                name: 'Kamioi - Turn Spending into Stock Ownership',
+                description: 'Kamioi automatically transforms your everyday spending into stock ownership. Round up purchases and invest the spare change.',
                 isPartOf: { '@id': 'https://kamioi.com/#website' },
               },
               {
@@ -154,12 +150,6 @@ export default function Home() {
                 operatingSystem: 'iOS, Android',
                 applicationCategory: 'FinanceApplication',
                 offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-                aggregateRating: {
-                  '@type': 'AggregateRating',
-                  ratingValue: '4.8',
-                  ratingCount: '12000',
-                  bestRating: '5',
-                },
               },
             ],
           }),
@@ -510,8 +500,7 @@ export default function Home() {
             <img
               src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
               alt="Download on the App Store"
-              height="54"
-              style={{ display: 'block' }}
+              style={{ display: 'block', height: '48px' }}
             />
           </a>
           {/* Google Play Badge */}
@@ -533,8 +522,7 @@ export default function Home() {
             <img
               src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
               alt="Get it on Google Play"
-              height="80"
-              style={{ display: 'block', marginTop: '-13px', marginBottom: '-13px' }}
+              style={{ display: 'block', height: '70px', marginTop: '-11px', marginBottom: '-11px' }}
             />
           </a>
         </div>

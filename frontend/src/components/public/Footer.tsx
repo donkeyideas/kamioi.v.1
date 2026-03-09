@@ -120,7 +120,7 @@ export function Footer() {
                   onMouseEnter={e => { if (content.app_store_url !== '#') e.currentTarget.style.opacity = '1' }}
                   onMouseLeave={e => { e.currentTarget.style.opacity = content.app_store_url === '#' ? '0.4' : '0.7' }}
                 >
-                  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="36" style={{ display: 'block' }} />
+                  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" style={{ display: 'block', height: '36px' }} />
                 </a>
               )}
               {content.play_store_url && (
@@ -134,7 +134,7 @@ export function Footer() {
                   onMouseEnter={e => { if (content.play_store_url !== '#') e.currentTarget.style.opacity = '1' }}
                   onMouseLeave={e => { e.currentTarget.style.opacity = content.play_store_url === '#' ? '0.4' : '0.7' }}
                 >
-                  <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="54" style={{ display: 'block', marginTop: '-9px', marginBottom: '-9px' }} />
+                  <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" style={{ display: 'block', height: '52px', marginTop: '-8px', marginBottom: '-8px' }} />
                 </a>
               )}
             </div>
