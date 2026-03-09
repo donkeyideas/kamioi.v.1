@@ -52,7 +52,7 @@ export function AeoTab() {
     { key: 'has_definition', header: 'Definition', align: 'center', render: (r) => <StatusDot ok={r.has_definition} /> },
     { key: 'has_list', header: 'List', align: 'center', render: (r) => <StatusDot ok={r.has_list} /> },
     { key: 'has_table', header: 'Table', align: 'center', render: (r) => <StatusDot ok={r.has_table} /> },
-    { key: 'eligibility', header: 'Eligibility', align: 'center', render: (r) => <Badge variant={r.eligibility === 'eligible' ? 'success' : 'warning'}>{r.eligibility === 'eligible' ? 'Eligible' : 'Needs Work'}</Badge> },
+    { key: 'eligibility', header: 'Eligibility', align: 'center', render: (r) => <Badge variant={r.eligibility === 'eligible' ? 'success' : r.eligibility === 'partial' ? 'info' : 'warning'}>{r.eligibility === 'eligible' ? 'Eligible' : r.eligibility === 'partial' ? 'Partial' : 'Needs Work'}</Badge> },
   ]
 
   const faqColumns: Column<AeoData['faq_analysis']['pages'][0]>[] = [
