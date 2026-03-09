@@ -56,9 +56,10 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRedirect() {
-  const { profile, loading } = useAuth()
+  const { profile, loading, user } = useAuth()
 
-  if (loading) return <LoadingScreen />
+  // Wait for profile to load — profile is fetched in background after auth
+  if (loading || (user && !profile)) return <LoadingScreen />
 
   if (profile?.account_type === 'admin') {
     return <Navigate to={`/admin/${profile.id}`} replace />
