@@ -538,33 +538,19 @@ export default function Home() {
           ============================================================ */}
       <section style={sectionStyle}>
         <div
+          className="glass-card"
+          data-accent="purple"
           style={{
-            background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
-            borderRadius: '20px',
             padding: '64px 40px',
             textAlign: 'center',
-            position: 'relative',
-            overflow: 'hidden',
           }}
         >
-          {/* Subtle overlay pattern */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.08) 0%, transparent 60%)',
-              pointerEvents: 'none',
-            }}
-          />
-
           <h2
             style={{
               fontSize: 'clamp(24px, 4vw, 36px)',
               fontWeight: 700,
-              color: '#fff',
+              color: 'var(--text-primary)',
               marginBottom: '16px',
-              position: 'relative',
             }}
           >
             {c.cta_heading}
@@ -572,11 +558,10 @@ export default function Home() {
           <p
             style={{
               fontSize: '16px',
-              color: 'rgba(255,255,255,0.8)',
+              color: 'var(--text-muted)',
               maxWidth: '480px',
               margin: '0 auto 32px',
               lineHeight: 1.6,
-              position: 'relative',
             }}
           >
             {c.cta_subtext}
@@ -584,20 +569,19 @@ export default function Home() {
           <Link
             to="/register"
             style={{
-              background: '#fff',
-              color: '#1E293B',
+              background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+              color: '#fff',
               textDecoration: 'none',
               padding: '14px 36px',
               borderRadius: '12px',
               fontSize: '16px',
               fontWeight: 600,
               display: 'inline-block',
-              position: 'relative',
               transition: 'transform 300ms ease, box-shadow 300ms ease',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)'
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.3)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)'
