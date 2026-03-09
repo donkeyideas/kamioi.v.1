@@ -1,5 +1,7 @@
-import { useState, useCallback, type ChangeEvent } from 'react'
+import { useState, useCallback, useRef, useEffect, type ChangeEvent } from 'react'
 import { useTheme } from '@/context/ThemeContext'
+import { useAuth } from '@/hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
 
 /* -----------------------------------------------
    Type definitions
@@ -164,7 +166,29 @@ export function Header({
   headerActions,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme()
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
   const [searchValue, setSearchValue] = useState('')
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
+  const avatarMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close avatar menu on outside click
+  useEffect(() => {
+    if (!avatarMenuOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target as Node)) {
+        setAvatarMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [avatarMenuOpen])
+
+  const handleSignOut = useCallback(async () => {
+    setAvatarMenuOpen(false)
+    await signOut()
+    navigate('/')
+  }, [signOut, navigate])
 
   const handleSearchChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -247,22 +271,73 @@ export function Header({
           )}
         </button>
 
-        {/* User avatar */}
+        {/* User avatar with dropdown */}
         {userInitials && (
-          <div
-            className="aurora-header__avatar"
-            onClick={onAvatarClick}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onAvatarClick?.()
-              }
-            }}
-            role={onAvatarClick ? 'button' : undefined}
-            tabIndex={onAvatarClick ? 0 : undefined}
-            aria-label="User menu"
-          >
-            {userInitials}
+          <div style={{ position: 'relative' }} ref={avatarMenuRef}>
+            <div
+              className="aurora-header__avatar"
+              onClick={() => setAvatarMenuOpen(prev => !prev)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setAvatarMenuOpen(prev => !prev)
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="User menu"
+              aria-expanded={avatarMenuOpen}
+              aria-haspopup="true"
+            >
+              {userInitials}
+            </div>
+
+            {avatarMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  minWidth: '160px',
+                  background: 'var(--surface-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                  padding: '6px',
+                  zIndex: 100,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#EF4444',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                    transition: 'background 150ms ease',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
