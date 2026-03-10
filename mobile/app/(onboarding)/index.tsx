@@ -33,7 +33,7 @@ const SLIDES: SlideData[] = [
     iconBg: 'purple',
     title: 'Invest Your\nSpare Change',
     description:
-      'Every purchase rounds up to the nearest dollar. The difference is automatically invested in stocks you love.',
+      'Choose a round-up amount — $1, $2, $3, or more. Every purchase automatically invests that amount in stocks you love.',
   },
   {
     id: '1',
@@ -57,7 +57,7 @@ const SLIDES: SlideData[] = [
     iconBg: 'gradient',
     title: 'Ready to\nGet Started?',
     description:
-      'Join thousands of investors turning spare change into real wealth.',
+      'Join thousands of investors turning everyday purchases into real wealth.',
   },
 ]
 

@@ -41,15 +41,18 @@ export interface HomeContent {
   trust_badge_1: string
   trust_badge_2: string
   trust_badge_3: string
+  demo_section_heading: string
+  demo_section_subtext: string
+  hero_video_url: string
 }
 
 const DEFAULTS: HomeContent = {
   hero_heading: 'Transform Spending into Ownership',
-  hero_subheading: 'Kamioi automatically rounds up your everyday purchases and invests the spare change into real stocks. Turn every swipe into a step toward building wealth.',
+  hero_subheading: 'Kamioi adds your chosen round-up amount to every purchase and invests it into real stocks. Turn every swipe into a step toward building wealth.',
   hero_cta_text: 'Start Investing Free',
   hero_cta_link: '/register',
   feature_1: 'Automatic Round-Ups',
-  feature_1_desc: 'Every purchase is rounded up to the nearest dollar. The spare change is automatically invested into your portfolio.',
+  feature_1_desc: 'Choose a whole-dollar round-up amount — $1, $2, $3, or more. Every purchase automatically invests that amount into your portfolio.',
   feature_2: 'Smart Stock Matching',
   feature_2_desc: 'Your purchases are automatically matched to relevant stocks. Buy coffee, own coffee company shares — your spending drives your portfolio.',
   feature_3: 'Goal-Based Investing',
@@ -60,7 +63,7 @@ const DEFAULTS: HomeContent = {
   step_2_title: 'Connect Your Cards',
   step_2_desc: 'Link your debit or credit cards securely. We use bank-level encryption to protect your data.',
   step_3_title: 'Watch Your Wealth Grow',
-  step_3_desc: 'Every purchase rounds up automatically. Your spare change is invested into real stocks.',
+  step_3_desc: 'Every purchase adds your chosen round-up amount. It\u2019s automatically invested into real stocks.',
   steps_heading: 'Start in under 2 minutes',
   stat_1_value: '$0',
   stat_1_label: 'Minimum to start',
@@ -71,7 +74,7 @@ const DEFAULTS: HomeContent = {
   stat_4_value: 'Auto',
   stat_4_label: 'Stock matching',
   cta_heading: 'Ready to start building wealth?',
-  cta_subtext: 'Start investing your spare change today. No minimum balance, no hidden fees.',
+  cta_subtext: 'Start investing with every purchase today. No minimum balance, no hidden fees.',
   cta_button_text: 'Create Free Account',
   app_store_url: '#',
   play_store_url: '#',
@@ -83,6 +86,9 @@ const DEFAULTS: HomeContent = {
   trust_badge_1: 'No minimum investment',
   trust_badge_2: 'Bank-level encryption',
   trust_badge_3: 'Cancel anytime',
+  demo_section_heading: 'Request a Demo',
+  demo_section_subtext: 'See Kamioi in action. Fill out the form below and our team will set you up with demo access.',
+  hero_video_url: '',
 }
 
 let cachedContent: HomeContent | null = null

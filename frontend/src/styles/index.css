@@ -87,6 +87,7 @@ body {
 body.light-mode {
   background: var(--color-surface-light-base);
   color: var(--color-text-dark-primary);
+  --hero-video-tint: rgba(248, 250, 252, 0.45);
 }
 
 /* Green mode overrides */

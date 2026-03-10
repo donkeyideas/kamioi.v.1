@@ -13,7 +13,7 @@ export interface SeoSettings {
 
 const DEFAULTS: SeoSettings = {
   site_title: 'Kamioi',
-  meta_description: 'Kamioi automatically rounds up your everyday purchases and invests the spare change into real stocks. AI-powered micro-investing for everyone.',
+  meta_description: 'Kamioi adds your chosen round-up amount to every purchase and invests it into real stocks. AI-powered micro-investing for everyone.',
   keywords: 'micro-investing, round-ups, spare change investing, stock investing, fintech, AI investing',
   og_image_url: '',
   twitter_handle: '',

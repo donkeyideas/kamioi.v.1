@@ -108,7 +108,7 @@ export default function RegisterScreen() {
           {/* Title */}
           <Text style={[styles.title, { color: colors.textPrimary }]}>Create Account</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Start investing your spare change
+            Start investing with every purchase
           </Text>
 
           {/* Full Name */}

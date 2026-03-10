@@ -108,6 +108,7 @@ interface FrontendContentData {
   hero_subheading: string;
   hero_cta_text: string;
   hero_cta_link: string;
+  hero_video_url: string;
   feature_1: string;
   feature_1_desc: string;
   feature_2: string;
@@ -143,6 +144,148 @@ interface FrontendContentData {
   trust_badge_1: string;
   trust_badge_2: string;
   trust_badge_3: string;
+  // Demo Request section
+  demo_section_heading: string;
+  demo_section_subtext: string;
+  // Getting Started page
+  gs_hero_title: string;
+  gs_hero_subtitle: string;
+  gs_step_1_title: string;
+  gs_step_1_desc: string;
+  gs_step_2_title: string;
+  gs_step_2_desc: string;
+  gs_step_3_title: string;
+  gs_step_3_desc: string;
+  gs_next_title: string;
+  gs_next_desc: string;
+  gs_cta_heading: string;
+  gs_cta_subtext: string;
+  // FAQ page
+  faq_hero_title: string;
+  faq_hero_subtitle: string;
+  faq_q1: string; faq_a1: string;
+  faq_q2: string; faq_a2: string;
+  faq_q3: string; faq_a3: string;
+  faq_q4: string; faq_a4: string;
+  faq_q5: string; faq_a5: string;
+  faq_q6: string; faq_a6: string;
+  faq_q7: string; faq_a7: string;
+  faq_q8: string; faq_a8: string;
+  // Security page
+  sec_hero_title: string;
+  sec_hero_subtitle: string;
+  sec_card_1_title: string;
+  sec_card_1_desc: string;
+  sec_card_2_title: string;
+  sec_card_2_desc: string;
+  sec_card_3_title: string;
+  sec_card_3_desc: string;
+  sec_privacy_title: string;
+  sec_privacy_desc: string;
+  sec_cta_heading: string;
+  sec_cta_subtext: string;
+  // API Docs page
+  api_hero_title: string;
+  api_hero_subtitle: string;
+  api_status_text: string;
+  api_feature_1: string;
+  api_feature_2: string;
+  api_feature_3: string;
+  api_cta_heading: string;
+  api_cta_subtext: string;
+  // Privacy Policy page
+  pp_hero_title: string;
+  pp_hero_subtitle: string;
+  pp_effective_date: string;
+  pp_section_1_title: string; pp_section_1_desc: string;
+  pp_section_2_title: string; pp_section_2_desc: string;
+  pp_section_3_title: string; pp_section_3_desc: string;
+  pp_section_4_title: string; pp_section_4_desc: string;
+  pp_section_5_title: string; pp_section_5_desc: string;
+  pp_section_6_title: string; pp_section_6_desc: string;
+  pp_cta_heading: string;
+  pp_cta_subtext: string;
+  // Terms of Service page
+  tos_hero_title: string;
+  tos_hero_subtitle: string;
+  tos_effective_date: string;
+  tos_section_1_title: string; tos_section_1_desc: string;
+  tos_section_2_title: string; tos_section_2_desc: string;
+  tos_section_3_title: string; tos_section_3_desc: string;
+  tos_section_4_title: string; tos_section_4_desc: string;
+  tos_section_5_title: string; tos_section_5_desc: string;
+  tos_section_6_title: string; tos_section_6_desc: string;
+  tos_section_7_title: string; tos_section_7_desc: string;
+  tos_section_8_title: string; tos_section_8_desc: string;
+  tos_cta_heading: string;
+  tos_cta_subtext: string;
+  // Cookie Policy page
+  ck_hero_title: string;
+  ck_hero_subtitle: string;
+  ck_effective_date: string;
+  ck_section_1_title: string; ck_section_1_desc: string;
+  ck_section_2_title: string; ck_section_2_desc: string;
+  ck_section_3_title: string; ck_section_3_desc: string;
+  ck_section_4_title: string; ck_section_4_desc: string;
+  ck_section_5_title: string; ck_section_5_desc: string;
+  ck_section_6_title: string; ck_section_6_desc: string;
+  ck_cta_heading: string;
+  ck_cta_subtext: string;
+  // About page
+  about_hero_title: string;
+  about_hero_subtitle: string;
+  about_mission_title: string;
+  about_mission_desc: string;
+  about_values_title: string;
+  about_value_1_title: string; about_value_1_desc: string;
+  about_value_2_title: string; about_value_2_desc: string;
+  about_value_3_title: string; about_value_3_desc: string;
+  about_history_title: string;
+  about_history_p1: string;
+  about_history_p2: string;
+  about_cta_title: string;
+  about_cta_subtitle: string;
+  about_cta_primary: string;
+  about_cta_secondary: string;
+  // Contact page
+  contact_hero_title: string;
+  contact_hero_subtitle: string;
+  contact_demo_title: string;
+  contact_demo_subtitle: string;
+  contact_submit_text: string;
+  contact_demo_submit: string;
+  contact_success: string;
+  contact_demo_success: string;
+  contact_info_title: string;
+  contact_email: string;
+  contact_response: string;
+  contact_hours: string;
+  contact_support_title: string;
+  contact_support_desc: string;
+  // Features page
+  feat_hero_title: string;
+  feat_hero_subtitle: string;
+  feat_1_title: string; feat_1_desc: string;
+  feat_2_title: string; feat_2_desc: string;
+  feat_3_title: string; feat_3_desc: string;
+  feat_4_title: string; feat_4_desc: string;
+  feat_5_title: string; feat_5_desc: string;
+  feat_6_title: string; feat_6_desc: string;
+  feat_cta_title: string;
+  feat_cta_button: string;
+  // Pricing page
+  price_hero_title: string;
+  price_hero_subtitle: string;
+  price_footer_note: string;
+  // How It Works page
+  hiw_hero_title: string;
+  hiw_hero_subtitle: string;
+  hiw_step_1_title: string; hiw_step_1_desc: string;
+  hiw_step_2_title: string; hiw_step_2_desc: string;
+  hiw_step_3_title: string; hiw_step_3_desc: string;
+  hiw_example_title: string;
+  hiw_example_desc: string;
+  hiw_cta_button: string;
 }
 
 interface SeoSettingsData {
@@ -214,6 +357,7 @@ const EMPTY_CONTENT: FrontendContentData = {
   hero_subheading: '',
   hero_cta_text: '',
   hero_cta_link: '',
+  hero_video_url: '',
   feature_1: '',
   feature_1_desc: '',
   feature_2: '',
@@ -249,6 +393,120 @@ const EMPTY_CONTENT: FrontendContentData = {
   trust_badge_1: '',
   trust_badge_2: '',
   trust_badge_3: '',
+  // Demo Request section
+  demo_section_heading: '',
+  demo_section_subtext: '',
+  // Getting Started page
+  gs_hero_title: '',
+  gs_hero_subtitle: '',
+  gs_step_1_title: '',
+  gs_step_1_desc: '',
+  gs_step_2_title: '',
+  gs_step_2_desc: '',
+  gs_step_3_title: '',
+  gs_step_3_desc: '',
+  gs_next_title: '',
+  gs_next_desc: '',
+  gs_cta_heading: '',
+  gs_cta_subtext: '',
+  // FAQ page
+  faq_hero_title: '',
+  faq_hero_subtitle: '',
+  faq_q1: '', faq_a1: '',
+  faq_q2: '', faq_a2: '',
+  faq_q3: '', faq_a3: '',
+  faq_q4: '', faq_a4: '',
+  faq_q5: '', faq_a5: '',
+  faq_q6: '', faq_a6: '',
+  faq_q7: '', faq_a7: '',
+  faq_q8: '', faq_a8: '',
+  // Security page
+  sec_hero_title: '',
+  sec_hero_subtitle: '',
+  sec_card_1_title: '',
+  sec_card_1_desc: '',
+  sec_card_2_title: '',
+  sec_card_2_desc: '',
+  sec_card_3_title: '',
+  sec_card_3_desc: '',
+  sec_privacy_title: '',
+  sec_privacy_desc: '',
+  sec_cta_heading: '',
+  sec_cta_subtext: '',
+  // API Docs page
+  api_hero_title: '',
+  api_hero_subtitle: '',
+  api_status_text: '',
+  api_feature_1: '',
+  api_feature_2: '',
+  api_feature_3: '',
+  api_cta_heading: '',
+  api_cta_subtext: '',
+  // Privacy Policy
+  pp_hero_title: '', pp_hero_subtitle: '', pp_effective_date: '',
+  pp_section_1_title: '', pp_section_1_desc: '',
+  pp_section_2_title: '', pp_section_2_desc: '',
+  pp_section_3_title: '', pp_section_3_desc: '',
+  pp_section_4_title: '', pp_section_4_desc: '',
+  pp_section_5_title: '', pp_section_5_desc: '',
+  pp_section_6_title: '', pp_section_6_desc: '',
+  pp_cta_heading: '', pp_cta_subtext: '',
+  // Terms of Service
+  tos_hero_title: '', tos_hero_subtitle: '', tos_effective_date: '',
+  tos_section_1_title: '', tos_section_1_desc: '',
+  tos_section_2_title: '', tos_section_2_desc: '',
+  tos_section_3_title: '', tos_section_3_desc: '',
+  tos_section_4_title: '', tos_section_4_desc: '',
+  tos_section_5_title: '', tos_section_5_desc: '',
+  tos_section_6_title: '', tos_section_6_desc: '',
+  tos_section_7_title: '', tos_section_7_desc: '',
+  tos_section_8_title: '', tos_section_8_desc: '',
+  tos_cta_heading: '', tos_cta_subtext: '',
+  // Cookie Policy
+  ck_hero_title: '', ck_hero_subtitle: '', ck_effective_date: '',
+  ck_section_1_title: '', ck_section_1_desc: '',
+  ck_section_2_title: '', ck_section_2_desc: '',
+  ck_section_3_title: '', ck_section_3_desc: '',
+  ck_section_4_title: '', ck_section_4_desc: '',
+  ck_section_5_title: '', ck_section_5_desc: '',
+  ck_section_6_title: '', ck_section_6_desc: '',
+  ck_cta_heading: '', ck_cta_subtext: '',
+  // About page
+  about_hero_title: '', about_hero_subtitle: '',
+  about_mission_title: '', about_mission_desc: '',
+  about_values_title: '',
+  about_value_1_title: '', about_value_1_desc: '',
+  about_value_2_title: '', about_value_2_desc: '',
+  about_value_3_title: '', about_value_3_desc: '',
+  about_history_title: '', about_history_p1: '', about_history_p2: '',
+  about_cta_title: '', about_cta_subtitle: '',
+  about_cta_primary: '', about_cta_secondary: '',
+  // Contact page
+  contact_hero_title: '', contact_hero_subtitle: '',
+  contact_demo_title: '', contact_demo_subtitle: '',
+  contact_submit_text: '', contact_demo_submit: '',
+  contact_success: '', contact_demo_success: '',
+  contact_info_title: '', contact_email: '',
+  contact_response: '', contact_hours: '',
+  contact_support_title: '', contact_support_desc: '',
+  // Features page
+  feat_hero_title: '', feat_hero_subtitle: '',
+  feat_1_title: '', feat_1_desc: '',
+  feat_2_title: '', feat_2_desc: '',
+  feat_3_title: '', feat_3_desc: '',
+  feat_4_title: '', feat_4_desc: '',
+  feat_5_title: '', feat_5_desc: '',
+  feat_6_title: '', feat_6_desc: '',
+  feat_cta_title: '', feat_cta_button: '',
+  // Pricing page
+  price_hero_title: '', price_hero_subtitle: '', price_footer_note: '',
+  // How It Works page
+  hiw_hero_title: '', hiw_hero_subtitle: '',
+  hiw_step_1_title: '', hiw_step_1_desc: '',
+  hiw_step_2_title: '', hiw_step_2_desc: '',
+  hiw_step_3_title: '', hiw_step_3_desc: '',
+  hiw_example_title: '', hiw_example_desc: '',
+  hiw_cta_button: '',
 };
 
 const EMPTY_SEO: SeoSettingsData = {
@@ -1615,7 +1873,7 @@ function FrontendContentTab() {
           .from('admin_settings')
           .select('*')
           .eq('setting_type', 'content')
-          .limit(200);
+          .limit(500);
         if (error) {
           console.error('Failed to fetch content settings:', error.message);
           return;
@@ -1679,7 +1937,7 @@ function FrontendContentTab() {
           Frontend Content Management
         </p>
         <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          Edit all public homepage content. Changes are live immediately — no rebuild required.
+          Edit all public page content. Changes are live immediately — no rebuild required.
         </p>
       </GlassCard>
 
@@ -1702,6 +1960,7 @@ function FrontendContentTab() {
           <Input label="Subheading" placeholder="Kamioi automatically rounds up..." value={contentData.hero_subheading} onChange={update('hero_subheading')} />
           <Input label="CTA Text" placeholder="Start Investing Free" value={contentData.hero_cta_text} onChange={update('hero_cta_text')} />
           <Input label="CTA Link" placeholder="/register" value={contentData.hero_cta_link} onChange={update('hero_cta_link')} />
+          <Input label="Hero Background Video URL" placeholder="https://videos.pexels.com/... (leave empty for no video)" value={contentData.hero_video_url} onChange={update('hero_video_url')} />
         </div>
       </GlassCard>
 
@@ -1782,6 +2041,18 @@ function FrontendContentTab() {
         </div>
       </GlassCard>
 
+      {/* Demo Request Section */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Demo Request Section
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Heading and subtext for the inline demo request form on the homepage</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Section Heading" placeholder="Request a Demo" value={contentData.demo_section_heading} onChange={update('demo_section_heading')} />
+          <Input label="Section Subtext" placeholder="See Kamioi in action..." value={contentData.demo_section_subtext} onChange={update('demo_section_subtext')} />
+        </div>
+      </GlassCard>
+
       {/* Mobile App Links */}
       <GlassCard padding="24px">
         <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
@@ -1807,6 +2078,293 @@ function FrontendContentTab() {
           <Input label="Company Name" placeholder="Kamioi" value={contentData.footer_company} onChange={update('footer_company')} />
           <Input label="Tagline" placeholder="AI-powered micro-investing..." value={contentData.footer_tagline} onChange={update('footer_tagline')} />
           <Input label="Copyright Text" placeholder="Kamioi. All rights reserved." value={contentData.footer_copyright} onChange={update('footer_copyright')} />
+        </div>
+      </GlassCard>
+
+      {/* ---- Getting Started Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Getting Started Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/getting-started</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="Getting Started" value={contentData.gs_hero_title} onChange={update('gs_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="Start investing in under two minutes..." value={contentData.gs_hero_subtitle} onChange={update('gs_hero_subtitle')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Step 1 Title" placeholder="Create Your Account" value={contentData.gs_step_1_title} onChange={update('gs_step_1_title')} />
+            <Input label="Step 1 Description" placeholder="Sign up with your email..." value={contentData.gs_step_1_desc} onChange={update('gs_step_1_desc')} />
+            <Input label="Step 2 Title" placeholder="Link Your Bank" value={contentData.gs_step_2_title} onChange={update('gs_step_2_title')} />
+            <Input label="Step 2 Description" placeholder="Securely connect your checking..." value={contentData.gs_step_2_desc} onChange={update('gs_step_2_desc')} />
+            <Input label="Step 3 Title" placeholder="Set Your Round-Up Amount" value={contentData.gs_step_3_title} onChange={update('gs_step_3_title')} />
+            <Input label="Step 3 Description" placeholder="Choose a whole-dollar amount..." value={contentData.gs_step_3_desc} onChange={update('gs_step_3_desc')} />
+          </div>
+          <Input label="What Happens Next — Title" placeholder="What Happens Next" value={contentData.gs_next_title} onChange={update('gs_next_title')} />
+          <Input label="What Happens Next — Description" placeholder="Every time you make a purchase..." value={contentData.gs_next_desc} onChange={update('gs_next_desc')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Heading" placeholder="Ready to start building wealth?" value={contentData.gs_cta_heading} onChange={update('gs_cta_heading')} />
+            <Input label="CTA Subtext" placeholder="Create your free account..." value={contentData.gs_cta_subtext} onChange={update('gs_cta_subtext')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- FAQ Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          FAQ Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/faq — Uses FAQPage schema for search engine featured snippets</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="Frequently Asked Questions" value={contentData.faq_hero_title} onChange={update('faq_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="Everything you need to know..." value={contentData.faq_hero_subtitle} onChange={update('faq_hero_subtitle')} />
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Input label={`Q${n}`} placeholder={`Question ${n}`} value={(contentData as Record<string, string>)[`faq_q${n}`] ?? ''} onChange={update(`faq_q${n}` as keyof FrontendContentData)} />
+              <Input label={`A${n}`} placeholder={`Answer ${n}`} value={(contentData as Record<string, string>)[`faq_a${n}`] ?? ''} onChange={update(`faq_a${n}` as keyof FrontendContentData)} />
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* ---- Security Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Security Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/security</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="Security & Privacy" value={contentData.sec_hero_title} onChange={update('sec_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="Your money and data are protected..." value={contentData.sec_hero_subtitle} onChange={update('sec_hero_subtitle')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Card 1 Title (Encryption)" placeholder="Bank-Level Encryption" value={contentData.sec_card_1_title} onChange={update('sec_card_1_title')} />
+            <Input label="Card 1 Description" placeholder="All data is encrypted with 256-bit AES..." value={contentData.sec_card_1_desc} onChange={update('sec_card_1_desc')} />
+            <Input label="Card 2 Title (Auth)" placeholder="Multi-Factor Authentication" value={contentData.sec_card_2_title} onChange={update('sec_card_2_title')} />
+            <Input label="Card 2 Description" placeholder="Secure your account with 2FA..." value={contentData.sec_card_2_desc} onChange={update('sec_card_2_desc')} />
+            <Input label="Card 3 Title (Compliance)" placeholder="Regulatory Compliance" value={contentData.sec_card_3_title} onChange={update('sec_card_3_title')} />
+            <Input label="Card 3 Description" placeholder="SIPC-insured accounts..." value={contentData.sec_card_3_desc} onChange={update('sec_card_3_desc')} />
+          </div>
+          <Input label="Privacy Section Title" placeholder="Your Data, Your Control" value={contentData.sec_privacy_title} onChange={update('sec_privacy_title')} />
+          <Input label="Privacy Section Description" placeholder="We never sell your personal data..." value={contentData.sec_privacy_desc} onChange={update('sec_privacy_desc')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Heading" placeholder="Questions about security?" value={contentData.sec_cta_heading} onChange={update('sec_cta_heading')} />
+            <Input label="CTA Subtext" placeholder="Our team is happy to answer..." value={contentData.sec_cta_subtext} onChange={update('sec_cta_subtext')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- API Docs Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          API Docs Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/api-docs</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="API Documentation" value={contentData.api_hero_title} onChange={update('api_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="Integrate Kamioi into your applications..." value={contentData.api_hero_subtitle} onChange={update('api_hero_subtitle')} />
+          <Input label="Status Text" placeholder="Our API is currently in private beta..." value={contentData.api_status_text} onChange={update('api_status_text')} />
+          <Input label="Feature 1 (REST API)" placeholder="RESTful API with JSON responses..." value={contentData.api_feature_1} onChange={update('api_feature_1')} />
+          <Input label="Feature 2 (Webhooks)" placeholder="Real-time webhook notifications..." value={contentData.api_feature_2} onChange={update('api_feature_2')} />
+          <Input label="Feature 3 (SDKs)" placeholder="Official SDKs for JavaScript, Python..." value={contentData.api_feature_3} onChange={update('api_feature_3')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Heading" placeholder="Want early access?" value={contentData.api_cta_heading} onChange={update('api_cta_heading')} />
+            <Input label="CTA Subtext" placeholder="Request access to our private beta..." value={contentData.api_cta_subtext} onChange={update('api_cta_subtext')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- Privacy Policy Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Privacy Policy Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/privacy-policy — 6 policy sections with icons</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="Privacy Policy" value={contentData.pp_hero_title} onChange={update('pp_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="Your privacy matters..." value={contentData.pp_hero_subtitle} onChange={update('pp_hero_subtitle')} />
+          <Input label="Effective Date" placeholder="March 1, 2026" value={contentData.pp_effective_date} onChange={update('pp_effective_date')} />
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Input label={`Section ${n} Title`} placeholder={`Section ${n} title`} value={(contentData as Record<string, string>)[`pp_section_${n}_title`] ?? ''} onChange={update(`pp_section_${n}_title` as keyof FrontendContentData)} />
+              <Input label={`Section ${n} Description`} placeholder={`Section ${n} description`} value={(contentData as Record<string, string>)[`pp_section_${n}_desc`] ?? ''} onChange={update(`pp_section_${n}_desc` as keyof FrontendContentData)} />
+            </div>
+          ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Heading" placeholder="Questions about your privacy?" value={contentData.pp_cta_heading} onChange={update('pp_cta_heading')} />
+            <Input label="CTA Subtext" placeholder="Our team is here to help..." value={contentData.pp_cta_subtext} onChange={update('pp_cta_subtext')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- Terms of Service Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Terms of Service Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/terms-of-service — 8 policy sections with icons</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="Terms of Service" value={contentData.tos_hero_title} onChange={update('tos_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="Please read these terms carefully..." value={contentData.tos_hero_subtitle} onChange={update('tos_hero_subtitle')} />
+          <Input label="Effective Date" placeholder="March 1, 2026" value={contentData.tos_effective_date} onChange={update('tos_effective_date')} />
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Input label={`Section ${n} Title`} placeholder={`Section ${n} title`} value={(contentData as Record<string, string>)[`tos_section_${n}_title`] ?? ''} onChange={update(`tos_section_${n}_title` as keyof FrontendContentData)} />
+              <Input label={`Section ${n} Description`} placeholder={`Section ${n} description`} value={(contentData as Record<string, string>)[`tos_section_${n}_desc`] ?? ''} onChange={update(`tos_section_${n}_desc` as keyof FrontendContentData)} />
+            </div>
+          ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Heading" placeholder="Have questions about our terms?" value={contentData.tos_cta_heading} onChange={update('tos_cta_heading')} />
+            <Input label="CTA Subtext" placeholder="Our team is happy to clarify..." value={contentData.tos_cta_subtext} onChange={update('tos_cta_subtext')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- Cookie Policy Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Cookie Policy Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/cookie-policy — 6 sections explaining cookie types and preferences</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="Cookie Policy" value={contentData.ck_hero_title} onChange={update('ck_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="This policy explains how Kamioi uses cookies..." value={contentData.ck_hero_subtitle} onChange={update('ck_hero_subtitle')} />
+          <Input label="Effective Date" placeholder="March 1, 2026" value={contentData.ck_effective_date} onChange={update('ck_effective_date')} />
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Input label={`Section ${n} Title`} placeholder={`Section ${n} title`} value={(contentData as Record<string, string>)[`ck_section_${n}_title`] ?? ''} onChange={update(`ck_section_${n}_title` as keyof FrontendContentData)} />
+              <Input label={`Section ${n} Description`} placeholder={`Section ${n} description`} value={(contentData as Record<string, string>)[`ck_section_${n}_desc`] ?? ''} onChange={update(`ck_section_${n}_desc` as keyof FrontendContentData)} />
+            </div>
+          ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Heading" placeholder="Questions about cookies?" value={contentData.ck_cta_heading} onChange={update('ck_cta_heading')} />
+            <Input label="CTA Subtext" placeholder="Contact our team..." value={contentData.ck_cta_subtext} onChange={update('ck_cta_subtext')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- About Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          About Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/about — Mission, values, history, and CTA</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="About Kamioi" value={contentData.about_hero_title} onChange={update('about_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="We believe that everyone deserves..." value={contentData.about_hero_subtitle} onChange={update('about_hero_subtitle')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Mission Title" placeholder="Our Mission" value={contentData.about_mission_title} onChange={update('about_mission_title')} />
+            <Input label="Mission Description" placeholder="Kamioi was built on a simple idea..." value={contentData.about_mission_desc} onChange={update('about_mission_desc')} />
+          </div>
+          <Input label="Values Section Title" placeholder="Our Values" value={contentData.about_values_title} onChange={update('about_values_title')} />
+          {[1, 2, 3].map((n) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Input label={`Value ${n} Title`} placeholder={`Value ${n} title`} value={(contentData as Record<string, string>)[`about_value_${n}_title`] ?? ''} onChange={update(`about_value_${n}_title` as keyof FrontendContentData)} />
+              <Input label={`Value ${n} Description`} placeholder={`Value ${n} description`} value={(contentData as Record<string, string>)[`about_value_${n}_desc`] ?? ''} onChange={update(`about_value_${n}_desc` as keyof FrontendContentData)} />
+            </div>
+          ))}
+          <Input label="History Title" placeholder="How It Started" value={contentData.about_history_title} onChange={update('about_history_title')} />
+          <Input label="History Paragraph 1" placeholder="Kamioi started with a question..." value={contentData.about_history_p1} onChange={update('about_history_p1')} />
+          <Input label="History Paragraph 2" placeholder="Today, Kamioi serves..." value={contentData.about_history_p2} onChange={update('about_history_p2')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Title" placeholder="Ready to start?" value={contentData.about_cta_title} onChange={update('about_cta_title')} />
+            <Input label="CTA Subtitle" placeholder="Join Kamioi and turn your everyday..." value={contentData.about_cta_subtitle} onChange={update('about_cta_subtitle')} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Primary Button" placeholder="Create Free Account" value={contentData.about_cta_primary} onChange={update('about_cta_primary')} />
+            <Input label="CTA Secondary Button" placeholder="Contact Us" value={contentData.about_cta_secondary} onChange={update('about_cta_secondary')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- Contact Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Contact Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/contact — Contact form, info, and demo request variant</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Hero Title" placeholder="Contact Us" value={contentData.contact_hero_title} onChange={update('contact_hero_title')} />
+            <Input label="Hero Subtitle" placeholder="Have a question or feedback?..." value={contentData.contact_hero_subtitle} onChange={update('contact_hero_subtitle')} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Demo Title" placeholder="Request a Demo" value={contentData.contact_demo_title} onChange={update('contact_demo_title')} />
+            <Input label="Demo Subtitle" placeholder="Fill out the form below..." value={contentData.contact_demo_subtitle} onChange={update('contact_demo_subtitle')} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Submit Button Text" placeholder="Send Message" value={contentData.contact_submit_text} onChange={update('contact_submit_text')} />
+            <Input label="Demo Submit Text" placeholder="Submit Demo Request" value={contentData.contact_demo_submit} onChange={update('contact_demo_submit')} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Success Message" placeholder="Message sent successfully..." value={contentData.contact_success} onChange={update('contact_success')} />
+            <Input label="Demo Success Message" placeholder="Demo request submitted!..." value={contentData.contact_demo_success} onChange={update('contact_demo_success')} />
+          </div>
+          <Input label="Info Card Title" placeholder="Get in touch" value={contentData.contact_info_title} onChange={update('contact_info_title')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Contact Email" placeholder="info@donkeyideas.com" value={contentData.contact_email} onChange={update('contact_email')} />
+            <Input label="Response Time" placeholder="We typically respond within 24 hours" value={contentData.contact_response} onChange={update('contact_response')} />
+          </div>
+          <Input label="Office Hours" placeholder="Monday - Friday, 9am - 6pm EST" value={contentData.contact_hours} onChange={update('contact_hours')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Support Title" placeholder="Looking for support?" value={contentData.contact_support_title} onChange={update('contact_support_title')} />
+            <Input label="Support Description" placeholder="Check out our FAQ..." value={contentData.contact_support_desc} onChange={update('contact_support_desc')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- Features Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Features Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/features — 6 feature cards with titles and descriptions</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="Everything you need to invest smarter" value={contentData.feat_hero_title} onChange={update('feat_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="Kamioi combines automatic round-ups..." value={contentData.feat_hero_subtitle} onChange={update('feat_hero_subtitle')} />
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Input label={`Feature ${n} Title`} placeholder={`Feature ${n} title`} value={(contentData as Record<string, string>)[`feat_${n}_title`] ?? ''} onChange={update(`feat_${n}_title` as keyof FrontendContentData)} />
+              <Input label={`Feature ${n} Description`} placeholder={`Feature ${n} description`} value={(contentData as Record<string, string>)[`feat_${n}_desc`] ?? ''} onChange={update(`feat_${n}_desc` as keyof FrontendContentData)} />
+            </div>
+          ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="CTA Title" placeholder="Ready to get started?" value={contentData.feat_cta_title} onChange={update('feat_cta_title')} />
+            <Input label="CTA Button Text" placeholder="Create Free Account" value={contentData.feat_cta_button} onChange={update('feat_cta_button')} />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ---- Pricing Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Pricing Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/pricing — Page text only (plan data managed in Subscriptions)</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="Simple, transparent pricing" value={contentData.price_hero_title} onChange={update('price_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="No hidden fees. No surprises..." value={contentData.price_hero_subtitle} onChange={update('price_hero_subtitle')} />
+          <Input label="Footer Note" placeholder="All plans include: Bank-level security..." value={contentData.price_footer_note} onChange={update('price_footer_note')} />
+        </div>
+      </GlassCard>
+
+      {/* ---- How It Works Page ---- */}
+      <GlassCard padding="24px">
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          How It Works Page
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>/how-it-works — 3 steps, example section, and CTA</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Input label="Hero Title" placeholder="How Kamioi works" value={contentData.hiw_hero_title} onChange={update('hiw_hero_title')} />
+          <Input label="Hero Subtitle" placeholder="Three simple steps..." value={contentData.hiw_hero_subtitle} onChange={update('hiw_hero_subtitle')} />
+          {[1, 2, 3].map((n) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Input label={`Step ${n} Title`} placeholder={`Step ${n} title`} value={(contentData as Record<string, string>)[`hiw_step_${n}_title`] ?? ''} onChange={update(`hiw_step_${n}_title` as keyof FrontendContentData)} />
+              <Input label={`Step ${n} Description`} placeholder={`Step ${n} description`} value={(contentData as Record<string, string>)[`hiw_step_${n}_desc`] ?? ''} onChange={update(`hiw_step_${n}_desc` as keyof FrontendContentData)} />
+            </div>
+          ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input label="Example Title" placeholder="See it in action" value={contentData.hiw_example_title} onChange={update('hiw_example_title')} />
+            <Input label="CTA Button Text" placeholder="Start investing today" value={contentData.hiw_cta_button} onChange={update('hiw_cta_button')} />
+          </div>
+          <Input label="Example Description" placeholder="You buy a coffee for $3.75..." value={contentData.hiw_example_desc} onChange={update('hiw_example_desc')} />
         </div>
       </GlassCard>
 

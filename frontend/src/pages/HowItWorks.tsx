@@ -1,40 +1,34 @@
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '@/components/public/PublicLayout.tsx'
 import { SEO } from '@/components/common/SEO'
+import { usePageContent } from '@/hooks/usePageContent'
 
 /* -----------------------------------------------
-   Step data
+   Content defaults
    ----------------------------------------------- */
 
-interface Step {
-  number: string
-  title: string
-  description: string
-  gradient: string
+const DEFAULTS = {
+  hiw_hero_title: 'How Kamioi works',
+  hiw_hero_subtitle: 'Three simple steps to start building wealth with your everyday purchases.',
+  hiw_step_1_title: 'Sign Up & Connect',
+  hiw_step_1_desc: 'Create your account in under 60 seconds. Link your bank cards through our secure connection. We use bank-level encryption to protect your data.',
+  hiw_step_2_title: 'Round Up & Invest',
+  hiw_step_2_desc: 'Every time you make a purchase, we add your chosen round-up amount — $1, $2, $3, or more. That fixed amount is invested into diversified ETF portfolios matched to your risk profile.',
+  hiw_step_3_title: 'Track & Grow',
+  hiw_step_3_desc: 'Watch your portfolio grow in real-time. Get AI-powered insights and recommendations. Set goals and celebrate milestones as you build wealth.',
+  hiw_example_title: 'See it in action',
+  hiw_example_desc: 'You buy a coffee for $3.75. With a $1 round-up setting, Kamioi invests $1.00 automatically. Over time, these consistent amounts compound into significant wealth.',
+  hiw_cta_button: 'Start investing today',
 }
 
-const STEPS: Step[] = [
-  {
-    number: '01',
-    title: 'Sign Up & Connect',
-    description:
-      'Create your account in under 60 seconds. Link your bank cards through our secure connection. We use bank-level encryption to protect your data.',
-    gradient: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
-  },
-  {
-    number: '02',
-    title: 'Round Up & Invest',
-    description:
-      'Every time you make a purchase, we round up to the nearest dollar. Your spare change is pooled and invested into diversified ETF portfolios matched to your risk profile.',
-    gradient: 'linear-gradient(135deg, #3B82F6, #06B6D4)',
-  },
-  {
-    number: '03',
-    title: 'Track & Grow',
-    description:
-      'Watch your portfolio grow in real-time. Get AI-powered insights and recommendations. Set goals and celebrate milestones as you build wealth.',
-    gradient: 'linear-gradient(135deg, #06B6D4, #10B981)',
-  },
+/* -----------------------------------------------
+   Step gradients (not admin-managed)
+   ----------------------------------------------- */
+
+const STEP_GRADIENTS = [
+  'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
+  'var(--gradient-step2, linear-gradient(135deg, #3B82F6, #06B6D4))',
+  'var(--gradient-step3, linear-gradient(135deg, #06B6D4, #10B981))',
 ]
 
 /* -----------------------------------------------
@@ -79,6 +73,8 @@ const responsiveStyles = `
    ----------------------------------------------- */
 
 export default function HowItWorks() {
+  const { content: c } = usePageContent(DEFAULTS)
+
   return (
     <PublicLayout>
       <SEO
@@ -107,17 +103,25 @@ export default function HowItWorks() {
             color: 'var(--text-primary)',
           }}
         >
-          How{' '}
-          <span
-            style={{
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            Kamioi
-          </span>{' '}
-          works
+          {c.hiw_hero_title.includes('Kamioi') ? (
+            <>
+              {c.hiw_hero_title.split('Kamioi')[0]}
+              <span
+                style={{
+                  backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Kamioi
+              </span>
+              {c.hiw_hero_title.split('Kamioi')[1]}
+            </>
+          ) : (
+            c.hiw_hero_title
+          )}
         </h1>
         <p
           style={{
@@ -128,7 +132,7 @@ export default function HowItWorks() {
             lineHeight: 1.6,
           }}
         >
-          Three simple steps to start building wealth with your everyday purchases.
+          {c.hiw_hero_subtitle}
         </p>
       </section>
 
@@ -151,16 +155,16 @@ export default function HowItWorks() {
             top: '60px',
             bottom: '180px',
             width: '2px',
-            background: 'linear-gradient(180deg, #7C3AED, #3B82F6, #06B6D4)',
+            background: 'var(--gradient-text, linear-gradient(180deg, #7C3AED, #3B82F6, #06B6D4))',
             borderRadius: '1px',
             opacity: 0.5,
           }}
         />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
-          {STEPS.map((step) => (
+          {[1, 2, 3].map((n) => (
             <div
-              key={step.number}
+              key={n}
               className="hiw-step"
               style={{
                 display: 'flex',
@@ -179,7 +183,7 @@ export default function HowItWorks() {
                   width: '64px',
                   height: '64px',
                   borderRadius: '50%',
-                  background: step.gradient,
+                  background: STEP_GRADIENTS[n - 1],
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -189,7 +193,9 @@ export default function HowItWorks() {
                   lineHeight: 1,
                 }}
               >
-                <span style={{ fontSize: '24px', fontWeight: 800 }}>{step.number}</span>
+                <span style={{ fontSize: '24px', fontWeight: 800 }}>
+                  {String(n).padStart(2, '0')}
+                </span>
               </div>
 
               {/* Step card */}
@@ -208,7 +214,7 @@ export default function HowItWorks() {
                     marginBottom: '12px',
                   }}
                 >
-                  {step.title}
+                  {(c as Record<string, string>)[`hiw_step_${n}_title`]}
                 </h3>
                 <p
                   style={{
@@ -217,7 +223,7 @@ export default function HowItWorks() {
                     lineHeight: 1.7,
                   }}
                 >
-                  {step.description}
+                  {(c as Record<string, string>)[`hiw_step_${n}_desc`]}
                 </p>
               </div>
             </div>
@@ -248,7 +254,7 @@ export default function HowItWorks() {
               textAlign: 'center',
             }}
           >
-            See it in action
+            {c.hiw_example_title}
           </h3>
           <p
             style={{
@@ -260,8 +266,7 @@ export default function HowItWorks() {
               margin: '0 auto 32px',
             }}
           >
-            You buy a coffee for $3.75. Kamioi rounds up to $4.00 and invests the $0.25
-            difference. Over time, these small amounts compound into significant wealth.
+            {c.hiw_example_desc}
           </p>
 
           {/* Mini calculation */}
@@ -278,8 +283,8 @@ export default function HowItWorks() {
             {/* Step 1 */}
             <div
               style={{
-                background: 'rgba(124, 58, 237, 0.15)',
-                border: '1px solid rgba(124, 58, 237, 0.3)',
+                background: 'color-mix(in srgb, var(--purple) 15%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--purple) 30%, transparent)',
                 borderRadius: 'var(--radius-xs)',
                 padding: '16px 24px',
                 textAlign: 'center',
@@ -300,7 +305,7 @@ export default function HowItWorks() {
                 style={{
                   fontSize: '22px',
                   fontWeight: 700,
-                  color: '#7C3AED',
+                  color: 'var(--purple)',
                 }}
               >
                 $3.75
@@ -329,8 +334,8 @@ export default function HowItWorks() {
             {/* Step 2 */}
             <div
               style={{
-                background: 'rgba(59, 130, 246, 0.15)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
+                background: 'color-mix(in srgb, var(--blue) 15%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--blue) 30%, transparent)',
                 borderRadius: 'var(--radius-xs)',
                 padding: '16px 24px',
                 textAlign: 'center',
@@ -351,13 +356,13 @@ export default function HowItWorks() {
                 style={{
                   fontSize: '22px',
                   fontWeight: 700,
-                  color: '#3B82F6',
+                  color: 'var(--blue)',
                 }}
               >
-                $0.25
+                $1.00
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                spare change
+                your chosen amount
               </div>
             </div>
 
@@ -380,8 +385,8 @@ export default function HowItWorks() {
             {/* Step 3 */}
             <div
               style={{
-                background: 'rgba(6, 182, 212, 0.15)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
+                background: 'color-mix(in srgb, var(--teal) 15%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--teal) 30%, transparent)',
                 borderRadius: 'var(--radius-xs)',
                 padding: '16px 24px',
                 textAlign: 'center',
@@ -402,13 +407,13 @@ export default function HowItWorks() {
                 style={{
                   fontSize: '22px',
                   fontWeight: 700,
-                  color: '#06B6D4',
+                  color: 'var(--teal)',
                 }}
               >
-                Auto
+                $1.00
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                automatically
+                into stocks
               </div>
             </div>
           </div>
@@ -429,7 +434,7 @@ export default function HowItWorks() {
           to="/register"
           style={{
             display: 'inline-block',
-            background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+            background: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
             color: '#fff',
             textDecoration: 'none',
             padding: '14px 32px',
@@ -439,7 +444,7 @@ export default function HowItWorks() {
             transition: 'var(--transition)',
           }}
         >
-          Start investing today
+          {c.hiw_cta_button}
         </Link>
       </section>
     </PublicLayout>

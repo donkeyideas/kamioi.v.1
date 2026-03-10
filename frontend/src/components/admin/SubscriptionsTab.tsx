@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabaseAdmin } from '@/lib/supabase';
-import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select, Modal } from '@/components/ui';
+import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Textarea, Select, Modal } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
 import LineChart from '@/components/charts/LineChart';
@@ -18,6 +18,8 @@ interface SubscriptionPlan {
   price_yearly: number;
   features: string | null;
   limits: string | null;
+  display_features: string[] | null;
+  is_featured: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string | null;
@@ -111,6 +113,8 @@ interface PlanFormData {
   tier: string;
   price_monthly: string;
   price_yearly: string;
+  display_features: string;
+  is_featured: boolean;
 }
 
 interface PromoFormData {
@@ -234,6 +238,8 @@ const EMPTY_PLAN_FORM: PlanFormData = {
   tier: 'basic',
   price_monthly: '',
   price_yearly: '',
+  display_features: '',
+  is_featured: false,
 };
 
 const EMPTY_PROMO_FORM: PromoFormData = {
@@ -305,6 +311,8 @@ function PlansTab() {
       tier: plan.tier,
       price_monthly: String(plan.price_monthly),
       price_yearly: String(plan.price_yearly),
+      display_features: (plan.display_features ?? []).join('\n'),
+      is_featured: plan.is_featured ?? false,
     });
     setModalOpen(true);
   }
@@ -312,12 +320,19 @@ function PlansTab() {
   async function handleSave() {
     setSaving(true);
     try {
+      const displayFeatures = form.display_features
+        .split('\n')
+        .map((f) => f.trim())
+        .filter(Boolean);
+
       const payload = {
         name: form.name,
         account_type: form.account_type,
         tier: form.tier,
         price_monthly: parseFloat(form.price_monthly) || 0,
         price_yearly: parseFloat(form.price_yearly) || 0,
+        display_features: displayFeatures.length > 0 ? displayFeatures : null,
+        is_featured: form.is_featured,
       };
 
       if (editingPlan) {
@@ -469,6 +484,22 @@ function PlansTab() {
             value={form.price_yearly}
             onChange={(e) => setForm({ ...form, price_yearly: e.target.value })}
           />
+          <Textarea
+            label="Display Features (one per line)"
+            placeholder="Automatic round-ups&#10;Basic portfolio&#10;AI insights"
+            value={form.display_features}
+            onChange={(e) => setForm({ ...form, display_features: e.target.value })}
+            style={{ minHeight: 120 }}
+          />
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={form.is_featured}
+              onChange={(e) => setForm({ ...form, is_featured: e.target.checked })}
+              style={{ width: 16, height: 16, accentColor: '#7C3AED' }}
+            />
+            Featured Plan (shows &quot;Most Popular&quot; badge on pricing page)
+          </label>
           <Button onClick={handleSave} loading={saving} fullWidth>
             {editingPlan ? 'Update Plan' : 'Create Plan'}
           </Button>
@@ -1311,15 +1342,56 @@ function DemoRequestsTab() {
     return code;
   }
 
-  async function handleGenerateCode() {
+  // Create Demo Code form state
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [customCode, setCustomCode] = useState('');
+  const [codeDescription, setCodeDescription] = useState('');
+  const [codeMaxUses, setCodeMaxUses] = useState('1');
+  const [codeDays, setCodeDays] = useState('30');
+  const [codeError, setCodeError] = useState('');
+
+  function openCreateForm() {
+    setCustomCode('');
+    setCodeDescription('');
+    setCodeMaxUses('1');
+    setCodeDays('30');
+    setCodeError('');
+    setShowCreateForm(true);
+  }
+
+  async function handleCreateCustomCode() {
+    const code = customCode.trim().toUpperCase() || generateDemoCode();
+    if (code.length < 3) {
+      setCodeError('Code must be at least 3 characters');
+      return;
+    }
     setGeneratingCode(true);
+    setCodeError('');
     try {
-      const code = await createDemoCode();
-      if (code) {
-        setGeneratedCode(code);
-      } else {
-        setToast('Failed to generate demo code');
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + (parseInt(codeDays) || 30));
+
+      const { error } = await supabaseAdmin.from('promo_codes').insert({
+        code,
+        description: codeDescription.trim() || 'Demo access code',
+        discount_type: 'free_months',
+        discount_value: 1,
+        max_uses: parseInt(codeMaxUses) || 1,
+        current_uses: 0,
+        valid_until: validUntil.toISOString(),
+        is_active: true,
+      });
+
+      if (error) {
+        if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
+          setCodeError('This code already exists. Choose a different one.');
+        } else {
+          setCodeError(error.message || 'Failed to create code');
+        }
+        return;
       }
+      setGeneratedCode(code);
+      setShowCreateForm(false);
     } finally {
       setGeneratingCode(false);
     }
@@ -1435,14 +1507,32 @@ function DemoRequestsTab() {
           <KpiCard label="New / Unread" value={newUnread} accent="pink" />
           <KpiCard label="Demo Requests" value={demoRequests} accent="blue" />
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          loading={generatingCode}
-          onClick={handleGenerateCode}
-        >
-          Generate Demo Code
-        </Button>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={generatingCode}
+            onClick={async () => {
+              setGeneratingCode(true);
+              try {
+                const code = await createDemoCode();
+                if (code) setGeneratedCode(code);
+                else setToast('Failed to generate demo code');
+              } finally {
+                setGeneratingCode(false);
+              }
+            }}
+          >
+            Generate Demo Code
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={openCreateForm}
+          >
+            Create Demo Code
+          </Button>
+        </div>
       </div>
 
       <GlassCard padding="0">
@@ -1531,17 +1621,74 @@ function DemoRequestsTab() {
         )}
       </Modal>
 
+      {/* Create Demo Code Modal */}
+      <Modal
+        open={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
+        title="Create Demo Code"
+        size="sm"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <Input
+              label="Demo Code"
+              placeholder="e.g. KAMIOIDEMO (leave blank for random)"
+              value={customCode}
+              onChange={(e) => setCustomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9\-]/g, ''))}
+            />
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+              Letters, numbers, and dashes only. Leave blank to auto-generate.
+            </p>
+          </div>
+          <Input
+            label="Description (optional)"
+            placeholder="e.g. Demo for John at Acme Corp"
+            value={codeDescription}
+            onChange={(e) => setCodeDescription(e.target.value)}
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Input
+              label="Max Uses"
+              type="number"
+              placeholder="1"
+              value={codeMaxUses}
+              onChange={(e) => setCodeMaxUses(e.target.value)}
+              min={1}
+            />
+            <Input
+              label="Valid (days)"
+              type="number"
+              placeholder="30"
+              value={codeDays}
+              onChange={(e) => setCodeDays(e.target.value)}
+              min={1}
+            />
+          </div>
+          {codeError && (
+            <p style={{ fontSize: '13px', color: '#EF4444', margin: 0 }}>{codeError}</p>
+          )}
+          <Button
+            variant="primary"
+            fullWidth
+            loading={generatingCode}
+            onClick={handleCreateCustomCode}
+          >
+            {customCode.trim() ? `Create "${customCode.trim()}"` : 'Generate Random Code'}
+          </Button>
+        </div>
+      </Modal>
+
       {/* Generated Code Modal */}
       <Modal
         open={generatedCode !== null}
         onClose={() => setGeneratedCode(null)}
-        title="Demo Code Generated"
+        title="Demo Code Created"
         size="sm"
       >
         {generatedCode && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', textAlign: 'center' }}>
             <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-              Share this code with the user. It grants demo access for 30 days and can be used once.
+              Share this code with the user. It grants demo access for {codeDays || '30'} days.
             </p>
             <div
               style={{

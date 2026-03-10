@@ -46,7 +46,7 @@ export default function TermsOfServiceScreen() {
 
         <Text style={[styles.heading, { color: colors.textPrimary }]}>2. Description of Service</Text>
         <Text style={[styles.body, { color: colors.textSecondary }]}>
-          Kamioi is a micro-investing platform that automatically rounds up your everyday purchases and invests the spare change into stocks. The Service includes:{'\n\n'}
+          Kamioi is a micro-investing platform that adds your chosen round-up amount to every purchase and invests it into stocks. The Service includes:{'\n\n'}
           - Automatic round-up calculations on linked bank transactions.{'\n'}
           - AI-powered merchant-to-stock-ticker mapping.{'\n'}
           - Receipt scanning and processing to allocate investments to brands you purchase.{'\n'}

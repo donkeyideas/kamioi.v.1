@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUserId } from '@/hooks/useUserId'
 import { GlassCard, Button, Input, Select, Badge } from '@/components/ui'
 import { LinkedAccountsCard } from '@/components/common/LinkedAccountsCard'
+import { usePricingPlans } from '@/hooks/usePricingPlans'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -72,6 +73,7 @@ export function SettingsTab() {
   const { profile, signOut } = useAuth()
   const { userId, loading: userLoading } = useUserId()
   const navigate = useNavigate()
+  const { plans } = usePricingPlans()
 
   /* ---- Profile form ---- */
 
@@ -687,7 +689,14 @@ export function SettingsTab() {
               color: '#06B6D4',
             }}
           >
-            {profile?.subscription_tier ?? 'Free'}
+            {(() => {
+              const accountType = profile?.account_type
+              const matchedPlan = plans.find(p => p.account_type === accountType)
+              if (matchedPlan) {
+                return `${matchedPlan.name} — $${matchedPlan.price_monthly.toFixed(2)}/mo`
+              }
+              return profile?.subscription_tier ?? 'Free'
+            })()}
           </span>
         </div>
 

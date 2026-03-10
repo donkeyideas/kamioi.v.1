@@ -63,7 +63,7 @@ export default function Register() {
 
   return (
     <>
-    <SEO title="Create Account" description="Sign up for Kamioi and start investing your spare change. Choose from Individual, Family, or Business accounts." canonical="https://kamioi.com/register" />
+    <SEO title="Create Account" description="Sign up for Kamioi and start investing with every purchase. Choose from Individual, Family, or Business accounts." canonical="https://kamioi.com/register" />
     <div style={{
       minHeight: '100vh',
       display: 'flex',
@@ -102,9 +102,11 @@ export default function Register() {
           <Link to="/" style={{
             fontSize: '28px',
             fontWeight: 800,
-            background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+            backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            color: 'transparent',
             textDecoration: 'none',
           }}>
             Kamioi
@@ -276,7 +278,7 @@ export default function Register() {
               padding: '12px',
               background: (loading || !signupEnabled)
                 ? 'rgba(124,58,237,0.5)'
-                : 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+                : 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
               color: '#fff',
               border: 'none',
               borderRadius: '10px',
@@ -296,7 +298,7 @@ export default function Register() {
             opacity: 0.6,
           }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#7C3AED', textDecoration: 'none', fontWeight: 500 }}>
+            <Link to="/login" style={{ color: 'var(--purple)', textDecoration: 'none', fontWeight: 500 }}>
               Sign in
             </Link>
           </p>

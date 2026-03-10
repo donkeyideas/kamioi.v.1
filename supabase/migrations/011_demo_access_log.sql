@@ -1,5 +1,5 @@
 -- Demo Access Log: track who accesses demo dashboards and how often
-CREATE TABLE demo_access_log (
+CREATE TABLE IF NOT EXISTS demo_access_log (
     id              SERIAL PRIMARY KEY,
     promo_code_id   INT REFERENCES promo_codes(id) ON DELETE SET NULL,
     email           VARCHAR(255) NOT NULL,
@@ -12,6 +12,6 @@ CREATE TABLE demo_access_log (
     created_at      TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_demo_access_email ON demo_access_log(email);
-CREATE INDEX idx_demo_access_promo ON demo_access_log(promo_code_id);
-CREATE INDEX idx_demo_access_created ON demo_access_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_demo_access_email ON demo_access_log(email);
+CREATE INDEX IF NOT EXISTS idx_demo_access_promo ON demo_access_log(promo_code_id);
+CREATE INDEX IF NOT EXISTS idx_demo_access_created ON demo_access_log(created_at DESC);

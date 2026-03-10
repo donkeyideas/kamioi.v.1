@@ -107,6 +107,18 @@ body.green-mode {
   --glow-blue: 0 8px 32px rgba(22, 163, 74, 0.3);
   --glow-teal: 0 8px 32px rgba(74, 222, 128, 0.3);
   --glow-pink: 0 8px 32px rgba(16, 185, 129, 0.3);
+  --gradient-primary: linear-gradient(135deg, #22C55E, #16A34A);
+  --gradient-step2: linear-gradient(135deg, #16A34A, #10B981);
+  --gradient-step3: linear-gradient(135deg, #10B981, #4ADE80);
+  --gradient-text: linear-gradient(135deg, #22C55E, #4ADE80, #10B981);
+  --gradient-icon-purple: linear-gradient(135deg, #22C55E, #16A34A);
+  --gradient-icon-blue: linear-gradient(135deg, #16A34A, #15803D);
+  --gradient-icon-teal: linear-gradient(135deg, #10B981, #059669);
+  --gradient-icon-pink: linear-gradient(135deg, #4ADE80, #22C55E);
+  --gradient-icon-amber: linear-gradient(135deg, #34D399, #10B981);
+  --gradient-icon-red: linear-gradient(135deg, #F87171, #EF4444);
+  --btn-primary-hover-shadow: 0 8px 32px rgba(34, 197, 94, 0.45);
+  --hero-video-tint: rgba(10, 31, 14, 0.55);
 }
 
 /* ============================================

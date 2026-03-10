@@ -1,6 +1,30 @@
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '@/components/public/PublicLayout.tsx'
 import { SEO } from '@/components/common/SEO'
+import { usePageContent } from '@/hooks/usePageContent'
+
+/* -----------------------------------------------
+   Content defaults
+   ----------------------------------------------- */
+
+const DEFAULTS = {
+  feat_hero_title: 'Everything you need to invest smarter',
+  feat_hero_subtitle: 'Kamioi combines automatic round-ups, AI-powered insights, and goal-based investing into one platform.',
+  feat_1_title: 'Automatic Round-Ups',
+  feat_1_desc: 'Choose a whole-dollar round-up amount — $1, $2, $3, or more. Every purchase automatically invests that amount into your portfolio.',
+  feat_2_title: 'AI Investment Engine',
+  feat_2_desc: 'Machine learning algorithms analyze market trends and your risk profile to optimize your portfolio allocation.',
+  feat_3_title: 'Goal Tracking',
+  feat_3_desc: 'Set financial goals with target amounts and dates. Track progress with visual dashboards and milestone celebrations.',
+  feat_4_title: 'Family Plans',
+  feat_4_desc: "Manage family investments together. Parents can oversee children's accounts and set spending limits.",
+  feat_5_title: 'Business Accounts',
+  feat_5_desc: 'Employee benefit programs with round-up investing. Manage team accounts and generate compliance reports.',
+  feat_6_title: 'Real-Time Analytics',
+  feat_6_desc: 'Track your portfolio performance, spending patterns, and investment growth with live dashboards.',
+  feat_cta_title: 'Ready to get started?',
+  feat_cta_button: 'Create Free Account',
+}
 
 /* -----------------------------------------------
    Icon components for each feature card
@@ -67,66 +91,16 @@ function AnalyticsIcon() {
 }
 
 /* -----------------------------------------------
-   Feature data
+   Feature metadata (icons/accents are not admin-managed)
    ----------------------------------------------- */
 
-interface FeatureItem {
-  title: string
-  description: string
-  accent: 'purple' | 'blue' | 'teal' | 'pink'
-  icon: React.ReactNode
-  gradient: string
-}
-
-const FEATURES: FeatureItem[] = [
-  {
-    title: 'Automatic Round-Ups',
-    description:
-      'Every purchase rounds up to the nearest dollar. Your spare change is automatically invested into your portfolio.',
-    accent: 'purple',
-    icon: <RoundUpIcon />,
-    gradient: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-  },
-  {
-    title: 'AI Investment Engine',
-    description:
-      'Machine learning algorithms analyze market trends and your risk profile to optimize your portfolio allocation.',
-    accent: 'blue',
-    icon: <AiEngineIcon />,
-    gradient: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-  },
-  {
-    title: 'Goal Tracking',
-    description:
-      'Set financial goals with target amounts and dates. Track progress with visual dashboards and milestone celebrations.',
-    accent: 'teal',
-    icon: <GoalIcon />,
-    gradient: 'linear-gradient(135deg, #06B6D4, #0891B2)',
-  },
-  {
-    title: 'Family Plans',
-    description:
-      'Manage family investments together. Parents can oversee children\'s accounts and set spending limits.',
-    accent: 'pink',
-    icon: <FamilyIcon />,
-    gradient: 'linear-gradient(135deg, #EC4899, #DB2777)',
-  },
-  {
-    title: 'Business Accounts',
-    description:
-      'Employee benefit programs with round-up investing. Manage team accounts and generate compliance reports.',
-    accent: 'purple',
-    icon: <BusinessIcon />,
-    gradient: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-  },
-  {
-    title: 'Real-Time Analytics',
-    description:
-      'Track your portfolio performance, spending patterns, and investment growth with live dashboards.',
-    accent: 'blue',
-    icon: <AnalyticsIcon />,
-    gradient: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-  },
+const FEATURE_META = [
+  { key: 1 as const, accent: 'purple' as const, icon: <RoundUpIcon />, gradient: 'var(--gradient-icon-purple, linear-gradient(135deg, #7C3AED, #6D28D9))' },
+  { key: 2 as const, accent: 'blue' as const, icon: <AiEngineIcon />, gradient: 'var(--gradient-icon-blue, linear-gradient(135deg, #3B82F6, #2563EB))' },
+  { key: 3 as const, accent: 'teal' as const, icon: <GoalIcon />, gradient: 'var(--gradient-icon-teal, linear-gradient(135deg, #06B6D4, #0891B2))' },
+  { key: 4 as const, accent: 'pink' as const, icon: <FamilyIcon />, gradient: 'var(--gradient-icon-pink, linear-gradient(135deg, #EC4899, #DB2777))' },
+  { key: 5 as const, accent: 'purple' as const, icon: <BusinessIcon />, gradient: 'var(--gradient-icon-purple, linear-gradient(135deg, #7C3AED, #6D28D9))' },
+  { key: 6 as const, accent: 'blue' as const, icon: <AnalyticsIcon />, gradient: 'var(--gradient-icon-blue, linear-gradient(135deg, #3B82F6, #2563EB))' },
 ]
 
 /* -----------------------------------------------
@@ -152,6 +126,8 @@ const responsiveStyles = `
    ----------------------------------------------- */
 
 export default function Features() {
+  const { content: c } = usePageContent(DEFAULTS)
+
   return (
     <PublicLayout>
       <SEO
@@ -180,16 +156,24 @@ export default function Features() {
             color: 'var(--text-primary)',
           }}
         >
-          Everything you need to{' '}
-          <span
-            style={{
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            invest smarter
-          </span>
+          {c.feat_hero_title.includes('invest smarter') ? (
+            <>
+              Everything you need to{' '}
+              <span
+                style={{
+                  backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                invest smarter
+              </span>
+            </>
+          ) : (
+            c.feat_hero_title
+          )}
         </h1>
         <p
           style={{
@@ -200,8 +184,7 @@ export default function Features() {
             lineHeight: 1.6,
           }}
         >
-          Kamioi combines automatic round-ups, AI-powered insights, and goal-based
-          investing into one platform.
+          {c.feat_hero_subtitle}
         </p>
       </section>
 
@@ -222,30 +205,27 @@ export default function Features() {
             gap: '24px',
           }}
         >
-          {FEATURES.map((feature) => (
+          {FEATURE_META.map((f) => (
             <div
-              key={feature.title}
+              key={f.key}
               className="glass-card"
-              data-accent={feature.accent}
+              data-accent={f.accent}
               style={{ padding: '28px' }}
             >
-              {/* Icon */}
               <div
                 style={{
                   width: '44px',
                   height: '44px',
                   borderRadius: '12px',
-                  background: feature.gradient,
+                  background: f.gradient,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: '16px',
                 }}
               >
-                {feature.icon}
+                {f.icon}
               </div>
-
-              {/* Title */}
               <h3
                 style={{
                   fontSize: '18px',
@@ -254,10 +234,8 @@ export default function Features() {
                   marginBottom: '8px',
                 }}
               >
-                {feature.title}
+                {(c as Record<string, string>)[`feat_${f.key}_title`]}
               </h3>
-
-              {/* Description */}
               <p
                 style={{
                   fontSize: '14px',
@@ -265,7 +243,7 @@ export default function Features() {
                   lineHeight: 1.6,
                 }}
               >
-                {feature.description}
+                {(c as Record<string, string>)[`feat_${f.key}_desc`]}
               </p>
             </div>
           ))}
@@ -290,13 +268,13 @@ export default function Features() {
             marginBottom: '24px',
           }}
         >
-          Ready to get started?
+          {c.feat_cta_title}
         </h2>
         <Link
           to="/register"
           style={{
             display: 'inline-block',
-            background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+            background: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
             color: '#fff',
             textDecoration: 'none',
             padding: '14px 32px',
@@ -306,7 +284,7 @@ export default function Features() {
             transition: 'var(--transition)',
           }}
         >
-          Create Free Account
+          {c.feat_cta_button}
         </Link>
       </section>
     </PublicLayout>

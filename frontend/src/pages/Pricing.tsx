@@ -1,77 +1,57 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '@/components/public'
-import { GlassCard, Button } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { SEO } from '@/components/common/SEO.tsx'
+import { usePricingPlans, planAccent } from '@/hooks/usePricingPlans'
+import { usePageContent } from '@/hooks/usePageContent'
+import type { PricingPlan } from '@/hooks/usePricingPlans'
 
 /* ------------------------------------------------------------------ */
-/*  Tier data                                                          */
+/*  Content defaults                                                   */
 /* ------------------------------------------------------------------ */
 
-interface PricingTier {
-  name: string
-  accent: 'purple' | 'blue' | 'teal'
-  monthlyPrice: number
-  yearlyPrice: number
-  features: string[]
-  buttonLabel: string
-  buttonVariant: 'primary' | 'secondary'
-  popular: boolean
+const DEFAULTS = {
+  price_hero_title: 'Simple, transparent pricing',
+  price_hero_subtitle: 'No hidden fees. No surprises. Choose the plan that fits your needs.',
+  price_footer_note: 'All plans include: Bank-level security \u00b7 SIPC insurance \u00b7 Cancel anytime',
 }
 
-const tiers: PricingTier[] = [
-  {
-    name: 'Individual',
-    accent: 'purple',
-    monthlyPrice: 2.99,
-    yearlyPrice: 28.99,
-    features: [
-      'Automatic round-ups',
-      'Basic portfolio',
-      'AI insights',
-      'Mobile app',
-      '1 linked card',
-    ],
-    buttonLabel: 'Get Started',
-    buttonVariant: 'secondary',
-    popular: false,
+/* ------------------------------------------------------------------ */
+/*  Icons — same 44px gradient boxes as About / Home cards             */
+/* ------------------------------------------------------------------ */
+
+const PLAN_ICONS: Record<string, { icon: React.ReactNode; gradient: string }> = {
+  individual: {
+    gradient: 'var(--gradient-icon-purple, linear-gradient(135deg, #7C3AED, #6D28D9))',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+    ),
   },
-  {
-    name: 'Family',
-    accent: 'blue',
-    monthlyPrice: 5.99,
-    yearlyPrice: 57.99,
-    features: [
-      'Everything in Individual',
-      'Up to 5 family members',
-      'Shared goals',
-      'Family dashboard',
-      'Priority support',
-      '5 linked cards',
-    ],
-    buttonLabel: 'Get Started',
-    buttonVariant: 'primary',
-    popular: true,
+  family: {
+    gradient: 'var(--gradient-icon-blue, linear-gradient(135deg, #3B82F6, #2563EB))',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
   },
-  {
-    name: 'Business',
-    accent: 'teal',
-    monthlyPrice: 14.99,
-    yearlyPrice: 143.99,
-    features: [
-      'Everything in Family',
-      'Unlimited employees',
-      'Admin dashboard',
-      'Compliance reporting',
-      'API access',
-      'Dedicated support',
-      'Unlimited linked cards',
-    ],
-    buttonLabel: 'Contact Sales',
-    buttonVariant: 'secondary',
-    popular: false,
+  business: {
+    gradient: 'var(--gradient-icon-teal, linear-gradient(135deg, #06B6D4, #0891B2))',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+      </svg>
+    ),
   },
-]
+}
 
 /* ------------------------------------------------------------------ */
 /*  Styles                                                             */
@@ -93,9 +73,11 @@ const h1Style: React.CSSProperties = {
   fontWeight: 800,
   lineHeight: 1.15,
   marginBottom: 16,
-  background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+  backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text' as const,
+  color: 'transparent',
 }
 
 const subtitleStyle: React.CSSProperties = {
@@ -104,13 +86,6 @@ const subtitleStyle: React.CSSProperties = {
   maxWidth: 520,
   margin: '0 auto',
   lineHeight: 1.6,
-}
-
-const gridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
-  gap: 24,
-  alignItems: 'start',
 }
 
 const footerNoteStyle: React.CSSProperties = {
@@ -161,7 +136,7 @@ function BillingToggle({
           borderRadius: 14,
           border: '1px solid var(--border-subtle)',
           background: isYearly
-            ? 'linear-gradient(135deg, #7C3AED, #3B82F6)'
+            ? 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))'
             : 'var(--surface-input)',
           cursor: 'pointer',
           transition: 'background 300ms ease',
@@ -202,116 +177,92 @@ function BillingToggle({
 /* ------------------------------------------------------------------ */
 
 function PricingCard({
-  tier,
+  plan,
   isYearly,
 }: {
-  tier: PricingTier
+  plan: PricingPlan
   isYearly: boolean
 }) {
-  const price = isYearly ? tier.yearlyPrice : tier.monthlyPrice
+  const price = isYearly ? plan.price_yearly : plan.price_monthly
   const period = isYearly ? '/yr' : '/mo'
+  const accent = planAccent(plan.account_type)
+  const isBusiness = plan.account_type === 'business'
+  const features = plan.display_features ?? []
+  const planIcon = PLAN_ICONS[plan.account_type] ?? PLAN_ICONS.individual
 
   return (
-    <GlassCard
-      accent={tier.accent}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-      }}
+    <div
+      className="glass-card"
+      data-accent={accent}
+      style={{ padding: 28, display: 'flex', flexDirection: 'column' }}
     >
-      {/* Badge */}
-      {tier.popular && (
+      {/* Icon + Badge row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <div
           style={{
-            display: 'inline-block',
-            alignSelf: 'flex-start',
-            background: 'linear-gradient(135deg, #3B82F6, #06B6D4)',
-            color: '#fff',
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            padding: '4px 12px',
-            borderRadius: 20,
-            marginBottom: 16,
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: planIcon.gradient,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
           }}
         >
-          Most Popular
+          {planIcon.icon}
         </div>
-      )}
+        {plan.is_featured && (
+          <span
+            style={{
+              background: 'var(--gradient-primary, linear-gradient(135deg, #3B82F6, #06B6D4))',
+              color: '#fff',
+              fontSize: 10,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              padding: '3px 10px',
+              borderRadius: 20,
+            }}
+          >
+            Most Popular
+          </span>
+        )}
+      </div>
 
-      {/* Tier name */}
-      <h3
-        style={{
-          fontSize: 20,
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          marginBottom: 8,
-          marginTop: tier.popular ? 0 : 0,
-        }}
-      >
-        {tier.name}
+      {/* Plan name */}
+      <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+        {plan.name}
       </h3>
 
       {/* Price */}
-      <div style={{ marginBottom: 24 }}>
-        <span
-          style={{
-            fontSize: 40,
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            lineHeight: 1,
-          }}
-        >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 12 }}>
+        <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
           ${price.toFixed(2)}
         </span>
-        <span
-          style={{
-            fontSize: 14,
-            color: 'var(--text-muted)',
-            marginLeft: 4,
-          }}
-        >
+        <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>
           {period}
         </span>
       </div>
 
       {/* Feature list */}
-      <ul
-        style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: '0 0 32px 0',
-          flex: 1,
-        }}
-      >
-        {tier.features.map((feature) => (
+      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0', flex: 1 }}>
+        {features.map((feature) => (
           <li
             key={feature}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
-              fontSize: 14,
-              color: 'var(--text-secondary)',
-              padding: '6px 0',
+              gap: 8,
+              fontSize: 13,
+              color: 'var(--text-muted)',
+              padding: '5px 0',
+              lineHeight: 1.5,
             }}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              style={{ flexShrink: 0 }}
-            >
-              <path
-                d="M3 8.5L6.5 12L13 4"
-                stroke="#06B6D4"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+              <circle cx="8" cy="8" r="8" fill="rgba(6,182,212,0.15)" />
+              <path d="M5 8l2 2 4-4" stroke="#06B6D4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             {feature}
           </li>
@@ -319,20 +270,20 @@ function PricingCard({
       </ul>
 
       {/* CTA */}
-      {tier.buttonLabel === 'Contact Sales' ? (
+      {isBusiness ? (
         <Link to="/contact" style={{ textDecoration: 'none' }}>
-          <Button variant={tier.buttonVariant} size="lg" fullWidth>
-            {tier.buttonLabel}
+          <Button variant="secondary" size="lg" fullWidth>
+            Contact Sales
           </Button>
         </Link>
       ) : (
         <Link to="/register" style={{ textDecoration: 'none' }}>
-          <Button variant={tier.buttonVariant} size="lg" fullWidth>
-            {tier.buttonLabel}
+          <Button variant={plan.is_featured ? 'primary' : 'secondary'} size="lg" fullWidth>
+            Get Started
           </Button>
         </Link>
       )}
-    </GlassCard>
+    </div>
   )
 }
 
@@ -342,6 +293,8 @@ function PricingCard({
 
 export default function Pricing() {
   const [isYearly, setIsYearly] = useState(false)
+  const { plans, loading } = usePricingPlans()
+  const { content: c } = usePageContent(DEFAULTS)
 
   return (
     <PublicLayout>
@@ -353,9 +306,9 @@ export default function Pricing() {
       <section style={sectionStyle}>
         {/* Hero */}
         <div style={heroStyle}>
-          <h1 style={h1Style}>Simple, transparent pricing</h1>
+          <h1 style={h1Style}>{c.price_hero_title}</h1>
           <p style={subtitleStyle}>
-            No hidden fees. No surprises. Choose the plan that fits your needs.
+            {c.price_hero_subtitle}
           </p>
         </div>
 
@@ -366,16 +319,24 @@ export default function Pricing() {
         />
 
         {/* Cards */}
-        <div style={gridStyle} className="pricing-grid">
-          {tiers.map((tier) => (
-            <PricingCard key={tier.name} tier={tier} isYearly={isYearly} />
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 24,
+            opacity: loading ? 0.5 : 1,
+            transition: 'opacity 200ms ease',
+          }}
+          className="pricing-grid"
+        >
+          {plans.map((plan) => (
+            <PricingCard key={plan.name} plan={plan} isYearly={isYearly} />
           ))}
         </div>
 
         {/* Footer note */}
         <p style={footerNoteStyle}>
-          All plans include: Bank-level security &middot; SIPC insurance &middot; Cancel
-          anytime
+          {c.price_footer_note}
         </p>
       </section>
 

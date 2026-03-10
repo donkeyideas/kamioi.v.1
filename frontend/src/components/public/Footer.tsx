@@ -17,8 +17,6 @@ const FOOTER_COLUMNS: FooterColumn[] = [
     title: 'Company',
     links: [
       { label: 'About', to: '/about' },
-      { label: 'Careers', to: '/careers' },
-      { label: 'Press', to: '/press' },
       { label: 'Contact', to: '/contact' },
     ],
   },
@@ -34,18 +32,18 @@ const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: 'Learn',
     links: [
-      { label: 'Getting Started', to: '/learn' },
-      { label: 'FAQ', to: '/learn#faq' },
-      { label: 'Security', to: '/learn#security' },
-      { label: 'API Docs', to: '#', external: true },
+      { label: 'Getting Started', to: '/getting-started' },
+      { label: 'FAQ', to: '/faq' },
+      { label: 'Security', to: '/security' },
+      { label: 'API Docs', to: '/api-docs' },
     ],
   },
   {
     title: 'Legal',
     links: [
-      { label: 'Privacy Policy', to: '#', external: true },
-      { label: 'Terms of Service', to: '#', external: true },
-      { label: 'Cookie Policy', to: '#', external: true },
+      { label: 'Privacy Policy', to: '/privacy-policy' },
+      { label: 'Terms of Service', to: '/terms-of-service' },
+      { label: 'Cookie Policy', to: '/cookie-policy' },
     ],
   },
 ]

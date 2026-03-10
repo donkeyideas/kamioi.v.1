@@ -13,6 +13,7 @@ interface Topic {
   accent: 'purple' | 'blue' | 'teal' | 'pink'
   icon: React.ReactNode
   gradient: string
+  link: string
 }
 
 function GettingStartedIcon() {
@@ -66,31 +67,35 @@ const TOPICS: Topic[] = [
       'New to investing? Learn the basics of portfolio management, diversification, and compound growth.',
     accent: 'purple',
     icon: <GettingStartedIcon />,
-    gradient: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+    gradient: 'var(--gradient-icon-purple, linear-gradient(135deg, #7C3AED, #6D28D9))',
+    link: '/getting-started',
   },
   {
-    title: 'Understanding Risk',
+    title: 'FAQ',
     description:
-      'Learn about risk tolerance, asset allocation, and how to build a portfolio that matches your comfort level.',
+      'Find answers to common questions about round-up investing, fees, withdrawals, AI stock matching, and more.',
     accent: 'blue',
     icon: <RiskIcon />,
-    gradient: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-  },
-  {
-    title: 'AI & Investing',
-    description:
-      'Discover how machine learning and AI are transforming personal finance and investment strategies.',
-    accent: 'teal',
-    icon: <AiIcon />,
-    gradient: 'linear-gradient(135deg, #06B6D4, #0891B2)',
+    gradient: 'var(--gradient-icon-blue, linear-gradient(135deg, #3B82F6, #2563EB))',
+    link: '/faq',
   },
   {
     title: 'Security & Privacy',
     description:
       'Learn how we protect your data with bank-level encryption, 2FA, and compliance standards.',
-    accent: 'pink',
+    accent: 'teal',
     icon: <SecurityIcon />,
-    gradient: 'linear-gradient(135deg, #EC4899, #DB2777)',
+    gradient: 'var(--gradient-icon-teal, linear-gradient(135deg, #06B6D4, #0891B2))',
+    link: '/security',
+  },
+  {
+    title: 'API Documentation',
+    description:
+      'Integrate Kamioi into your applications with our developer-friendly REST API, webhooks, and SDKs.',
+    accent: 'pink',
+    icon: <AiIcon />,
+    gradient: 'var(--gradient-icon-pink, linear-gradient(135deg, #EC4899, #DB2777))',
+    link: '/api-docs',
   },
 ]
 
@@ -107,7 +112,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'What is round-up investing?',
     answer:
-      'Round-up investing automatically rounds up your everyday purchases to the nearest dollar and invests the spare change. For example, if you buy a coffee for $3.75, the remaining $0.25 is rounded up and invested into your portfolio. Over time, these small amounts accumulate and compound, helping you build wealth without changing your spending habits.',
+      'Round-up investing adds a fixed whole-dollar amount you choose — like $1, $2, or $3 — to every purchase and invests it automatically. For example, if you set your round-up to $1 and buy a coffee for $3.75, Kamioi invests $1.00 into your portfolio. Over time, these consistent amounts accumulate and compound, helping you build wealth without changing your spending habits.',
   },
   {
     question: 'Is my money safe?',
@@ -188,13 +193,13 @@ function AccordionItem({
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            background: 'rgba(124, 58, 237, 0.15)',
+            background: 'color-mix(in srgb, var(--purple) 15%, transparent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '18px',
             fontWeight: 500,
-            color: '#7C3AED',
+            color: 'var(--purple)',
             transition: 'var(--transition)',
             transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)',
           }}
@@ -248,10 +253,10 @@ const responsiveStyles = `
    ----------------------------------------------- */
 
 const accentLinkColors: Record<string, string> = {
-  purple: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
-  blue: 'linear-gradient(135deg, #3B82F6, #06B6D4)',
-  teal: 'linear-gradient(135deg, #06B6D4, #10B981)',
-  pink: 'linear-gradient(135deg, #EC4899, #7C3AED)',
+  purple: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
+  blue: 'var(--gradient-step2, linear-gradient(135deg, #3B82F6, #06B6D4))',
+  teal: 'var(--gradient-step3, linear-gradient(135deg, #06B6D4, #10B981))',
+  pink: 'var(--gradient-icon-pink, linear-gradient(135deg, #EC4899, #7C3AED))',
 }
 
 /* -----------------------------------------------
@@ -296,9 +301,11 @@ export default function Learn() {
           Learn about{' '}
           <span
             style={{
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+              backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              color: 'transparent',
             }}
           >
             investing
@@ -383,7 +390,7 @@ export default function Learn() {
 
               {/* Learn more link */}
               <Link
-                to="#"
+                to={topic.link}
                 style={{
                   fontSize: '14px',
                   fontWeight: 600,

@@ -1,7 +1,10 @@
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PublicLayout from '@/components/public/PublicLayout'
 import { SEO } from '@/components/common/SEO'
 import { useHomeContent } from '@/hooks/useHomeContent'
+import { Input, Textarea, Button } from '@/components/ui'
 
 /* ------------------------------------------------------------------ */
 /*  Inline SVG icons for the feature cards                            */
@@ -48,9 +51,11 @@ const sectionStyle: React.CSSProperties = {
 }
 
 const gradientText: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+  backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text',
+  color: 'transparent',
 }
 
 const sectionHeading: React.CSSProperties = {
@@ -59,6 +64,32 @@ const sectionHeading: React.CSSProperties = {
   textAlign: 'center',
   marginBottom: '16px',
   color: 'var(--text-primary)',
+}
+
+/* ------------------------------------------------------------------ */
+/*  Demo request helper                                               */
+/* ------------------------------------------------------------------ */
+
+async function submitDemoRequest(data: {
+  name: string
+  email: string
+  company: string
+  message: string
+}): Promise<void> {
+  const { supabase } = await import('@/lib/supabase')
+  const { error } = await supabase.from('contact_messages').insert({
+    name: data.name,
+    email: data.email,
+    subject: 'Demo Request',
+    message: [
+      data.company ? `Company/Role: ${data.company}` : '',
+      data.message,
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
+    status: 'new',
+  })
+  if (error) throw error
 }
 
 /* ------------------------------------------------------------------ */
@@ -74,15 +105,15 @@ export default function Home() {
   const plainPart = headingWords.length > 2 ? headingWords.slice(0, -2).join(' ') : headingWords.slice(0, -1).join(' ')
 
   const features = [
-    { title: c.feature_1, desc: c.feature_1_desc, icon: <RoundUpIcon />, accent: 'purple', color: '#7C3AED', bg: 'rgba(124,58,237,0.15)' },
-    { title: c.feature_2, desc: c.feature_2_desc, icon: <MatchIcon />, accent: 'blue', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' },
-    { title: c.feature_3, desc: c.feature_3_desc, icon: <GoalIcon />, accent: 'teal', color: '#06B6D4', bg: 'rgba(6,182,212,0.15)' },
+    { title: c.feature_1, desc: c.feature_1_desc, icon: <RoundUpIcon />, accent: 'purple', color: 'var(--purple)', bg: 'color-mix(in srgb, var(--purple) 15%, transparent)' },
+    { title: c.feature_2, desc: c.feature_2_desc, icon: <MatchIcon />, accent: 'blue', color: 'var(--blue)', bg: 'color-mix(in srgb, var(--blue) 15%, transparent)' },
+    { title: c.feature_3, desc: c.feature_3_desc, icon: <GoalIcon />, accent: 'teal', color: 'var(--teal)', bg: 'color-mix(in srgb, var(--teal) 15%, transparent)' },
   ]
 
   const steps = [
-    { num: '1', title: c.step_1_title, desc: c.step_1_desc, gradient: 'linear-gradient(135deg, #7C3AED, #3B82F6)' },
-    { num: '2', title: c.step_2_title, desc: c.step_2_desc, gradient: 'linear-gradient(135deg, #3B82F6, #06B6D4)' },
-    { num: '3', title: c.step_3_title, desc: c.step_3_desc, gradient: 'linear-gradient(135deg, #06B6D4, #34D399)' },
+    { num: '1', title: c.step_1_title, desc: c.step_1_desc, gradient: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))' },
+    { num: '2', title: c.step_2_title, desc: c.step_2_desc, gradient: 'var(--gradient-step2, linear-gradient(135deg, #3B82F6, #06B6D4))' },
+    { num: '3', title: c.step_3_title, desc: c.step_3_desc, gradient: 'var(--gradient-step3, linear-gradient(135deg, #06B6D4, #34D399))' },
   ]
 
   const stats = [
@@ -96,11 +127,45 @@ export default function Home() {
 
   const hasAppLinks = c.app_store_url || c.play_store_url
 
+  // Demo request form state
+  const [demoName, setDemoName] = useState('')
+  const [demoEmail, setDemoEmail] = useState('')
+  const [demoCompany, setDemoCompany] = useState('')
+  const [demoMessage, setDemoMessage] = useState('')
+  const [demoLoading, setDemoLoading] = useState(false)
+  const [demoStatus, setDemoStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [demoError, setDemoError] = useState('')
+
+  const handleDemoSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setDemoLoading(true)
+    setDemoStatus('idle')
+    setDemoError('')
+    try {
+      await submitDemoRequest({
+        name: demoName,
+        email: demoEmail,
+        company: demoCompany,
+        message: demoMessage,
+      })
+      setDemoStatus('success')
+      setDemoName('')
+      setDemoEmail('')
+      setDemoCompany('')
+      setDemoMessage('')
+    } catch (err: unknown) {
+      setDemoStatus('error')
+      setDemoError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+    } finally {
+      setDemoLoading(false)
+    }
+  }
+
   return (
     <PublicLayout>
       <SEO
         title="Turn Everyday Spending into Stock Ownership"
-        description="Kamioi automatically rounds up your everyday purchases and invests the spare change into real stocks. Transform your spending into wealth — no minimum balance required."
+        description="Kamioi adds your chosen round-up amount to every purchase and invests it into real stocks. Transform your spending into wealth — no minimum balance required."
         canonical="https://kamioi.com/"
         ogType="website"
       />
@@ -141,7 +206,7 @@ export default function Home() {
                 '@id': 'https://kamioi.com/#webpage',
                 url: 'https://kamioi.com',
                 name: 'Kamioi - Turn Spending into Stock Ownership',
-                description: 'Kamioi automatically transforms your everyday spending into stock ownership. Round up purchases and invest the spare change.',
+                description: 'Kamioi automatically transforms your everyday spending into stock ownership. Add your chosen round-up amount per purchase and invest it automatically.',
                 isPartOf: { '@id': 'https://kamioi.com/#website' },
               },
               {
@@ -159,15 +224,69 @@ export default function Home() {
       {/* ============================================================
           SECTION 1 — HERO
           ============================================================ */}
+      {/* Hero background video — uses mask-image for seamless edge fading */}
+      {c.hero_video_url && (
+        <div
+          className="hero-video-container"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '100vh',
+            zIndex: 0,
+            pointerEvents: 'none',
+            maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+          }}
+        >
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            key={c.hero_video_url}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          >
+            <source src={c.hero_video_url} type="video/mp4" />
+          </video>
+          {/* Theme-aware tint overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'var(--hero-video-tint, rgba(10, 10, 26, 0.55))',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Theme-aware video opacity */}
+      <style>{`
+        .hero-video-container video { opacity: 0.2; }
+        body.light-mode .hero-video-container video { opacity: 0.25; }
+      `}</style>
+
       <section
         style={{
-          ...sectionStyle,
-          paddingTop: '120px',
-          paddingBottom: '80px',
-          maxWidth: '800px',
-          textAlign: 'center',
+          position: 'relative',
         }}
       >
+        <div
+          style={{
+            ...sectionStyle,
+            paddingTop: '120px',
+            paddingBottom: '100px',
+            maxWidth: '800px',
+            textAlign: 'center',
+            position: 'relative',
+            zIndex: 2,
+          }}
+        >
         <h1
           style={{
             fontSize: 'clamp(36px, 6vw, 64px)',
@@ -197,8 +316,9 @@ export default function Home() {
         <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link
             to={c.hero_cta_link}
+            className="hero-cta-primary"
             style={{
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+              background: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
               color: '#fff',
               textDecoration: 'none',
               padding: '14px 32px',
@@ -208,7 +328,7 @@ export default function Home() {
               transition: 'box-shadow 300ms ease, transform 300ms ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0 8px 32px rgba(124,58,237,0.45)'
+              e.currentTarget.style.boxShadow = 'var(--btn-primary-hover-shadow, 0 8px 32px rgba(124,58,237,0.45))'
               e.currentTarget.style.transform = 'translateY(-2px)'
             }}
             onMouseLeave={(e) => {
@@ -278,6 +398,7 @@ export default function Home() {
             ))}
           </div>
         )}
+        </div>
       </section>
 
       {/* ============================================================
@@ -408,7 +529,7 @@ export default function Home() {
           <Link
             to="/register"
             style={{
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+              background: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
               color: '#fff',
               textDecoration: 'none',
               padding: '14px 36px',
@@ -419,7 +540,7 @@ export default function Home() {
               transition: 'box-shadow 300ms ease, transform 300ms ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0 8px 32px rgba(124,58,237,0.45)'
+              e.currentTarget.style.boxShadow = 'var(--btn-primary-hover-shadow, 0 8px 32px rgba(124,58,237,0.45))'
               e.currentTarget.style.transform = 'translateY(-2px)'
             }}
             onMouseLeave={(e) => {
@@ -469,6 +590,101 @@ export default function Home() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ============================================================
+          SECTION 4.5 — REQUEST A DEMO
+          ============================================================ */}
+      <section style={sectionStyle} id="request-demo">
+        <h2 style={sectionHeading}>{c.demo_section_heading}</h2>
+        <p
+          style={{
+            textAlign: 'center',
+            color: 'var(--text-secondary)',
+            fontSize: '16px',
+            maxWidth: '560px',
+            margin: '0 auto 40px',
+            lineHeight: 1.6,
+          }}
+        >
+          {c.demo_section_subtext}
+        </p>
+
+        <div
+          className="glass-card"
+          data-accent="blue"
+          style={{ padding: '40px', maxWidth: '600px', margin: '0 auto' }}
+        >
+          {demoStatus === 'success' ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '16px',
+                  background: 'rgba(6,182,212,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                Demo Request Submitted
+              </h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto' }}>
+                Our team will review your request and send you a demo access code shortly. Check your email for next steps.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleDemoSubmit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="demo-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <Input
+                    label="Name"
+                    placeholder="Your name"
+                    value={demoName}
+                    onChange={(e) => setDemoName(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Email"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={demoEmail}
+                    onChange={(e) => setDemoEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <Input
+                  label="Company / Role (optional)"
+                  placeholder="Acme Corp / Head of Finance"
+                  value={demoCompany}
+                  onChange={(e) => setDemoCompany(e.target.value)}
+                />
+                <Textarea
+                  label="Message (optional)"
+                  placeholder="Tell us about your use case or what you would like to see in the demo..."
+                  value={demoMessage}
+                  onChange={(e) => setDemoMessage(e.target.value)}
+                  style={{ minHeight: '100px' }}
+                />
+                <Button type="submit" variant="primary" size="lg" fullWidth loading={demoLoading}>
+                  Submit Demo Request
+                </Button>
+                {demoStatus === 'error' && (
+                  <p style={{ fontSize: '14px', color: '#EF4444', textAlign: 'center', margin: 0 }}>
+                    {demoError}
+                  </p>
+                )}
+              </div>
+            </form>
+          )}
         </div>
       </section>
 
@@ -570,7 +786,7 @@ export default function Home() {
             <Link
               to="/register"
               style={{
-                background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+                background: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
                 color: '#fff',
                 textDecoration: 'none',
                 padding: '14px 36px',
@@ -582,7 +798,7 @@ export default function Home() {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.3)'
+                e.currentTarget.style.boxShadow = 'var(--btn-primary-hover-shadow, 0 8px 24px rgba(124,58,237,0.3))'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)'
@@ -591,8 +807,12 @@ export default function Home() {
             >
               {c.cta_button_text}
             </Link>
-            <Link
-              to="/contact?type=demo"
+            <a
+              href="#request-demo"
+              onClick={(e) => {
+                e.preventDefault()
+                document.getElementById('request-demo')?.scrollIntoView({ behavior: 'smooth' })
+              }}
               style={{
                 background: 'var(--surface-input)',
                 border: '1px solid var(--border-subtle)',
@@ -615,7 +835,7 @@ export default function Home() {
               }}
             >
               Request a Demo
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -626,6 +846,9 @@ export default function Home() {
           section {
             padding-left: 20px !important;
             padding-right: 20px !important;
+          }
+          .demo-form-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>

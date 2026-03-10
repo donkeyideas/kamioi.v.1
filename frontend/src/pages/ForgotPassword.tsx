@@ -51,9 +51,11 @@ export default function ForgotPassword() {
           <Link to="/" style={{
             fontSize: '28px',
             fontWeight: 800,
-            background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+            backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            color: 'transparent',
             textDecoration: 'none',
           }}>
             Kamioi
@@ -129,7 +131,7 @@ export default function ForgotPassword() {
             opacity: 0.6,
           }}>
             <Link to="/login" style={{
-              color: '#7C3AED',
+              color: 'var(--purple)',
               textDecoration: 'none',
               fontWeight: 500,
             }}>

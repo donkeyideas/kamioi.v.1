@@ -1001,7 +1001,7 @@ export default function MoreScreen() {
             />
             <FaqItem
               q="How do round-ups work?"
-              a="When you make a purchase, Kamioi rounds the amount up to the nearest dollar (or your chosen round-up amount). The difference is invested into stocks. For example, a $4.50 coffee with a $1 round-up setting invests $0.50."
+              a="When you make a purchase, Kamioi adds your chosen round-up amount — $1, $2, $3, or more — and invests it into stocks. For example, a $4.50 coffee with a $2 round-up setting invests $2.00."
               colors={colors}
             />
             <FaqItem

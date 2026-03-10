@@ -14,6 +14,14 @@ const Features = lazy(() => import('@/pages/Features'))
 const HowItWorks = lazy(() => import('@/pages/HowItWorks'))
 const Pricing = lazy(() => import('@/pages/Pricing'))
 const Learn = lazy(() => import('@/pages/Learn'))
+const GettingStarted = lazy(() => import('@/pages/GettingStarted'))
+const FAQ = lazy(() => import('@/pages/FAQ'))
+const Security = lazy(() => import('@/pages/Security'))
+const ApiDocs = lazy(() => import('@/pages/ApiDocs'))
+const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'))
+const TermsOfService = lazy(() => import('@/pages/TermsOfService'))
+const CookiePolicy = lazy(() => import('@/pages/CookiePolicy'))
+const About = lazy(() => import('@/pages/About'))
 const Contact = lazy(() => import('@/pages/Contact'))
 const Blog = lazy(() => import('@/pages/Blog'))
 const BlogPost = lazy(() => import('@/pages/BlogPost'))
@@ -103,6 +111,14 @@ export default function App() {
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/learn" element={<Learn />} />
+          <Route path="/getting-started" element={<GettingStarted />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/security" element={<Security />} />
+          <Route path="/api-docs" element={<ApiDocs />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />

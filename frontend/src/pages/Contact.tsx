@@ -4,6 +4,28 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { PublicLayout } from '@/components/public'
 import { GlassCard, Button, Input, Textarea } from '@/components/ui'
 import { SEO } from '@/components/common/SEO.tsx'
+import { usePageContent } from '@/hooks/usePageContent'
+
+/* ------------------------------------------------------------------ */
+/*  Content defaults                                                   */
+/* ------------------------------------------------------------------ */
+
+const DEFAULTS = {
+  contact_hero_title: 'Contact Us',
+  contact_hero_subtitle: 'Have a question or feedback? We would love to hear from you.',
+  contact_demo_title: 'Request a Demo',
+  contact_demo_subtitle: 'Fill out the form below and our team will get you set up with demo access.',
+  contact_submit_text: 'Send Message',
+  contact_demo_submit: 'Submit Demo Request',
+  contact_success: 'Message sent successfully. We will get back to you soon.',
+  contact_demo_success: 'Demo request submitted! Our team will review and send you access shortly.',
+  contact_info_title: 'Get in touch',
+  contact_email: 'info@donkeyideas.com',
+  contact_response: 'We typically respond within 24 hours',
+  contact_hours: 'Monday - Friday, 9am - 6pm EST',
+  contact_support_title: 'Looking for support?',
+  contact_support_desc: 'Check out our frequently asked questions for quick answers.',
+}
 
 /* ------------------------------------------------------------------ */
 /*  Styles                                                             */
@@ -25,9 +47,11 @@ const h1Style: React.CSSProperties = {
   fontWeight: 800,
   lineHeight: 1.15,
   marginBottom: 16,
-  background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+  backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text' as const,
+  color: 'transparent',
 }
 
 const subtitleStyle: React.CSSProperties = {
@@ -55,7 +79,6 @@ async function submitContactMessage(data: {
   subject: string
   message: string
 }): Promise<void> {
-  // Dynamic import so the page still renders even if env vars are missing
   const { supabase } = await import('@/lib/supabase')
   const { error } = await supabase
     .from('contact_messages')
@@ -109,6 +132,7 @@ function InfoItem({
 export default function Contact() {
   const [searchParams] = useSearchParams()
   const isDemo = searchParams.get('type') === 'demo'
+  const { content: c } = usePageContent(DEFAULTS)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -153,11 +177,9 @@ export default function Contact() {
       <section style={sectionStyle}>
         {/* Hero */}
         <div style={heroStyle}>
-          <h1 style={h1Style}>{isDemo ? 'Request a Demo' : 'Contact Us'}</h1>
+          <h1 style={h1Style}>{isDemo ? c.contact_demo_title : c.contact_hero_title}</h1>
           <p style={subtitleStyle}>
-            {isDemo
-              ? 'Fill out the form below and our team will get you set up with demo access.'
-              : 'Have a question or feedback? We would love to hear from you.'}
+            {isDemo ? c.contact_demo_subtitle : c.contact_hero_subtitle}
           </p>
         </div>
 
@@ -205,7 +227,7 @@ export default function Contact() {
                   fullWidth
                   loading={loading}
                 >
-                  {isDemo ? 'Submit Demo Request' : 'Send Message'}
+                  {isDemo ? c.contact_demo_submit : c.contact_submit_text}
                 </Button>
 
                 {/* Feedback */}
@@ -218,9 +240,7 @@ export default function Contact() {
                       margin: 0,
                     }}
                   >
-                    {isDemo
-                      ? 'Demo request submitted! Our team will review and send you access shortly.'
-                      : 'Message sent successfully. We will get back to you soon.'}
+                    {isDemo ? c.contact_demo_success : c.contact_success}
                   </p>
                 )}
                 {status === 'error' && (
@@ -250,11 +270,11 @@ export default function Contact() {
                   marginBottom: 20,
                 }}
               >
-                Get in touch
+                {c.contact_info_title}
               </h2>
-              <InfoItem label="Email" value="info@donkeyideas.com" />
-              <InfoItem label="Response time" value="We typically respond within 24 hours" />
-              <InfoItem label="Office hours" value="Monday - Friday, 9am - 6pm EST" />
+              <InfoItem label="Email" value={c.contact_email} />
+              <InfoItem label="Response time" value={c.contact_response} />
+              <InfoItem label="Office hours" value={c.contact_hours} />
             </GlassCard>
 
             <GlassCard accent="teal">
@@ -266,7 +286,7 @@ export default function Contact() {
                   marginBottom: 8,
                 }}
               >
-                Looking for support?
+                {c.contact_support_title}
               </h3>
               <p
                 style={{
@@ -276,7 +296,7 @@ export default function Contact() {
                   lineHeight: 1.6,
                 }}
               >
-                Check out our frequently asked questions for quick answers.
+                {c.contact_support_desc}
               </p>
               <Link
                 to="/learn#faq"

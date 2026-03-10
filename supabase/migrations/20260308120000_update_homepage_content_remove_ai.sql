@@ -4,7 +4,7 @@
 UPDATE admin_settings SET setting_value = 'Transform Spending into Ownership', updated_at = NOW()
   WHERE setting_key = 'hero_heading';
 
-UPDATE admin_settings SET setting_value = 'Kamioi automatically rounds up your everyday purchases and invests the spare change into real stocks. Turn every swipe into a step toward building wealth.', updated_at = NOW()
+UPDATE admin_settings SET setting_value = 'Kamioi adds your chosen round-up amount to every purchase and invests it into real stocks. Turn every swipe into a step toward building wealth.', updated_at = NOW()
   WHERE setting_key = 'hero_subheading';
 
 UPDATE admin_settings SET setting_value = 'How your spending builds wealth', updated_at = NOW()

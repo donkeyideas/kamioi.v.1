@@ -18,12 +18,12 @@ const variantStyles: Record<
 > = {
   primary: {
     base: {
-      background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+      background: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
       color: '#FFFFFF',
       border: 'none',
     },
     hover: {
-      boxShadow: '0 8px 32px rgba(124,58,237,0.4)',
+      boxShadow: 'var(--btn-primary-hover-shadow, 0 8px 32px rgba(124,58,237,0.4))',
       filter: 'brightness(1.1)',
     },
   },

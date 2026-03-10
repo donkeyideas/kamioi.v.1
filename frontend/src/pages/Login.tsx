@@ -15,6 +15,7 @@ export default function Login() {
   const [signupEnabled, setSignupEnabled] = useState(true)
   const [demoMode, setDemoMode] = useState(false)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
+  const [showEmployeeLogin, setShowEmployeeLogin] = useState(false)
   const { signIn, verifyMfa, mfaRequired, cancelMfa } = useAuth()
   const navigate = useNavigate()
 
@@ -33,7 +34,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!signinEnabled) {
+    if (!signinEnabled && !showEmployeeLogin) {
       setError('Sign-in is currently disabled by the administrator.')
       return
     }
@@ -153,9 +154,11 @@ export default function Login() {
           <Link to="/" style={{
             fontSize: '28px',
             fontWeight: 800,
-            background: 'linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4)',
+            backgroundImage: 'var(--gradient-text, linear-gradient(135deg, #7C3AED, #3B82F6, #06B6D4))',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            color: 'transparent',
             textDecoration: 'none',
           }}>
             Kamioi
@@ -165,7 +168,7 @@ export default function Login() {
           </p>
         </div>
 
-        {!signinEnabled && !demoMode && (
+        {!signinEnabled && !demoMode && !showEmployeeLogin && (
           <div style={{
             background: 'var(--color-surface-card)',
             backdropFilter: 'blur(16px)',
@@ -180,7 +183,7 @@ export default function Login() {
           </div>
         )}
 
-        {signinEnabled && mfaRequired ? (
+        {(signinEnabled || showEmployeeLogin) && mfaRequired ? (
           /* MFA Verification Form */
           <form onSubmit={handleMfaSubmit} style={{
             background: 'var(--color-surface-card)',
@@ -194,7 +197,7 @@ export default function Login() {
                 width: 48,
                 height: 48,
                 borderRadius: 12,
-                background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+                background: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -244,7 +247,7 @@ export default function Login() {
                     fontWeight: 700,
                     fontFamily: 'inherit',
                     background: 'var(--surface-input)',
-                    border: `1px solid ${digit ? '#7C3AED' : 'var(--color-border-subtle)'}`,
+                    border: `1px solid ${digit ? 'var(--purple)' : 'var(--color-border-subtle)'}`,
                     borderRadius: 10,
                     color: 'inherit',
                     outline: 'none',
@@ -262,7 +265,7 @@ export default function Login() {
                 padding: '12px',
                 background: (loading || mfaCode.join('').length !== 6)
                   ? 'rgba(124,58,237,0.5)'
-                  : 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+                  : 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '10px',
@@ -295,7 +298,7 @@ export default function Login() {
               Back to login
             </button>
           </form>
-        ) : signinEnabled ? (
+        ) : (signinEnabled || showEmployeeLogin) ? (
           /* Login Form */
           <form onSubmit={handleSubmit} style={{
             background: 'var(--color-surface-card)',
@@ -383,7 +386,7 @@ export default function Login() {
             <div style={{ textAlign: 'right', marginBottom: '24px' }}>
               <Link to="/forgot-password" style={{
                 fontSize: '13px',
-                color: '#7C3AED',
+                color: 'var(--purple)',
                 textDecoration: 'none',
                 fontWeight: 500,
               }}>
@@ -393,19 +396,19 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading || !signinEnabled}
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px',
-                background: (loading || !signinEnabled)
+                background: loading
                   ? 'rgba(124,58,237,0.5)'
-                  : 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+                  : 'var(--gradient-primary, linear-gradient(135deg, #7C3AED, #3B82F6))',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '10px',
                 fontSize: '14px',
                 fontWeight: 600,
-                cursor: (loading || !signinEnabled) ? 'not-allowed' : 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
               }}
             >
@@ -420,7 +423,7 @@ export default function Login() {
                 opacity: 0.6,
               }}>
                 Don't have an account?{' '}
-                <Link to="/register" style={{ color: '#7C3AED', textDecoration: 'none', fontWeight: 500 }}>
+                <Link to="/register" style={{ color: 'var(--purple)', textDecoration: 'none', fontWeight: 500 }}>
                   Sign up
                 </Link>
               </p>
@@ -458,6 +461,27 @@ export default function Login() {
             Try Interactive Demo
           </Link>
         </div>}
+
+        {/* Employee login link — visible when signin is disabled */}
+        {!signinEnabled && !showEmployeeLogin && (
+          <p style={{ textAlign: 'center', marginTop: '16px' }}>
+            <button
+              type="button"
+              onClick={() => setShowEmployeeLogin(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-secondary, rgba(255,255,255,0.4))',
+                fontSize: '12px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                opacity: 0.5,
+              }}
+            >
+              Employee Login
+            </button>
+          </p>
+        )}
       </div>
     </div>
     </>

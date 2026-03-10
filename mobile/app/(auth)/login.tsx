@@ -30,6 +30,7 @@ export default function LoginScreen() {
   const [signupEnabled, setSignupEnabled] = useState(true)
   const [demoMode, setDemoMode] = useState(false)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
+  const [showEmployeeLogin, setShowEmployeeLogin] = useState(false)
   const fadeAnim = useState(() => new Animated.Value(0))[0]
   const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; message?: string; buttons?: AlertButton[] }>({ visible: false, title: '' })
   const showAlert = useCallback((title: string, message?: string, buttons?: AlertButton[]) => {
@@ -52,7 +53,7 @@ export default function LoginScreen() {
   }, [])
 
   async function handleSignIn() {
-    if (!signinEnabled) {
+    if (!signinEnabled && !showEmployeeLogin) {
       showAlert('Error', 'Sign-in is currently disabled by the administrator.')
       return
     }
@@ -181,7 +182,7 @@ export default function LoginScreen() {
             </Text>
 
             {/* Sign-in disabled message */}
-            {!signinEnabled && !demoMode && (
+            {!signinEnabled && !demoMode && !showEmployeeLogin && (
               <View style={[styles.disabledCard, { backgroundColor: colors.card, borderColor: colors.borderSubtle }]}>
                 <Text style={[styles.disabledText, { color: colors.textSecondary }]}>
                   Sign-in is currently unavailable. Please try again later.
@@ -189,7 +190,7 @@ export default function LoginScreen() {
               </View>
             )}
 
-            {signinEnabled && (
+            {(signinEnabled || showEmployeeLogin) && (
               <>
                 {/* Email Input */}
                 <View style={styles.formGroup}>
@@ -284,7 +285,7 @@ export default function LoginScreen() {
             )}
 
             {/* Footer */}
-            {signinEnabled && signupEnabled && (
+            {(signinEnabled || showEmployeeLogin) && signupEnabled && (
               <View style={styles.footer}>
                 <Text style={[styles.footerText, { color: colors.textSecondary }]}>
                   Don't have an account?{' '}
@@ -295,6 +296,15 @@ export default function LoginScreen() {
                   </Pressable>
                 </Link>
               </View>
+            )}
+
+            {/* Employee login link — visible when signin is disabled */}
+            {!signinEnabled && !showEmployeeLogin && (
+              <Pressable onPress={() => setShowEmployeeLogin(true)} style={{ marginTop: 16, alignSelf: 'center' }}>
+                <Text style={{ color: colors.textMuted, fontSize: 12, opacity: 0.5 }}>
+                  Employee Login
+                </Text>
+              </Pressable>
             )}
           </ScrollView>
         </Animated.View>

@@ -23,18 +23,18 @@ interface BlogPostData {
 }
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
-  Investing: 'linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%)',
-  Finance: 'linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)',
-  Education: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
-  Technology: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
-  Lifestyle: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)',
-  Savings: 'linear-gradient(135deg, #10B981 0%, #3B82F6 100%)',
-  Beginners: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+  Investing: 'var(--gradient-primary, linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%))',
+  Finance: 'var(--gradient-step2, linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%))',
+  Education: 'var(--gradient-step3, linear-gradient(135deg, #06B6D4 0%, #10B981 100%))',
+  Technology: 'var(--gradient-icon-pink, linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%))',
+  Lifestyle: 'var(--gradient-icon-amber, linear-gradient(135deg, #F59E0B 0%, #EF4444 100%))',
+  Savings: 'var(--gradient-icon-teal, linear-gradient(135deg, #10B981 0%, #3B82F6 100%))',
+  Beginners: 'var(--gradient-icon-purple, linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%))',
 }
 
 function getGradient(category?: string | null): string {
   if (category && CATEGORY_GRADIENTS[category]) return CATEGORY_GRADIENTS[category]
-  return 'linear-gradient(135deg, #7C3AED 0%, #3B82F6 50%, #06B6D4 100%)'
+  return 'var(--gradient-text, linear-gradient(135deg, #7C3AED 0%, #3B82F6 50%, #06B6D4 100%))'
 }
 
 /* ------------------------------------------------------------------ */
