@@ -33,6 +33,7 @@ const DemoSelector = lazy(() => import('@/demo/DemoSelector'))
 const DemoUserDashboard = lazy(() => import('@/demo/DemoUserDashboard'))
 const DemoFamilyDashboard = lazy(() => import('@/demo/DemoFamilyDashboard'))
 const DemoBusinessDashboard = lazy(() => import('@/demo/DemoBusinessDashboard'))
+const PitchDeck = lazy(() => import('@/pages/PitchDeck'))
 
 function LoadingScreen() {
   return (
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/pitch" element={<PitchDeck />} />
 
           {/* Demo routes — require demo code session */}
           <Route path="/demo" element={<DemoSelector />} />
