@@ -566,30 +566,57 @@ export default function Home() {
           >
             {c.cta_subtext}
           </p>
-          <Link
-            to="/register"
-            style={{
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
-              color: '#fff',
-              textDecoration: 'none',
-              padding: '14px 36px',
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: 600,
-              display: 'inline-block',
-              transition: 'transform 300ms ease, box-shadow 300ms ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.3)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = 'none'
-            }}
-          >
-            {c.cta_button_text}
-          </Link>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link
+              to="/register"
+              style={{
+                background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+                color: '#fff',
+                textDecoration: 'none',
+                padding: '14px 36px',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: 600,
+                display: 'inline-block',
+                transition: 'transform 300ms ease, box-shadow 300ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.3)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              {c.cta_button_text}
+            </Link>
+            <Link
+              to="/contact?type=demo"
+              style={{
+                background: 'var(--surface-input)',
+                border: '1px solid var(--border-subtle)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                color: 'var(--text-primary)',
+                textDecoration: 'none',
+                padding: '14px 36px',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: 500,
+                display: 'inline-block',
+                transition: 'transform 300ms ease, background 300ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+              }}
+            >
+              Request a Demo
+            </Link>
+          </div>
         </div>
       </section>
 

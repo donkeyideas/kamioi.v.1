@@ -1,11 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabaseAdmin } from '@/lib/supabase';
 import { useUserId } from '@/hooks/useUserId';
-import { GlassCard, Table, Badge, Input, KpiCard, Button, Select, Modal } from '@/components/ui';
-import type { Column } from '@/components/ui';
+import { GlassCard, Badge, Input, KpiCard, Button, Select, Modal } from '@/components/ui';
 import { COMPANY_LOOKUP, CompanyLogo, formatMerchantName } from '@/components/common/CompanyLogo';
 
 /* ---- Types ---- */
+
+interface ReceiptParsedItem {
+  name: string;
+  brand?: string;
+  brandSymbol?: string;
+  amount: number;
+  brandConfidence?: number;
+}
 
 interface Transaction {
   id: number;
@@ -25,7 +32,9 @@ interface Transaction {
   status: 'pending' | 'mapped' | 'completed' | 'failed';
   fee: number | null;
   transaction_type: string | null;
+  receipt_id: number | null;
   created_at: string;
+  receipts?: { parsed_data: { items?: ReceiptParsedItem[]; retailer?: { name: string; stockSymbol?: string }; totalAmount?: number } | null; allocation_data: unknown | null } | null;
 }
 
 type StatusFilter = 'all' | 'pending' | 'mapped' | 'completed' | 'failed';
@@ -117,6 +126,18 @@ export function TransactionsTab() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortNewest, setSortNewest] = useState(true);
 
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [page, setPage] = useState(0);
+
+  const toggleExpand = useCallback((id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   /* ---- Mapping modal state ---- */
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [mapTransaction, setMapTransaction] = useState<Transaction | null>(null);
@@ -190,142 +211,36 @@ export function TransactionsTab() {
     }
   }, [mapTransaction, mapForm, userId]);
 
-  /* ---- Table columns ---- */
-  const columns: Column<Transaction>[] = [
-    {
-      key: 'date',
-      header: 'Date',
-      width: '120px',
-      render: (row) => (
-        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          {row.date ? formatDate(row.date) : '--'}
-        </span>
-      ),
-    },
-    {
-      key: 'merchant',
-      header: 'Merchant',
-      render: (row) => {
-        const info = row.merchant ? COMPANY_LOOKUP[row.merchant] : null;
-        const content = (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {row.merchant && <CompanyLogo name={row.merchant} size={22} />}
-            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-              {row.merchant ? formatMerchantName(row.merchant) : '--'}
-            </span>
-          </div>
-        );
-        if (info) {
-          return (
-            <a
-              href={info.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: 'none', color: 'inherit' }}
-              title={`Visit ${row.merchant}`}
-            >
-              {content}
-            </a>
-          );
-        }
-        return content;
-      },
-    },
-    {
-      key: 'category',
-      header: 'Category',
-      render: (row) =>
-        row.category ? (
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            {row.category}
-          </span>
-        ) : null,
-    },
-    {
-      key: 'amount',
-      header: 'Amount',
-      align: 'right',
-      width: '110px',
-      render: (row) => (
-        <span style={{ fontWeight: 500 }}>
-          {row.amount != null ? formatCurrency(row.amount) : '--'}
-        </span>
-      ),
-    },
-    {
-      key: 'round_up',
-      header: 'Round-Up',
-      align: 'right',
-      width: '100px',
-      render: (row) =>
-        row.round_up != null ? (
-          <span style={{ fontWeight: 500, color: '#06B6D4' }}>
-            {formatCurrency(row.round_up)}
-          </span>
-        ) : (
-          <span style={{ color: 'var(--text-muted)' }}>--</span>
-        ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      width: '120px',
-      render: (row) => {
-        const variantMap: Record<Transaction['status'], 'success' | 'warning' | 'error' | 'default'> = {
-          completed: 'success',
-          mapped: 'default',
-          pending: 'warning',
-          failed: 'error',
-        };
-        return (
-          <Badge variant={variantMap[row.status] ?? 'default'}>
-            {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
-          </Badge>
-        );
-      },
-    },
-    {
-      key: 'ticker',
-      header: 'Ticker',
-      width: '110px',
-      render: (row) => {
-        if (!row.ticker) return null;
-        const info = COMPANY_LOOKUP[row.ticker];
-        const content = (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <CompanyLogo name={row.ticker} size={18} />
-            <span style={{ fontWeight: 600, color: '#A78BFA', fontSize: '13px' }}>
-              {row.ticker}
-            </span>
-          </div>
-        );
-        if (info) {
-          return (
-            <a
-              href={info.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: 'none', color: 'inherit' }}
-              title={`Visit ${row.ticker} website`}
-            >
-              {content}
-            </a>
-          );
-        }
-        return content;
-      },
-    },
-    {
-      key: 'action',
-      header: '',
-      width: '90px',
-      render: (row) => row.status === 'failed' ? (
-        <Button variant="secondary" size="sm" onClick={() => { setMapTransaction(row); setMapForm({ ticker: '', companyName: '', notes: '' }); setMapModalOpen(true); }}>
-          Map
-        </Button>
-      ) : null,
-    },
-  ];
+  /* ---- Table helpers ---- */
+  const variantMap: Record<Transaction['status'], 'success' | 'warning' | 'error' | 'default'> = {
+    completed: 'success',
+    mapped: 'default',
+    pending: 'warning',
+    failed: 'error',
+  };
+
+  const thStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    fontSize: '11px',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: 'var(--text-muted)',
+    background: 'var(--surface-row-hover)',
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+    borderBottom: '1px solid var(--border-divider)',
+  };
+
+  const tdStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    fontSize: '14px',
+    color: 'var(--text-primary)',
+    borderBottom: '1px solid var(--border-divider)',
+  };
+
+  const PAGE_SIZE = 15;
 
   /* ---- Data fetching ---- */
 
@@ -334,7 +249,7 @@ export function TransactionsTab() {
     setLoading(true);
     const { data } = await supabaseAdmin
       .from('transactions')
-      .select('*')
+      .select('*, receipts(parsed_data, allocation_data)')
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .limit(500);
@@ -535,14 +450,219 @@ export function TransactionsTab() {
 
       {/* Transactions table */}
       <GlassCard padding="0">
-        <Table<Transaction>
-          columns={columns}
-          data={filtered}
-          loading={loading}
-          pageSize={15}
-          emptyMessage="No transactions found"
-          rowKey={(row) => row.id}
-        />
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>No transactions found</div>
+        ) : (
+          <>
+            <div style={{ width: '100%', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'inherit' }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thStyle, width: '120px' }}>Date</th>
+                    <th style={thStyle}>Merchant</th>
+                    <th style={thStyle}>Category</th>
+                    <th style={{ ...thStyle, textAlign: 'right', width: '110px' }}>Amount</th>
+                    <th style={{ ...thStyle, textAlign: 'right', width: '100px' }}>Round-Up</th>
+                    <th style={{ ...thStyle, width: '120px' }}>Status</th>
+                    <th style={{ ...thStyle, width: '110px' }}>Ticker</th>
+                    <th style={{ ...thStyle, width: '90px' }}></th>
+                  </tr>
+                </thead>
+                {(() => {
+                  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+                  const safePage = Math.min(page, totalPages - 1);
+                  const start = safePage * PAGE_SIZE;
+                  const end = Math.min(start + PAGE_SIZE, filtered.length);
+                  const pageData = filtered.slice(start, end);
+
+                  return pageData.map(tx => {
+                    const isReceipt = tx.transaction_type === 'receipt' && tx.receipts?.parsed_data?.items && tx.receipts.parsed_data.items.length > 0;
+                    const isExpanded = expandedIds.has(tx.id);
+                    const receiptItems = isReceipt ? tx.receipts!.parsed_data!.items! : [];
+
+                    return (
+                      <tbody key={tx.id}>
+                        {/* Parent row */}
+                        <tr
+                          style={{
+                            cursor: isReceipt ? 'pointer' : 'default',
+                            transition: 'background 200ms ease',
+                            background: isReceipt && isExpanded ? 'rgba(124,58,237,0.06)' : 'transparent',
+                          }}
+                          onClick={isReceipt ? () => toggleExpand(tx.id) : undefined}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = isReceipt && isExpanded ? 'rgba(124,58,237,0.08)' : 'var(--surface-row-hover)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = isReceipt && isExpanded ? 'rgba(124,58,237,0.06)' : 'transparent'; }}
+                        >
+                          <td style={tdStyle}>
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{tx.date ? formatDate(tx.date) : '--'}</span>
+                          </td>
+                          <td style={tdStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {isReceipt && (
+                                <svg
+                                  width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                  stroke="#A78BFA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                  style={{ flexShrink: 0, transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 200ms ease' }}
+                                >
+                                  <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                              )}
+                              {tx.merchant && <CompanyLogo name={tx.merchant} size={22} />}
+                              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                {tx.merchant ? formatMerchantName(tx.merchant) : '--'}
+                              </span>
+                              {isReceipt && (
+                                <span style={{
+                                  fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
+                                  background: 'rgba(124,58,237,0.15)', color: '#A78BFA',
+                                }}>
+                                  {receiptItems.length} items
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td style={tdStyle}>
+                            {tx.category ? <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{tx.category}</span> : null}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'right' }}>
+                            <span style={{ fontWeight: 500 }}>{tx.amount != null ? formatCurrency(tx.amount) : '--'}</span>
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'right' }}>
+                            {tx.round_up != null ? (
+                              <span style={{ fontWeight: 500, color: '#06B6D4' }}>{formatCurrency(tx.round_up)}</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>--</span>
+                            )}
+                          </td>
+                          <td style={tdStyle}>
+                            <Badge variant={variantMap[tx.status] ?? 'default'}>
+                              {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                            </Badge>
+                          </td>
+                          <td style={tdStyle}>
+                            {tx.ticker ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <CompanyLogo name={tx.ticker} size={18} />
+                                <span style={{ fontWeight: 600, color: '#A78BFA', fontSize: '13px' }}>{tx.ticker}</span>
+                              </div>
+                            ) : null}
+                          </td>
+                          <td style={tdStyle}>
+                            {tx.status === 'failed' ? (
+                              <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); setMapTransaction(tx); setMapForm({ ticker: '', companyName: '', notes: '' }); setMapModalOpen(true); }}>
+                                Map
+                              </Button>
+                            ) : null}
+                          </td>
+                        </tr>
+
+                        {/* Sub-item rows (receipt items) */}
+                        {isReceipt && isExpanded && receiptItems.map((item, i) => {
+                          const mappedTotal = receiptItems.filter(si => si.brandSymbol).reduce((s, si) => s + si.amount, 0);
+                          const itemRoundUp = item.brandSymbol && mappedTotal > 0 && tx.round_up ? Math.round(tx.round_up * (item.amount / mappedTotal) * 100) / 100 : 0;
+                          const borderBot = i === receiptItems.length - 1 ? '2px solid rgba(124,58,237,0.2)' : '1px solid var(--border-divider)';
+                          return (
+                            <tr
+                              key={`${tx.id}-sub-${i}`}
+                              style={{ background: i % 2 === 0 ? 'rgba(124,58,237,0.03)' : 'rgba(124,58,237,0.06)' }}
+                            >
+                              <td style={{ ...tdStyle, borderBottom: borderBot }}>{/* empty */}</td>
+                              <td style={{ ...tdStyle, borderBottom: borderBot }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '22px' }}>
+                                  {item.brandSymbol ? (
+                                    <CompanyLogo name={item.brandSymbol} size={18} />
+                                  ) : (
+                                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />
+                                  )}
+                                  <span style={{ color: 'var(--text-primary)', fontSize: '12px' }}>{item.name}</span>
+                                </div>
+                              </td>
+                              <td style={{ ...tdStyle, borderBottom: borderBot }}>
+                                {item.brand && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{item.brand}</span>}
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: 'right', borderBottom: borderBot }}>
+                                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatCurrency(item.amount)}</span>
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: 'right', borderBottom: borderBot }}>
+                                {itemRoundUp > 0 ? (
+                                  <span style={{ color: '#06B6D4', fontWeight: 600, fontSize: '12px' }}>{formatCurrency(itemRoundUp)}</span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>--</span>
+                                )}
+                              </td>
+                              <td style={{ ...tdStyle, borderBottom: borderBot }}>
+                                {item.brandSymbol ? (
+                                  <Badge variant="success">mapped</Badge>
+                                ) : (
+                                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>no stock</span>
+                                )}
+                              </td>
+                              <td style={{ ...tdStyle, borderBottom: borderBot }}>
+                                {item.brandSymbol ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <CompanyLogo name={item.brandSymbol} size={16} />
+                                    <span style={{ fontWeight: 600, color: '#A78BFA', fontSize: '12px' }}>{item.brandSymbol}</span>
+                                  </div>
+                                ) : <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>--</span>}
+                              </td>
+                              <td style={{ ...tdStyle, borderBottom: borderBot }}>{/* empty */}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    );
+                  });
+                })()}
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {filtered.length > PAGE_SIZE && (() => {
+              const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+              const safePage = Math.min(page, totalPages - 1);
+              const start = safePage * PAGE_SIZE;
+              const end = Math.min(start + PAGE_SIZE, filtered.length);
+              return (
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 16px', fontSize: '13px', color: 'var(--text-muted)',
+                }}>
+                  <span>Showing {start + 1}-{end} of {filtered.length}</span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      style={{
+                        fontFamily: 'inherit', fontSize: '13px', fontWeight: 500,
+                        padding: '6px 14px', borderRadius: '6px',
+                        border: '1px solid var(--border-subtle)', background: 'var(--surface-input)',
+                        color: 'var(--text-secondary)', cursor: safePage === 0 ? 'not-allowed' : 'pointer',
+                        opacity: safePage === 0 ? 0.4 : 1,
+                      }}
+                      disabled={safePage === 0}
+                      onClick={() => setPage(p => Math.max(0, p - 1))}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      style={{
+                        fontFamily: 'inherit', fontSize: '13px', fontWeight: 500,
+                        padding: '6px 14px', borderRadius: '6px',
+                        border: '1px solid var(--border-subtle)', background: 'var(--surface-input)',
+                        color: 'var(--text-secondary)', cursor: safePage >= totalPages - 1 ? 'not-allowed' : 'pointer',
+                        opacity: safePage >= totalPages - 1 ? 0.4 : 1,
+                      }}
+                      disabled={safePage >= totalPages - 1}
+                      onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        )}
       </GlassCard>
 
       {/* Merchant Mapping Modal */}

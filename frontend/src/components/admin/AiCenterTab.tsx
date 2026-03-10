@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabaseAdmin } from '@/lib/supabase';
 import { mapMerchant } from '@/services/api';
 import { reprocessFailedTransactions } from '@/services/bankSync';
+import { logSystemEvent } from '@/utils/logSystemEvent';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select, Modal } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 import BarChart from '@/components/charts/BarChart';
@@ -1131,6 +1132,7 @@ function PendingMappingsContent() {
           .eq('id', Number(mapping.transaction_id));
       }
 
+      logSystemEvent('mapping_approved', 'AiCenter', { id, merchant: mapping?.merchant_name, ticker: mapping?.ticker });
       await fetchPending();
     } catch (err) {
       console.error('Approve error:', err);
@@ -1157,6 +1159,7 @@ function PendingMappingsContent() {
           .eq('id', Number(mapping.transaction_id));
       }
 
+      logSystemEvent('mapping_rejected', 'AiCenter', { id, merchant: mapping?.merchant_name });
       await fetchPending();
     } catch (err) {
       console.error('Reject error:', err);
@@ -1169,6 +1172,7 @@ function PendingMappingsContent() {
     setActionLoading(id);
     try {
       await supabaseAdmin.from('llm_mappings').delete().eq('id', id);
+      logSystemEvent('mapping_deleted', 'AiCenter', { id });
       if (selectedMapping?.id === id) setSelectedMapping(null);
       await fetchPending();
     } catch (err) {

@@ -16,18 +16,6 @@ interface RenewalRow {
   status: string;
 }
 
-interface TransactionRow {
-  id: number;
-  user_id: number;
-  date: string | null;
-  merchant: string | null;
-  amount: number;
-  round_up: number | null;
-  fee: number;
-  status: string | null;
-  created_at: string;
-}
-
 interface RoundUpRow {
   id: number;
   user_id: number;
@@ -40,9 +28,16 @@ interface RoundUpRow {
 interface UserSubscriptionRow {
   amount: number;
   status: string;
+  billing_cycle: string;
+  subscription_plans: { account_type: string; name: string } | null;
 }
 
 interface MonthlyRevenuePoint {
+  name: string;
+  revenue: number;
+}
+
+interface RevenueByTypePoint {
   name: string;
   revenue: number;
 }
@@ -76,9 +71,8 @@ interface RenewalHistoryRow {
   status: string;
 }
 
-interface RenewalQueueRow {
-  amount: number;
-  status: string;
+interface RenewalQueueJoinRow {
+  user_subscriptions: { amount: number } | null;
 }
 
 interface MarketQueueRow {
@@ -159,34 +153,25 @@ function RevenueTab() {
   const [loading, setLoading] = useState(true);
   const [subscriptions, setSubscriptions] = useState<UserSubscriptionRow[]>([]);
   const [renewals, setRenewals] = useState<RenewalRow[]>([]);
-  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
-  const [roundUps, setRoundUps] = useState<RoundUpRow[]>([]);
-  const [userCount, setUserCount] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [subsResult, renewalResult, txResult, ruResult, userCountResult] = await Promise.all([
-          supabaseAdmin.from('user_subscriptions').select('amount, status').limit(1000),
+        const [subsResult, renewalResult] = await Promise.all([
+          supabaseAdmin
+            .from('user_subscriptions')
+            .select('amount, status, billing_cycle, subscription_plans(account_type, name)')
+            .limit(1000),
           supabaseAdmin
             .from('renewal_history')
             .select('amount, renewal_date, status')
             .eq('status', 'success')
             .order('renewal_date', { ascending: true })
             .limit(1000),
-          supabaseAdmin.from('transactions').select('fee').gt('fee', 0).limit(1000),
-          supabaseAdmin.from('roundup_ledger').select('round_up_amount').limit(1000),
-          supabaseAdmin
-            .from('user_subscriptions')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'active'),
         ]);
 
         setSubscriptions((subsResult.data ?? []) as UserSubscriptionRow[]);
         setRenewals((renewalResult.data ?? []) as RenewalRow[]);
-        setTransactions((txResult.data ?? []) as TransactionRow[]);
-        setRoundUps((ruResult.data ?? []) as RoundUpRow[]);
-        setUserCount(userCountResult.count ?? 0);
       } catch (err) {
         console.error('Revenue fetch error:', err);
       } finally {
@@ -196,10 +181,39 @@ function RevenueTab() {
     fetchData();
   }, []);
 
-  const totalRevenue = useMemo(
-    () => subscriptions.filter((s) => s.status === 'active').reduce((sum, s) => sum + s.amount, 0),
+  const activeSubs = useMemo(
+    () => subscriptions.filter((s) => s.status === 'active'),
     [subscriptions],
   );
+
+  const totalRevenue = useMemo(
+    () => activeSubs.reduce((sum, s) => sum + s.amount, 0),
+    [activeSubs],
+  );
+
+  const revenueByType = useMemo(() => {
+    const map = new Map<string, { active: number; total: number; count: number }>();
+    for (const sub of subscriptions) {
+      const type = sub.subscription_plans?.account_type || 'unknown';
+      const label = type.charAt(0).toUpperCase() + type.slice(1);
+      const entry = map.get(label) ?? { active: 0, total: 0, count: 0 };
+      entry.total += sub.amount;
+      if (sub.status === 'active') {
+        entry.active += sub.amount;
+        entry.count += 1;
+      }
+      map.set(label, entry);
+    }
+    return map;
+  }, [subscriptions]);
+
+  const revenueByTypeChart: RevenueByTypePoint[] = useMemo(() => {
+    const points: RevenueByTypePoint[] = [];
+    for (const [name, data] of revenueByType) {
+      points.push({ name, revenue: data.active });
+    }
+    return points;
+  }, [revenueByType]);
 
   const revenueByMonth: MonthlyRevenuePoint[] = useMemo(() => {
     const map = groupByMonth(renewals, (r) => r.renewal_date, (r) => r.amount);
@@ -217,20 +231,15 @@ function RevenueTab() {
   }, [revenueByMonth]);
 
   const annualRunRate = currentMonthRevenue * 12;
-  const revenuePerUser = userCount > 0 ? totalRevenue / userCount : 0;
+  const activeCount = activeSubs.length;
+  const revenuePerUser = activeCount > 0 ? totalRevenue / activeCount : 0;
 
-  const totalSubscriptionRevenue = useMemo(
-    () => subscriptions.reduce((sum, s) => sum + s.amount, 0),
-    [subscriptions],
-  );
-  const totalFeeRevenue = useMemo(
-    () => transactions.reduce((sum, t) => sum + (t as unknown as { fee: number }).fee, 0),
-    [transactions],
-  );
-  const totalRoundUpProcessed = useMemo(
-    () => roundUps.reduce((sum, r) => sum + r.round_up_amount, 0),
-    [roundUps],
-  );
+  const typeColors: Record<string, { bg: string; border: string }> = {
+    Individual: { bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.15)' },
+    Family: { bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.15)' },
+    Business: { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.15)' },
+  };
+  const defaultColor = { bg: 'rgba(100,100,100,0.08)', border: 'rgba(100,100,100,0.15)' };
 
   if (loading) {
     return (
@@ -243,52 +252,51 @@ function RevenueTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <KpiCard label="Total Revenue" value={usd(totalRevenue)} accent="purple" />
+        <KpiCard label="Total Active Revenue" value={usd(totalRevenue)} accent="purple" />
         <KpiCard label="Monthly Revenue" value={usd(currentMonthRevenue)} accent="teal" />
         <KpiCard label="Annual Run Rate" value={usdCompact(annualRunRate)} accent="blue" />
-        <KpiCard label="Revenue per User" value={usd(revenuePerUser)} accent="pink" />
+        <KpiCard label="Revenue per Subscriber" value={usd(revenuePerUser)} accent="pink" />
       </div>
 
       <GlassCard padding="24px">
         <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
-          Revenue by Source
+          Revenue by Account Type
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <div
-            style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'rgba(124,58,237,0.08)',
-              border: '1px solid rgba(124,58,237,0.15)',
-            }}
-          >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Subscriptions</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalSubscriptionRevenue)}</p>
-          </div>
-          <div
-            style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'rgba(6,182,212,0.08)',
-              border: '1px solid rgba(6,182,212,0.15)',
-            }}
-          >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Fees</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalFeeRevenue)}</p>
-          </div>
-          <div
-            style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'rgba(59,130,246,0.08)',
-              border: '1px solid rgba(59,130,246,0.15)',
-            }}
-          >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Round-Ups Processed</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalRoundUpProcessed)}</p>
-          </div>
+          {['Individual', 'Family', 'Business'].map((type) => {
+            const data = revenueByType.get(type);
+            const colors = typeColors[type] || defaultColor;
+            return (
+              <div
+                key={type}
+                style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  background: colors.bg,
+                  border: `1px solid ${colors.border}`,
+                }}
+              >
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>{type}</p>
+                <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  {usd(data?.active ?? 0)}
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {data?.count ?? 0} active subscriber{(data?.count ?? 0) !== 1 ? 's' : ''}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </GlassCard>
+
+      <BarChart<RevenueByTypePoint>
+        data={revenueByTypeChart}
+        dataKey="revenue"
+        xKey="name"
+        title="Revenue by Account Type"
+        color="#7C3AED"
+        height={280}
+      />
 
       <LineChart<MonthlyRevenuePoint>
         data={revenueByMonth}
@@ -309,22 +317,19 @@ function RevenueTab() {
 function ProfitLossTab() {
   const [loading, setLoading] = useState(true);
   const [subscriptionRevenue, setSubscriptionRevenue] = useState(0);
-  const [roundUpRevenue, setRoundUpRevenue] = useState(0);
   const [apiCosts, setApiCosts] = useState(0);
   const [renewals, setRenewals] = useState<RenewalHistoryRow[]>([]);
-  const [roundUps, setRoundUps] = useState<RoundUpRow[]>([]);
   const [apiUsage, setApiUsage] = useState<ApiUsageRow[]>([]);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [subsResult, ruResult, apiResult, renewalResult] = await Promise.all([
+        const [subsResult, apiResult, renewalResult] = await Promise.all([
           supabaseAdmin
             .from('user_subscriptions')
             .select('amount, status')
             .eq('status', 'active')
             .limit(1000),
-          supabaseAdmin.from('roundup_ledger').select('round_up_amount, fee_amount, created_at').limit(1000),
           supabaseAdmin.from('api_usage').select('cost, created_at').limit(1000),
           supabaseAdmin
             .from('renewal_history')
@@ -335,15 +340,12 @@ function ProfitLossTab() {
         ]);
 
         const subs = (subsResult.data ?? []) as UserSubscriptionRow[];
-        const rus = (ruResult.data ?? []) as RoundUpRow[];
         const apis = (apiResult.data ?? []) as ApiUsageRow[];
         const rens = (renewalResult.data ?? []) as RenewalHistoryRow[];
 
         setSubscriptionRevenue(subs.reduce((sum, s) => sum + s.amount, 0));
-        setRoundUpRevenue(rus.reduce((sum, r) => sum + r.fee_amount, 0));
         setApiCosts(apis.reduce((sum, a) => sum + (a.cost ?? 0), 0));
         setRenewals(rens);
-        setRoundUps(rus);
         setApiUsage(apis);
       } catch (err) {
         console.error('P&L fetch error:', err);
@@ -354,31 +356,29 @@ function ProfitLossTab() {
     fetchData();
   }, []);
 
-  const totalRevenue = subscriptionRevenue + roundUpRevenue;
+  const totalRevenue = subscriptionRevenue;
   const totalExpenses = apiCosts;
   const netIncome = totalRevenue - totalExpenses;
   const operatingMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
 
   const monthlyPnL: MonthlyPnLPoint[] = useMemo(() => {
     const revenueMap = groupByMonth(renewals, (r) => r.renewal_date, (r) => r.amount);
-    const ruRevenueMap = groupByMonth(roundUps, (r) => r.created_at, (r) => r.fee_amount);
     const expenseMap = groupByMonth(apiUsage, (a) => a.created_at, (a) => a.cost ?? 0);
 
     const allMonths = new Set<string>();
     for (const key of revenueMap.keys()) allMonths.add(key);
-    for (const key of ruRevenueMap.keys()) allMonths.add(key);
     for (const key of expenseMap.keys()) allMonths.add(key);
 
     const points: MonthlyPnLPoint[] = [];
     for (const month of allMonths) {
       points.push({
         name: month,
-        revenue: (revenueMap.get(month) ?? 0) + (ruRevenueMap.get(month) ?? 0),
+        revenue: revenueMap.get(month) ?? 0,
         expenses: expenseMap.get(month) ?? 0,
       });
     }
     return points.sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
-  }, [renewals, roundUps, apiUsage]);
+  }, [renewals, apiUsage]);
 
   if (loading) {
     return (
@@ -391,7 +391,7 @@ function ProfitLossTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <KpiCard label="Total Revenue" value={usd(totalRevenue)} accent="purple" />
+        <KpiCard label="Subscription Revenue" value={usd(totalRevenue)} accent="purple" />
         <KpiCard label="Total Expenses" value={usd(totalExpenses)} accent="pink" />
         <KpiCard label="Net Income" value={usd(netIncome)} accent="teal" />
         <KpiCard
@@ -400,37 +400,6 @@ function ProfitLossTab() {
           accent="blue"
         />
       </div>
-
-      {/* Revenue Breakdown */}
-      <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
-          Revenue Breakdown
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <div
-            style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'rgba(124,58,237,0.08)',
-              border: '1px solid rgba(124,58,237,0.15)',
-            }}
-          >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Subscription Revenue</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(subscriptionRevenue)}</p>
-          </div>
-          <div
-            style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'rgba(6,182,212,0.08)',
-              border: '1px solid rgba(6,182,212,0.15)',
-            }}
-          >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Round-Up Revenue</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(roundUpRevenue)}</p>
-          </div>
-        </div>
-      </GlassCard>
 
       {/* Expense Breakdown */}
       <GlassCard padding="24px">
@@ -457,19 +426,8 @@ function ProfitLossTab() {
               border: '1px solid rgba(148,163,184,0.15)',
             }}
           >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Infrastructure</p>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No data available</p>
-          </div>
-          <div
-            style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'rgba(148,163,184,0.08)',
-              border: '1px solid rgba(148,163,184,0.15)',
-            }}
-          >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Operations</p>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No data available</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Alpaca Fees</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Not tracked yet</p>
           </div>
         </div>
       </GlassCard>
@@ -510,7 +468,7 @@ function BalanceSheetTab() {
             .limit(1000),
           supabaseAdmin
             .from('renewal_queue')
-            .select('amount, status')
+            .select('user_subscriptions(amount)')
             .eq('status', 'pending')
             .limit(1000),
           supabaseAdmin.from('roundup_ledger').select('round_up_amount').limit(1000),
@@ -522,12 +480,12 @@ function BalanceSheetTab() {
         ]);
 
         const subs = (subsResult.data ?? []) as UserSubscriptionRow[];
-        const renewalQ = (renewalQueueResult.data ?? []) as RenewalQueueRow[];
+        const renewalQ = (renewalQueueResult.data ?? []) as RenewalQueueJoinRow[];
         const rus = (ruResult.data ?? []) as Array<{ round_up_amount: number }>;
         const marketQ = (marketQueueResult.data ?? []) as MarketQueueRow[];
 
         setCashEquivalents(subs.reduce((sum, s) => sum + s.amount, 0));
-        setAccountsReceivable(renewalQ.reduce((sum, r) => sum + (r.amount ?? 0), 0));
+        setAccountsReceivable(renewalQ.reduce((sum, r) => sum + (r.user_subscriptions?.amount ?? 0), 0));
         setUserDeposits(rus.reduce((sum, r) => sum + r.round_up_amount, 0));
         setPendingPayouts(marketQ.reduce((sum, m) => sum + (m.amount ?? 0), 0));
       } catch (err) {
@@ -966,7 +924,7 @@ function RoundUpsTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
         <KpiCard label="Total Round-Up Volume" value={usd(totalVolume)} accent="purple" />
-        <KpiCard label="Total Fee Revenue" value={usd(totalFeeRevenue)} accent="teal" />
+        <KpiCard label="Total Fees Collected" value={usd(totalFeeRevenue)} accent="teal" />
         <KpiCard label="Ledger Entries" value={ledgerEntries} accent="blue" />
         <KpiCard label="Avg Round-Up" value={usd(avgRoundUp)} accent="pink" />
       </div>
@@ -997,110 +955,6 @@ function RoundUpsTab() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Sub-tab: Accounting                                                */
-/* ------------------------------------------------------------------ */
-
-function AccountingTab() {
-  const [loading, setLoading] = useState(true);
-  const [totalDebits, setTotalDebits] = useState(0);
-  const [totalCredits, setTotalCredits] = useState(0);
-  const [totalTxFees, setTotalTxFees] = useState(0);
-  const [totalLedgerFees, setTotalLedgerFees] = useState(0);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [txResult, ruResult] = await Promise.all([
-          supabaseAdmin.from('transactions').select('amount, fee').limit(1000),
-          supabaseAdmin.from('roundup_ledger').select('round_up_amount, fee_amount').limit(1000),
-        ]);
-
-        const txData = (txResult.data ?? []) as Array<{ amount: number; fee: number }>;
-        const ruData = (ruResult.data ?? []) as Array<{ round_up_amount: number; fee_amount: number }>;
-
-        setTotalDebits(txData.reduce((sum, t) => sum + t.amount, 0));
-        setTotalTxFees(txData.reduce((sum, t) => sum + t.fee, 0));
-        setTotalCredits(ruData.reduce((sum, r) => sum + r.round_up_amount, 0));
-        setTotalLedgerFees(ruData.reduce((sum, r) => sum + r.fee_amount, 0));
-      } catch (err) {
-        console.error('Accounting fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
-
-  const netPosition = totalDebits - totalCredits;
-  const feesMatch = Math.abs(totalTxFees - totalLedgerFees) < 0.01;
-
-  if (loading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-        Loading accounting data...
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-          Accounting Overview
-        </p>
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          Double-entry accounting and journal entries. Financial reconciliation tools.
-        </p>
-      </GlassCard>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <KpiCard label="Total Debits" value={usd(totalDebits)} accent="purple" />
-        <KpiCard label="Total Credits" value={usd(totalCredits)} accent="teal" />
-        <KpiCard label="Net Position" value={usd(netPosition)} accent="blue" />
-      </div>
-
-      <GlassCard padding="24px">
-        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
-          Fee Reconciliation
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div
-            style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'rgba(124,58,237,0.08)',
-              border: '1px solid rgba(124,58,237,0.15)',
-            }}
-          >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Transaction Fees</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalTxFees)}</p>
-          </div>
-          <div
-            style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'rgba(6,182,212,0.08)',
-              border: '1px solid rgba(6,182,212,0.15)',
-            }}
-          >
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>Ledger Fees</p>
-            <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{usd(totalLedgerFees)}</p>
-          </div>
-        </div>
-        <div style={{ marginTop: '16px' }}>
-          {feesMatch ? (
-            <Badge variant="success">Reconciled -- fees match</Badge>
-          ) : (
-            <Badge variant="warning">
-              Reconciliation needed -- difference: {usd(Math.abs(totalTxFees - totalLedgerFees))}
-            </Badge>
-          )}
-        </div>
-      </GlassCard>
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Main Component                                                     */
@@ -1113,7 +967,6 @@ export function FinancialAnalyticsTab() {
     { key: 'balance-sheet', label: 'Balance Sheet', content: <BalanceSheetTab /> },
     { key: 'cash-flow', label: 'Cash Flow', content: <CashFlowTab /> },
     { key: 'roundups', label: 'Round-Ups', content: <RoundUpsTab /> },
-    { key: 'accounting', label: 'Accounting', content: <AccountingTab /> },
   ];
 
   return <Tabs tabs={tabs} defaultTab="revenue" />;

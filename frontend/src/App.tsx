@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { ThemeProvider } from '@/context/ThemeContext'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
+import { AnalyticsScripts } from '@/components/common/AnalyticsScripts'
+import { getDemoSession } from '@/demo/useDemoSession'
 
 // Lazy-loaded pages
 const Home = lazy(() => import('@/pages/Home'))
@@ -19,6 +21,10 @@ const UserDashboard = lazy(() => import('@/pages/UserDashboard'))
 const FamilyDashboard = lazy(() => import('@/pages/FamilyDashboard'))
 const BusinessDashboard = lazy(() => import('@/pages/BusinessDashboard'))
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
+const DemoSelector = lazy(() => import('@/demo/DemoSelector'))
+const DemoUserDashboard = lazy(() => import('@/demo/DemoUserDashboard'))
+const DemoFamilyDashboard = lazy(() => import('@/demo/DemoFamilyDashboard'))
+const DemoBusinessDashboard = lazy(() => import('@/demo/DemoBusinessDashboard'))
 
 function LoadingScreen() {
   return (
@@ -55,6 +61,13 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+
+function DemoRoute({ children }: { children: React.ReactNode }) {
+  const session = getDemoSession()
+  if (!session) return <Navigate to="/demo" replace />
+  return <>{children}</>
+}
+
 function AppRedirect() {
   const { profile, loading, user } = useAuth()
 
@@ -78,6 +91,7 @@ export default function App() {
   return (
     <AuthProvider>
     <ThemeProvider>
+      <AnalyticsScripts />
       <Suspense fallback={<LoadingScreen />}>
         <Routes>
           {/* Public routes */}
@@ -92,6 +106,12 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+
+          {/* Demo routes — require demo code session */}
+          <Route path="/demo" element={<DemoSelector />} />
+          <Route path="/demo/individual" element={<DemoRoute><DemoUserDashboard /></DemoRoute>} />
+          <Route path="/demo/family" element={<DemoRoute><DemoFamilyDashboard /></DemoRoute>} />
+          <Route path="/demo/business" element={<DemoRoute><DemoBusinessDashboard /></DemoRoute>} />
 
           {/* App redirect */}
           <Route path="/app" element={

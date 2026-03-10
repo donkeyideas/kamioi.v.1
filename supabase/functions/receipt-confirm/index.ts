@@ -60,21 +60,9 @@ serve(async (req: Request) => {
     const roundUpAmount = allocationData.totalRoundUp || receipt.round_up_amount || 1
     const allocations = allocationData.allocations || []
 
-    // 5. Calculate fee
-    let feeRate = 0.025
-    const { data: adminSetting } = await supabase
-      .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'platform_fee')
-      .maybeSingle()
-
-    if (adminSetting?.setting_value) {
-      const parsed = parseFloat(adminSetting.setting_value)
-      if (!isNaN(parsed)) feeRate = parsed
-    }
-
-    const fee = parseFloat((roundUpAmount * feeRate).toFixed(2))
-    const netInvestment = parseFloat((roundUpAmount - fee).toFixed(2))
+    // 5. Full round-up goes to investment (no platform fee)
+    const fee = 0
+    const netInvestment = roundUpAmount
 
     // 6. Create transaction record
     const { data: txn, error: txnErr } = await supabase

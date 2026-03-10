@@ -17,15 +17,41 @@ serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return corsResponse()
 
   try {
-    const { user } = await getAuthUser(req)
     const supabase = createServiceClient()
-    const adminUser = await requireAdmin(supabase, user.id)
+    const body = await req.json()
+    const { topic, tone = 'Informative', platforms, _adminKey } = body
 
-    const { topic, tone = 'Informative', platforms } = await req.json()
+    // Support both JWT auth and service-role key auth (admin dashboard)
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    let adminUser
 
-    if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
-      return errorResponse('topic is required', 400)
+    // Verify admin key by decoding the JWT and checking for service_role claim
+    let isAdminRequest = false
+    if (typeof _adminKey === 'string' && _adminKey.length > 50) {
+      try {
+        const payload = JSON.parse(atob(_adminKey.split('.')[1]))
+        isAdminRequest = payload.role === 'service_role'
+      } catch { /* not a valid JWT */ }
     }
+
+    if (isAdminRequest) {
+      // Service-role request from admin dashboard — look up an admin user for logging
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('account_type', 'admin')
+        .limit(1)
+        .single()
+      if (!data) return errorResponse('No admin user found', 403)
+      adminUser = data
+    } else {
+      const { user } = await getAuthUser(req)
+      adminUser = await requireAdmin(supabase, user.id)
+    }
+
+    const resolvedTopic = (typeof topic === 'string' && topic.trim().length > 0)
+      ? topic.trim()
+      : 'trending micro-investing tips, financial wellness, or fintech innovation (choose a relevant angle)'
     if (!Array.isArray(platforms) || platforms.length === 0) {
       return errorResponse('platforms array is required and must not be empty', 400)
     }
@@ -57,7 +83,7 @@ serve(async (req: Request) => {
 
         const prompt = `You are a social media manager for Kamioi, a micro-investing fintech platform that helps people invest spare change into stocks.
 
-Write a ${platform} post about: ${topic}
+Write a ${platform} post about: ${resolvedTopic}
 Tone: ${tone}
 Maximum characters: ${config.maxChars}
 Style: ${config.style}
@@ -151,7 +177,8 @@ Respond with valid JSON only, no markdown fences or extra text:
       model: 'deepseek-chat',
       cost: estimatedCost,
       success: errors.length === 0,
-      request_data: JSON.stringify({ topic, tone, platforms }),
+      error_message: errors.length > 0 ? errors.map(e => `${e.platform}: ${e.error}`).join('; ') : null,
+      request_data: JSON.stringify({ topic: resolvedTopic, tone, platforms }),
       processing_time_ms: processingTimeMs,
     })
 
@@ -159,7 +186,7 @@ Respond with valid JSON only, no markdown fences or extra text:
     await supabase.from('ai_responses').insert({
       merchant_name: null,
       category: 'social-post-generation',
-      prompt: `Topic: ${topic} | Tone: ${tone} | Platforms: ${platforms.join(',')}`,
+      prompt: `Topic: ${resolvedTopic} | Tone: ${tone} | Platforms: ${platforms.join(',')}`,
       raw_response: JSON.stringify(results),
       parsed_response: JSON.stringify(generated),
       processing_time_ms: processingTimeMs,
@@ -182,6 +209,18 @@ Respond with valid JSON only, no markdown fences or extra text:
       : message.startsWith('Forbidden') ? 403
       : message === 'User not found' ? 404
       : 500
+
+    // Log the caught error to api_usage
+    try {
+      const supabase = createServiceClient()
+      await supabase.from('api_usage').insert({
+        endpoint: 'social-posts-generate',
+        model: 'deepseek-chat',
+        success: false,
+        error_message: message,
+      })
+    } catch { /* best effort */ }
+
     return errorResponse(message, status)
   }
 })

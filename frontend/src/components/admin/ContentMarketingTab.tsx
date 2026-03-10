@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabaseAdmin } from '@/lib/supabase';
 import { generateBlogPost } from '@/services/api';
 import { renderMarkdown } from '@/utils/markdown';
+import { logSystemEvent } from '@/utils/logSystemEvent';
 import { KpiCard, GlassCard, Table, Badge, Button, Tabs, Input, Select, Modal, Textarea } from '@/components/ui';
 import type { Column, TabItem, SelectOption } from '@/components/ui';
 
@@ -49,16 +50,6 @@ interface Advertisement {
   start_date: string | null;
   end_date: string | null;
   is_active: boolean;
-  created_at: string;
-}
-
-interface ContactMessage {
-  id: number;
-  name: string;
-  email: string;
-  subject: string | null;
-  message: string | null;
-  status: 'new' | 'read' | 'replied' | 'closed';
   created_at: string;
 }
 
@@ -178,13 +169,6 @@ const TARGET_DASHBOARD_OPTIONS: SelectOption[] = [
   { value: 'family', label: 'Family' },
   { value: 'business', label: 'Business' },
   { value: 'all', label: 'All' },
-];
-
-const CONTACT_STATUS_OPTIONS: SelectOption[] = [
-  { value: 'new', label: 'New' },
-  { value: 'read', label: 'Read' },
-  { value: 'replied', label: 'Replied' },
-  { value: 'closed', label: 'Closed' },
 ];
 
 const EMPTY_BLOG_FORM: BlogFormData = {
@@ -477,9 +461,11 @@ function BlogPostsContent() {
           .update(payload)
           .eq('id', editingPost.id);
         if (error) console.error('Failed to update blog post:', error.message);
+        else logSystemEvent('blog_post_updated', 'ContentMarketing', { id: editingPost.id, title: form.title });
       } else {
         const { error } = await supabaseAdmin.from('blog_posts').insert(payload);
         if (error) console.error('Failed to create blog post:', error.message);
+        else logSystemEvent('blog_post_created', 'ContentMarketing', { title: form.title, status: form.status });
       }
       setModalOpen(false);
       await fetchPosts();
@@ -494,6 +480,7 @@ function BlogPostsContent() {
     try {
       const { error } = await supabaseAdmin.from('blog_posts').delete().eq('id', id);
       if (error) console.error('Failed to delete blog post:', error.message);
+      else logSystemEvent('blog_post_deleted', 'ContentMarketing', { id });
       await fetchPosts();
     } catch (err) {
       console.error('Delete blog post error:', err);
@@ -1425,9 +1412,11 @@ function AdvertisementsContent() {
           .update(payload)
           .eq('id', editingAd.id);
         if (error) console.error('Failed to update ad:', error.message);
+        else logSystemEvent('ad_updated', 'ContentMarketing', { id: editingAd.id, title: form.title });
       } else {
         const { error } = await supabaseAdmin.from('advertisements').insert(payload);
         if (error) console.error('Failed to create ad:', error.message);
+        else logSystemEvent('ad_created', 'ContentMarketing', { title: form.title });
       }
       setModalOpen(false);
       await fetchAds();
@@ -1442,6 +1431,7 @@ function AdvertisementsContent() {
     try {
       const { error } = await supabaseAdmin.from('advertisements').delete().eq('id', id);
       if (error) console.error('Failed to delete ad:', error.message);
+      else logSystemEvent('ad_deleted', 'ContentMarketing', { id });
       await fetchAds();
     } catch (err) {
       console.error('Delete ad error:', err);
@@ -1887,6 +1877,7 @@ function SeoSettingsContent() {
           );
         if (error) console.error(`Failed to save SEO ${key}:`, error.message);
       }
+      logSystemEvent('seo_settings_updated', 'ContentMarketing', { keys: Object.keys(seoData) });
       setToast('SEO settings saved successfully');
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
@@ -1968,128 +1959,6 @@ function SeoSettingsContent() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Sub-tab: Contact Messages                                          */
-/* ------------------------------------------------------------------ */
-
-function ContactMessagesContent() {
-  const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState<ContactMessage[]>([]);
-
-  const fetchMessages = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await supabaseAdmin
-        .from('contact_messages')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
-      setMessages((result.data ?? []) as ContactMessage[]);
-    } catch (err) {
-      console.error('ContactMessagesContent fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
-
-  const totalMessages = messages.length;
-  const unreadCount = messages.filter((m) => m.status === 'new').length;
-
-  async function updateStatus(id: number, status: string) {
-    try {
-      const { error } = await supabaseAdmin
-        .from('contact_messages')
-        .update({ status })
-        .eq('id', id);
-      if (error) console.error('Failed to update status:', error.message);
-      await fetchMessages();
-    } catch (err) {
-      console.error('Update status error:', err);
-    }
-  }
-
-  const columns: Column<ContactMessage>[] = useMemo(
-    () => [
-      { key: 'name', header: 'Name', sortable: true, width: '160px' },
-      {
-        key: 'email',
-        header: 'Email',
-        sortable: true,
-        width: '220px',
-        render: (row) => (
-          <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-            {row.email}
-          </span>
-        ),
-      },
-      { key: 'subject', header: 'Subject', sortable: true, render: (row) => row.subject ?? '--' },
-      {
-        key: 'message',
-        header: 'Message',
-        render: (row) => (
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-            {row.message ? truncate(row.message, 60) : '--'}
-          </span>
-        ),
-      },
-      {
-        key: 'status',
-        header: 'Status',
-        sortable: true,
-        width: '140px',
-        render: (row) => (
-          <Select
-            options={CONTACT_STATUS_OPTIONS}
-            value={row.status}
-            onChange={(e) => updateStatus(row.id, e.target.value)}
-            style={{ minWidth: '100px' }}
-          />
-        ),
-      },
-      {
-        key: 'created_at',
-        header: 'Created At',
-        sortable: true,
-        width: '140px',
-        render: (row) => formatDate(row.created_at),
-      },
-    ],
-    [],
-  );
-
-  if (loading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-        Loading contact messages...
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <KpiCard label="Total Messages" value={totalMessages} accent="purple" />
-        <KpiCard label="Unread" value={unreadCount} accent="pink" />
-      </div>
-
-      <GlassCard padding="0">
-        <Table<ContactMessage>
-          columns={columns}
-          data={messages}
-          loading={false}
-          emptyMessage="No contact messages found"
-          pageSize={15}
-          rowKey={(row) => row.id}
-        />
-      </GlassCard>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -2100,7 +1969,6 @@ export function ContentMarketingTab() {
       { key: 'ads', label: 'Advertisements', content: <AdvertisementsContent /> },
       { key: 'frontend', label: 'Frontend Content', content: <FrontendContentTab /> },
       { key: 'seo', label: 'SEO Settings', content: <SeoSettingsContent /> },
-      { key: 'contact', label: 'Contact Messages', content: <ContactMessagesContent /> },
     ],
     [],
   );

@@ -1,5 +1,7 @@
-import { useState, useCallback, lazy, Suspense } from 'react'
+import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useAdminPermissions, type PermissionKey } from '@/hooks/useAdminPermissions'
 import { DashboardLayout, type NavItem, type NavSection } from '@/components/layout'
 import { supabaseAdmin } from '@/lib/supabase'
 
@@ -70,6 +72,23 @@ const subtitleMap: Record<string, string> = {
   social: 'AI-powered social media post generation and scheduling',
 }
 
+// Map tab IDs to the permission keys that grant access.
+// Tabs not listed here are always visible.
+const TAB_PERMISSIONS: Record<string, PermissionKey[]> = {
+  users: ['can_view_users', 'can_edit_users'],
+  transactions: ['can_view_transactions', 'can_edit_transactions'],
+  'ai-center': ['can_access_llm'],
+  system: ['can_manage_system'],
+  database: ['can_manage_system'],
+  monitoring: ['can_manage_system'],
+  employees: ['can_manage_system'],
+  overview: ['can_view_analytics'],
+  financial: ['can_view_analytics'],
+  seo: ['can_view_analytics'],
+  content: ['can_manage_advertisements'],
+  social: ['can_manage_advertisements'],
+}
+
 function renderContent(activeTab: string) {
   switch (activeTab) {
     case 'overview':
@@ -109,58 +128,131 @@ function renderContent(activeTab: string) {
   }
 }
 
-/* ---- Delete All Data Button ---- */
+/* ---- Delete Data Button ---- */
 
-// Ordered child-first to respect foreign key constraints.
+// Data categories with their tables (child-first for FK constraints).
 // Does NOT delete: users, subscription_plans, admin_settings, api_balance (config/identity data).
-const TABLES_TO_CLEAR = [
-  // FK children of user_subscriptions / subscription_plans
-  'promo_code_usage',
-  'renewal_queue',
-  'renewal_history',
-  'subscription_analytics',
-  'subscription_changes',
-  'user_subscriptions',
-  'promo_codes',
-  // FK children of transactions
-  'roundup_ledger',
-  'market_queue',
-  'llm_mappings',
-  'ai_responses',
-  // FK children of users
-  'notifications',
-  'goals',
-  'portfolios',
-  'statements',
-  'user_settings',
-  'transactions',
-  // Membership tables (FK → users + families/businesses)
-  'family_members',
-  'business_members',
-  'families',
-  'businesses',
-  // Social media posts
-  'social_media_posts',
-  // Standalone tables
-  'system_events',
-  'advertisements',
-  'api_usage',
-  'contact_messages',
-  'blog_posts',
+const DATA_CATEGORIES = [
+  {
+    key: 'transactions',
+    label: 'Transactions & Round-Ups',
+    description: 'Transactions, round-up ledger, market queue',
+    tables: ['roundup_ledger', 'market_queue', 'receipt_allocations', 'transactions'],
+  },
+  {
+    key: 'receipts',
+    label: 'Receipts',
+    description: 'Receipt uploads and allocations',
+    tables: ['receipt_allocations', 'receipts'],
+  },
+  {
+    key: 'portfolios',
+    label: 'Portfolios & Goals',
+    description: 'Holdings, goals, statements',
+    tables: ['portfolios', 'goals', 'statements'],
+  },
+  {
+    key: 'ai',
+    label: 'AI Data',
+    description: 'LLM mappings, AI responses, API usage',
+    tables: ['llm_mappings', 'ai_responses', 'api_usage'],
+  },
+  {
+    key: 'subscriptions',
+    label: 'Subscriptions & Promos',
+    description: 'Subscriptions, promo codes, renewals',
+    tables: ['promo_code_usage', 'renewal_queue', 'renewal_history', 'subscription_analytics', 'subscription_changes', 'user_subscriptions', 'promo_codes'],
+  },
+  {
+    key: 'notifications',
+    label: 'Notifications & Messages',
+    description: 'Notifications, contact messages',
+    tables: ['notifications', 'contact_messages'],
+  },
+  {
+    key: 'demo',
+    label: 'Demo Access Logs',
+    description: 'Demo access tracking logs',
+    tables: ['demo_access_log'],
+  },
+  {
+    key: 'social',
+    label: 'Social Media Posts',
+    description: 'All social media post data',
+    tables: ['social_media_posts'],
+  },
+  {
+    key: 'members',
+    label: 'Families & Businesses',
+    description: 'Family/business members and groups',
+    tables: ['family_members', 'business_members', 'families', 'businesses'],
+  },
+  {
+    key: 'settings',
+    label: 'User Settings',
+    description: 'Per-user preferences',
+    tables: ['user_settings'],
+  },
+  {
+    key: 'system',
+    label: 'System Events & Ads',
+    description: 'System event logs, advertisements',
+    tables: ['system_events', 'advertisements'],
+  },
+  {
+    key: 'blogs',
+    label: 'Blog Posts',
+    description: 'All blog content',
+    tables: ['blog_posts'],
+  },
 ] as const
 
 function DeleteAllButton() {
-  const [confirming, setConfirming] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [result, setResult] = useState<string | null>(null)
+
+  function handleOpen() {
+    // Pre-select everything except blogs
+    setSelected(new Set(DATA_CATEGORIES.filter(c => c.key !== 'blogs').map(c => c.key)))
+    setOpen(true)
+  }
+
+  function toggle(key: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  function selectAll() {
+    setSelected(new Set(DATA_CATEGORIES.map(c => c.key)))
+  }
+
+  function selectNone() {
+    setSelected(new Set())
+  }
 
   async function handleDelete() {
     setDeleting(true)
     setResult(null)
+
+    // Collect unique tables from selected categories (preserve order)
+    const seen = new Set<string>()
+    const tables: string[] = []
+    for (const cat of DATA_CATEGORIES) {
+      if (!selected.has(cat.key)) continue
+      for (const t of cat.tables) {
+        if (!seen.has(t)) { seen.add(t); tables.push(t) }
+      }
+    }
+
     let deleted = 0
     let failed = 0
-
-    for (const table of TABLES_TO_CLEAR) {
+    for (const table of tables) {
       try {
         const { error } = await supabaseAdmin.from(table).delete().gte('id', 0)
         if (!error) deleted++
@@ -171,16 +263,16 @@ function DeleteAllButton() {
     }
 
     setDeleting(false)
-    setConfirming(false)
-    setResult(`Cleared ${deleted}/${TABLES_TO_CLEAR.length} tables${failed ? ` (${failed} skipped)` : ''}`)
+    setOpen(false)
+    setResult(`Cleared ${deleted}/${tables.length} tables${failed ? ` (${failed} skipped)` : ''}`)
     setTimeout(() => setResult(null), 5000)
   }
 
   return (
-    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-      {!confirming ? (
+    <>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
         <button
-          onClick={() => setConfirming(true)}
+          onClick={handleOpen}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -201,59 +293,126 @@ function DeleteAllButton() {
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
-          Delete All Data
+          Delete Data
         </button>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', color: '#EF4444', fontWeight: 600 }}>Are you sure?</span>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
+        {result && (
+          <span style={{ fontSize: '12px', color: '#34D399', fontWeight: 600 }}>{result}</span>
+        )}
+      </div>
+
+      {/* Delete Options Modal */}
+      {open && createPortal(
+        <div
+          onClick={() => !deleting && setOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999,
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
             style={{
-              padding: '6px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              background: '#EF4444',
-              color: '#fff',
-              fontSize: '12px',
-              fontWeight: 600,
-              fontFamily: 'inherit',
-              cursor: deleting ? 'wait' : 'pointer',
-              opacity: deleting ? 0.6 : 1,
+              background: 'var(--color-surface-card, #1a1a2e)',
+              border: '1px solid var(--color-border-subtle)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '520px',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}
           >
-            {deleting ? 'Deleting...' : 'Yes, Delete'}
-          </button>
-          <button
-            onClick={() => setConfirming(false)}
-            disabled={deleting}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--surface-input)',
-              color: 'var(--text-secondary)',
-              fontSize: '12px',
-              fontWeight: 500,
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-            }}
-          >
-            Cancel
-          </button>
-        </div>
+            {/* Header */}
+            <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--border-divider)' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#EF4444' }}>Delete Data</h3>
+              <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                Select which data categories to delete. This cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button onClick={selectAll} style={{ background: 'none', border: 'none', color: '#7C3AED', fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                  Select All
+                </button>
+                <button onClick={selectNone} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                  Select None
+                </button>
+              </div>
+            </div>
+
+            {/* Checkbox List */}
+            <div style={{ padding: '8px 24px', overflowY: 'auto', flex: 1 }}>
+              {DATA_CATEGORIES.map(cat => (
+                <label
+                  key={cat.key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px 0',
+                    borderBottom: '1px solid var(--border-divider)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(cat.key)}
+                    onChange={() => toggle(cat.key)}
+                    style={{ width: '18px', height: '18px', accentColor: '#EF4444', cursor: 'pointer', flexShrink: 0 }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{cat.label}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{cat.description}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {selected.size} of {DATA_CATEGORIES.length} selected
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setOpen(false)}
+                  disabled={deleting}
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)', background: 'var(--surface-input)',
+                    color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500,
+                    fontFamily: 'inherit', cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting || selected.size === 0}
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px',
+                    border: 'none', background: selected.size === 0 ? '#666' : '#EF4444',
+                    color: '#fff', fontSize: '13px', fontWeight: 600,
+                    fontFamily: 'inherit', cursor: deleting || selected.size === 0 ? 'not-allowed' : 'pointer',
+                    opacity: deleting ? 0.6 : 1,
+                  }}
+                >
+                  {deleting ? 'Deleting...' : `Delete Selected (${selected.size})`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
-      {result && (
-        <span style={{ fontSize: '12px', color: '#34D399', fontWeight: 600 }}>
-          {result}
-        </span>
-      )}
-    </div>
+    </>
   )
 }
 
 export default function AdminDashboard() {
   const { profile } = useAuth()
+  const { can, isSuperAdmin: isSuperAdminUser } = useAdminPermissions()
   const [activeTab, setActiveTab] = useState('overview')
 
   const handleNavigate = useCallback((item: NavItem) => {
@@ -263,12 +422,34 @@ export default function AdminDashboard() {
   const userName = profile?.name || 'Admin'
   const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
+  // Filter nav sections based on permissions (super admin sees everything)
+  const filteredNavSections: NavSection[] = useMemo(() => {
+    if (isSuperAdminUser) return adminNavSections
+
+    return adminNavSections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        const requiredPerms = TAB_PERMISSIONS[item.id]
+        if (!requiredPerms) return true // no permission mapping → always visible
+        return requiredPerms.some((p) => can(p)) // show if ANY required perm is granted
+      }),
+    }))
+  }, [can, isSuperAdminUser])
+
+  // Permission guard for content rendering
+  function canAccessTab(tabId: string): boolean {
+    if (isSuperAdminUser) return true
+    const requiredPerms = TAB_PERMISSIONS[tabId]
+    if (!requiredPerms) return true
+    return requiredPerms.some((p) => can(p))
+  }
+
   return (
     <DashboardLayout
-      navSections={adminNavSections}
+      navSections={filteredNavSections}
       activeNavId={activeTab}
       onNavigate={handleNavigate}
-      sidebarUser={{ name: userName, role: 'Super Administrator', initials }}
+      sidebarUser={{ name: userName, role: isSuperAdminUser ? 'Super Administrator' : 'Administrator', initials }}
       greeting={`Welcome back, ${userName}`}
       userInitials={initials}
       headerActions={<DeleteAllButton />}
@@ -281,7 +462,18 @@ export default function AdminDashboard() {
       </p>
 
       <Suspense fallback={<TabLoading />}>
-        {renderContent(activeTab)}
+        {canAccessTab(activeTab) ? (
+          renderContent(activeTab)
+        ) : (
+          <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <p style={{ fontSize: '16px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              You do not have permission to access this section.
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Contact your Super Admin to request access.
+            </p>
+          </div>
+        )}
       </Suspense>
     </DashboardLayout>
   )

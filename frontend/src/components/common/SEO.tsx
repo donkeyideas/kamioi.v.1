@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useSeoSettings } from '@/hooks/useSeoSettings'
 
 interface SEOProps {
   title?: string
@@ -11,8 +12,8 @@ interface SEOProps {
 
 /**
  * SEO component that manages document head meta tags via useEffect.
- * Sets title, description, Open Graph, Twitter Card, canonical, and robots tags.
- * Cleans up created/modified meta tags on unmount.
+ * Reads global defaults from admin SEO settings (site title, description, OG image, etc.).
+ * Per-page props override the global defaults.
  */
 export function SEO({
   title,
@@ -22,34 +23,55 @@ export function SEO({
   ogType = 'website',
   noindex = false,
 }: SEOProps) {
+  const { seoSettings } = useSeoSettings()
+
+  const siteName = seoSettings.site_title || 'Kamioi'
+  const resolvedDescription = description || seoSettings.meta_description
+  const resolvedOgImage = ogImage || seoSettings.og_image_url
+  const twitterHandle = seoSettings.twitter_handle
+  const keywords = seoSettings.keywords
+
   useEffect(() => {
     const previousTitle = document.title
-    document.title = title ? `${title} | Kamioi` : 'Kamioi'
+    document.title = title ? `${title} | ${siteName}` : siteName
 
     const metaTags: Array<{ property?: string; name?: string; content: string }> = []
 
-    if (description) {
-      metaTags.push({ name: 'description', content: description })
+    if (resolvedDescription) {
+      metaTags.push({ name: 'description', content: resolvedDescription })
+    }
+
+    if (keywords) {
+      metaTags.push({ name: 'keywords', content: keywords })
     }
 
     // Open Graph tags
-    metaTags.push({ property: 'og:title', content: title ? `${title} | Kamioi` : 'Kamioi' })
-    if (description) {
-      metaTags.push({ property: 'og:description', content: description })
+    metaTags.push({ property: 'og:title', content: title ? `${title} | ${siteName}` : siteName })
+    if (resolvedDescription) {
+      metaTags.push({ property: 'og:description', content: resolvedDescription })
     }
-    if (ogImage) {
-      metaTags.push({ property: 'og:image', content: ogImage })
+    if (resolvedOgImage) {
+      metaTags.push({ property: 'og:image', content: resolvedOgImage })
     }
     metaTags.push({ property: 'og:type', content: ogType })
     if (canonical) {
       metaTags.push({ property: 'og:url', content: canonical })
     }
+    metaTags.push({ property: 'og:site_name', content: siteName })
 
     // Twitter Card tags
     metaTags.push({ name: 'twitter:card', content: 'summary_large_image' })
-    metaTags.push({ name: 'twitter:title', content: title ? `${title} | Kamioi` : 'Kamioi' })
-    if (description) {
-      metaTags.push({ name: 'twitter:description', content: description })
+    metaTags.push({ name: 'twitter:title', content: title ? `${title} | ${siteName}` : siteName })
+    if (resolvedDescription) {
+      metaTags.push({ name: 'twitter:description', content: resolvedDescription })
+    }
+    if (resolvedOgImage) {
+      metaTags.push({ name: 'twitter:image', content: resolvedOgImage })
+    }
+    if (twitterHandle) {
+      const handle = twitterHandle.startsWith('@') ? twitterHandle : `@${twitterHandle}`
+      metaTags.push({ name: 'twitter:site', content: handle })
+      metaTags.push({ name: 'twitter:creator', content: handle })
     }
 
     // Robots
@@ -124,7 +146,7 @@ export function SEO({
         canonicalEl.setAttribute('href', prevCanonicalHref)
       }
     }
-  }, [title, description, canonical, ogImage, ogType, noindex])
+  }, [title, resolvedDescription, canonical, resolvedOgImage, ogType, noindex, siteName, twitterHandle, keywords])
 
   return null
 }

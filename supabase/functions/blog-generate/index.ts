@@ -152,8 +152,16 @@ RESPONSE FORMAT -valid JSON only, no markdown fencing:
     if (!deepseekResponse.ok) {
       const errBody = await deepseekResponse.text()
       console.error('DeepSeek API error:', deepseekResponse.status, errBody)
+      // Surface the actual error so the admin can diagnose (e.g. expired key, insufficient balance)
+      let detail = ''
+      try {
+        const parsed = JSON.parse(errBody)
+        detail = parsed?.error?.message || parsed?.message || errBody.slice(0, 200)
+      } catch {
+        detail = errBody.slice(0, 200)
+      }
       return errorResponse(
-        `DeepSeek API request failed with status ${deepseekResponse.status}`,
+        `DeepSeek API error (${deepseekResponse.status}): ${detail}`,
         502,
       )
     }

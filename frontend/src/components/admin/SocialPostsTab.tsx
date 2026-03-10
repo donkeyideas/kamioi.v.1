@@ -151,7 +151,7 @@ function GeneratorTab() {
   }
 
   async function handleGenerate() {
-    if (!topic.trim() || selectedPlatforms.length === 0) return
+    if (selectedPlatforms.length === 0) return
     setGenerating(true)
     setGenError(null)
     setDrafts([])
@@ -174,8 +174,8 @@ function GeneratorTab() {
     setSaving(prev => ({ ...prev, [draft.platform]: true }))
 
     const tomorrow = new Date()
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
-    tomorrow.setUTCHours(9, 0, 0, 0)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0)
 
     await supabaseAdmin.from('social_media_posts').insert({
       platform: draft.platform,
@@ -253,7 +253,7 @@ function GeneratorTab() {
           <Button
             onClick={handleGenerate}
             loading={generating}
-            disabled={!topic.trim() || selectedPlatforms.length === 0}
+            disabled={selectedPlatforms.length === 0}
           >
             Generate All
           </Button>
@@ -379,8 +379,8 @@ function QueueTab() {
     setBulkApproving(true)
     const drafts = posts.filter(p => p.status === 'DRAFT')
     const tomorrow = new Date()
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
-    tomorrow.setUTCHours(9, 0, 0, 0)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0)
     const scheduledAt = tomorrow.toISOString()
 
     const ids = drafts.map(d => d.id)

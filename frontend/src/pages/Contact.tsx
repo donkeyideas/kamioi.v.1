@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { PublicLayout } from '@/components/public'
 import { GlassCard, Button, Input, Textarea } from '@/components/ui'
 import { SEO } from '@/components/common/SEO.tsx'
@@ -107,10 +107,15 @@ function InfoItem({
 /* ------------------------------------------------------------------ */
 
 export default function Contact() {
+  const [searchParams] = useSearchParams()
+  const isDemo = searchParams.get('type') === 'demo'
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [subject, setSubject] = useState('')
-  const [message, setMessage] = useState('')
+  const [subject, setSubject] = useState(isDemo ? 'Demo Request' : '')
+  const [message, setMessage] = useState(
+    isDemo ? 'I would like to request a demo of the Kamioi platform.' : '',
+  )
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -148,9 +153,11 @@ export default function Contact() {
       <section style={sectionStyle}>
         {/* Hero */}
         <div style={heroStyle}>
-          <h1 style={h1Style}>Contact Us</h1>
+          <h1 style={h1Style}>{isDemo ? 'Request a Demo' : 'Contact Us'}</h1>
           <p style={subtitleStyle}>
-            Have a question or feedback? We would love to hear from you.
+            {isDemo
+              ? 'Fill out the form below and our team will get you set up with demo access.'
+              : 'Have a question or feedback? We would love to hear from you.'}
           </p>
         </div>
 
@@ -198,7 +205,7 @@ export default function Contact() {
                   fullWidth
                   loading={loading}
                 >
-                  Send Message
+                  {isDemo ? 'Submit Demo Request' : 'Send Message'}
                 </Button>
 
                 {/* Feedback */}
@@ -211,7 +218,9 @@ export default function Contact() {
                       margin: 0,
                     }}
                   >
-                    Message sent successfully. We will get back to you soon.
+                    {isDemo
+                      ? 'Demo request submitted! Our team will review and send you access shortly.'
+                      : 'Message sent successfully. We will get back to you soon.'}
                   </p>
                 )}
                 {status === 'error' && (
@@ -243,7 +252,7 @@ export default function Contact() {
               >
                 Get in touch
               </h2>
-              <InfoItem label="Email" value="hello@kamioi.com" />
+              <InfoItem label="Email" value="info@donkeyideas.com" />
               <InfoItem label="Response time" value="We typically respond within 24 hours" />
               <InfoItem label="Office hours" value="Monday - Friday, 9am - 6pm EST" />
             </GlassCard>

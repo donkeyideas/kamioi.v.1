@@ -64,7 +64,7 @@ const CONTACT_STATUS_OPTIONS: SelectOption[] = [
 ];
 
 const EMPTY_SEND_FORM: SendFormData = {
-  user_id: '0',
+  user_id: 'all',
   title: '',
   message: '',
   type: 'info',
@@ -347,22 +347,57 @@ function MessagingTab() {
   const [form, setForm] = useState<SendFormData>(EMPTY_SEND_FORM);
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [userOptions, setUserOptions] = useState<SelectOption[]>([]);
+
+  useEffect(() => {
+    supabaseAdmin
+      .from('users')
+      .select('id, name, email')
+      .order('name')
+      .then(({ data }) => {
+        const opts: SelectOption[] = [{ value: 'all', label: 'All Users (broadcast)' }];
+        for (const u of data ?? []) {
+          opts.push({ value: String(u.id), label: `${u.name} (${u.email})` });
+        }
+        setUserOptions(opts);
+      });
+  }, []);
 
   async function handleSend() {
+    if (!form.title.trim() || !form.message.trim()) return;
     setSending(true);
     try {
-      const userId = parseInt(form.user_id, 10) || 0;
-      const payload = {
-        user_id: userId,
-        title: form.title,
-        message: form.message,
-        type: form.type,
-        read: false,
-      };
-      const { error } = await supabaseAdmin.from('notifications').insert(payload);
-      if (error) {
-        console.error('Failed to send notification:', error.message);
-        return;
+      if (form.user_id === 'all') {
+        // Broadcast: insert one notification per user
+        const { data: users } = await supabaseAdmin.from('users').select('id');
+        if (users && users.length > 0) {
+          const rows = users.map((u) => ({
+            user_id: u.id,
+            title: form.title,
+            message: form.message,
+            type: form.type,
+            read: false,
+          }));
+          const { error } = await supabaseAdmin.from('notifications').insert(rows);
+          if (error) {
+            console.error('Failed to broadcast notification:', error.message);
+            return;
+          }
+        }
+      } else {
+        const userId = parseInt(form.user_id, 10);
+        if (!userId) return;
+        const { error } = await supabaseAdmin.from('notifications').insert({
+          user_id: userId,
+          title: form.title,
+          message: form.message,
+          type: form.type,
+          read: false,
+        });
+        if (error) {
+          console.error('Failed to send notification:', error.message);
+          return;
+        }
       }
       setModalOpen(false);
       setForm(EMPTY_SEND_FORM);
@@ -377,7 +412,7 @@ function MessagingTab() {
 
   function openWithTemplate(template: TemplateItem) {
     setForm({
-      user_id: '0',
+      user_id: 'all',
       title: template.title,
       message: template.message,
       type: template.type,
@@ -404,9 +439,9 @@ function MessagingTab() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Send Notification" size="md">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Input
-            label="User ID (0 for all users)"
-            type="number"
+          <Select
+            label="Recipient"
+            options={userOptions}
             value={form.user_id}
             onChange={(e) => setForm({ ...form, user_id: e.target.value })}
           />
@@ -604,10 +639,25 @@ function TemplatesTab() {
   const [form, setForm] = useState<SendFormData>(EMPTY_SEND_FORM);
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [userOptions, setUserOptions] = useState<SelectOption[]>([]);
+
+  useEffect(() => {
+    supabaseAdmin
+      .from('users')
+      .select('id, name, email')
+      .order('name')
+      .then(({ data }) => {
+        const opts: SelectOption[] = [{ value: 'all', label: 'All Users (broadcast)' }];
+        for (const u of data ?? []) {
+          opts.push({ value: String(u.id), label: `${u.name} (${u.email})` });
+        }
+        setUserOptions(opts);
+      });
+  }, []);
 
   function useTemplate(template: TemplateItem) {
     setForm({
-      user_id: '0',
+      user_id: 'all',
       title: template.title,
       message: template.message,
       type: template.type,
@@ -616,20 +666,39 @@ function TemplatesTab() {
   }
 
   async function handleSend() {
+    if (!form.title.trim() || !form.message.trim()) return;
     setSending(true);
     try {
-      const userId = parseInt(form.user_id, 10) || 0;
-      const payload = {
-        user_id: userId,
-        title: form.title,
-        message: form.message,
-        type: form.type,
-        read: false,
-      };
-      const { error } = await supabaseAdmin.from('notifications').insert(payload);
-      if (error) {
-        console.error('Failed to send notification:', error.message);
-        return;
+      if (form.user_id === 'all') {
+        const { data: users } = await supabaseAdmin.from('users').select('id');
+        if (users && users.length > 0) {
+          const rows = users.map((u) => ({
+            user_id: u.id,
+            title: form.title,
+            message: form.message,
+            type: form.type,
+            read: false,
+          }));
+          const { error } = await supabaseAdmin.from('notifications').insert(rows);
+          if (error) {
+            console.error('Failed to broadcast notification:', error.message);
+            return;
+          }
+        }
+      } else {
+        const userId = parseInt(form.user_id, 10);
+        if (!userId) return;
+        const { error } = await supabaseAdmin.from('notifications').insert({
+          user_id: userId,
+          title: form.title,
+          message: form.message,
+          type: form.type,
+          read: false,
+        });
+        if (error) {
+          console.error('Failed to send notification:', error.message);
+          return;
+        }
       }
       setModalOpen(false);
       setForm(EMPTY_SEND_FORM);
@@ -683,9 +752,9 @@ function TemplatesTab() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Send Notification" size="md">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Input
-            label="User ID (0 for all users)"
-            type="number"
+          <Select
+            label="Recipient"
+            options={userOptions}
             value={form.user_id}
             onChange={(e) => setForm({ ...form, user_id: e.target.value })}
           />

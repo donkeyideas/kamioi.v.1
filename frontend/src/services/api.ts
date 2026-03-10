@@ -21,20 +21,106 @@ type EdgeFunctionName =
   | 'social-posts-automation'
   | 'social-posts-credentials'
   | 'social-posts-test-connection'
+  | 'demo-access'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+const SUPABASE_SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined
 
 async function invokeEdge<T = Record<string, unknown>>(
   fn: EdgeFunctionName,
   body: Record<string, unknown>,
 ): Promise<{ data: T | null; error: string | null }> {
   try {
-    const { data, error } = await supabase.functions.invoke(fn, {
-      body,
+    let { data: { session } } = await supabase.auth.getSession()
+
+    // If session missing or expired, try refreshing
+    if (!session) {
+      const { data } = await supabase.auth.refreshSession()
+      session = data.session
+    }
+    if (!session) {
+      return { data: null, error: 'Not authenticated — please log in again' }
+    }
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
     })
-    if (error) return { data: null, error: error.message ?? String(error) }
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => null)
+      const msg = errBody?.error || `Edge function error (${res.status})`
+      return { data: null, error: msg }
+    }
+
+    const data = await res.json()
     return { data: data as T, error: null }
   } catch {
-    // Edge function not deployed or CORS preflight failed — return graceful error
     return { data: null, error: `Edge function "${fn}" is not available. Deploy it with: supabase functions deploy ${fn}` }
+  }
+}
+
+/** Invoke edge function with service role key — for admin-only functions. */
+async function invokeEdgeAdmin<T = Record<string, unknown>>(
+  fn: EdgeFunctionName,
+  body: Record<string, unknown>,
+): Promise<{ data: T | null; error: string | null }> {
+  const key = SUPABASE_SERVICE_ROLE_KEY
+  if (!key) return invokeEdge<T>(fn, body)
+
+  try {
+    // Use service role key for both apikey and Authorization — matches
+    // how Supabase CLI / curl calls edge functions with service role access
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({ ...body, _adminKey: key }),
+    })
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => null)
+      return { data: null, error: errBody?.error || `Edge function error (${res.status})` }
+    }
+
+    return { data: (await res.json()) as T, error: null }
+  } catch {
+    return { data: null, error: `Edge function "${fn}" is not available.` }
+  }
+}
+
+/** Invoke edge function without auth — for public endpoints (demo, contact). */
+async function invokeEdgeAnon<T = Record<string, unknown>>(
+  fn: EdgeFunctionName,
+  body: Record<string, unknown>,
+): Promise<{ data: T | null; error: string | null }> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => null)
+      return { data: null, error: errBody?.error || `Edge function error (${res.status})` }
+    }
+
+    return { data: (await res.json()) as T, error: null }
+  } catch {
+    return { data: null, error: `Edge function "${fn}" is not available.` }
   }
 }
 
@@ -421,7 +507,7 @@ export async function deleteSocialPost(id: string) {
 }
 
 export async function generateSocialPosts(topic: string, tone: string, platforms: string[]) {
-  return invokeEdge<{ generated: GeneratedSocialPost[]; errors: Array<{ platform: string; error: string }>; cost: number }>(
+  return invokeEdgeAdmin<{ generated: GeneratedSocialPost[]; errors: Array<{ platform: string; error: string }>; cost: number }>(
     'social-posts-generate',
     { topic, tone, platforms },
   )
@@ -455,4 +541,24 @@ export async function testSocialConnection(platform: string) {
     'social-posts-test-connection',
     { platform },
   )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Demo Access                                                        */
+/* ------------------------------------------------------------------ */
+
+export async function validateDemoCode(code: string, email: string) {
+  return invokeEdgeAnon<{ session_token: string; email: string; valid_until: string }>(
+    'demo-access',
+    { action: 'validate', code, email },
+  )
+}
+
+export async function logDemoVisit(sessionToken: string, email: string, demoType: string) {
+  return invokeEdgeAnon('demo-access', {
+    action: 'log_visit',
+    session_token: sessionToken,
+    email,
+    demo_type: demoType,
+  })
 }

@@ -10,6 +10,7 @@ export interface UserProfile {
   account_type: 'individual' | 'family' | 'business' | 'admin'
   round_up_amount: number
   subscription_tier: string | null
+  permissions: Record<string, boolean> | null
 }
 
 interface AuthState {
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, name, account_type, round_up_amount, subscription_tier')
+      .select('id, email, name, account_type, round_up_amount, subscription_tier, permissions')
       .eq('auth_id', userId)
       .single()
 

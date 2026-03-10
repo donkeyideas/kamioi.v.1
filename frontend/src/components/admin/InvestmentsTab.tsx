@@ -47,6 +47,7 @@ interface StagedTransaction {
   id: number;
   date: string;
   user_id: number;
+  account_id: string;
   merchant: string;
   ticker: string;
   amount: number;
@@ -489,25 +490,47 @@ function InvestmentProcessingTab() {
   const fetchStaged = useCallback(async () => {
     setLoadingStaged(true);
     try {
-      const { data, error } = await supabaseAdmin
-        .from('transactions')
-        .select(
-          'id, date, user_id, merchant, ticker, amount, round_up, shares, status',
-        )
-        .not('ticker', 'is', null)
-        .eq('status', 'mapped')
-        .order('date', { ascending: false })
-        .limit(500);
+      const [txRes, usersRes] = await Promise.all([
+        supabaseAdmin
+          .from('transactions')
+          .select(
+            'id, date, user_id, merchant, ticker, amount, round_up, shares, status',
+          )
+          .not('ticker', 'is', null)
+          .eq('status', 'mapped')
+          .order('date', { ascending: false })
+          .limit(500),
+        supabaseAdmin
+          .from('users')
+          .select('id, account_id, account_type')
+          .limit(500),
+      ]);
 
-      if (error) {
-        console.error('Failed to fetch staged transactions:', error.message);
+      if (txRes.error) {
+        console.error('Failed to fetch staged transactions:', txRes.error.message);
         setStaged([]);
         return;
       }
+
+      // Build user_id -> account_id lookup
+      const accountMap = new Map<number, string>();
+      for (const u of (usersRes.data ?? [])) {
+        if (u.account_id) {
+          accountMap.set(u.id, u.account_id);
+        } else {
+          const prefix = u.account_type === 'admin' ? 'A'
+            : u.account_type === 'family' ? 'F'
+            : u.account_type === 'business' ? 'B'
+            : 'I';
+          accountMap.set(u.id, prefix + String(u.id).padStart(9, '0'));
+        }
+      }
+
       setStaged(
-        (data ?? []).map((d) => ({
+        (txRes.data ?? []).map((d) => ({
           ...d,
-          ticker: d.ticker as string, // guaranteed non-null by filter
+          ticker: d.ticker as string,
+          account_id: accountMap.get(d.user_id) ?? `I${String(d.user_id).padStart(9, '0')}`,
         })),
       );
     } catch (err) {
@@ -523,11 +546,23 @@ function InvestmentProcessingTab() {
     fetchStaged();
   }, [fetchQueue, fetchStaged]);
 
-  /* ----- execute all staged ----- */
+  /* ----- execute all staged: full processing pipeline ----- */
   async function handleExecuteAll() {
     if (staged.length === 0) return;
     setExecuting(true);
     try {
+      // Step 1: Create roundup_ledger entries for each staged transaction (no platform fee)
+      const ledgerInserts = staged.map((txn) => ({
+        user_id: txn.user_id,
+        transaction_id: txn.id,
+        round_up_amount: txn.round_up,
+        fee_amount: 0,
+        status: 'pending',
+      }));
+
+      await supabaseAdmin.from('roundup_ledger').insert(ledgerInserts);
+
+      // Step 2: Insert into market_queue — full round-up amount goes to investment
       const inserts = staged.map((txn) => ({
         transaction_id: txn.id,
         user_id: txn.user_id,
@@ -536,15 +571,155 @@ function InvestmentProcessingTab() {
         status: 'pending' as const,
       }));
 
-      const { error } = await supabaseAdmin.from('market_queue').insert(inserts);
+      const { data: queueData, error: insertError } = await supabaseAdmin
+        .from('market_queue')
+        .insert(inserts)
+        .select();
 
-      if (error) {
-        console.error('Failed to execute staged transactions:', error.message);
+      if (insertError || !queueData) {
+        console.error('Failed to queue transactions:', insertError?.message);
         setToast('Failed to queue transactions');
         return;
       }
 
-      setToast(`${inserts.length} transaction(s) queued for processing`);
+      // Step 4: Update transactions to 'queued'
+      const txnIds = staged.map((t) => t.id);
+      await supabaseAdmin
+        .from('transactions')
+        .update({ status: 'queued' })
+        .in('id', txnIds);
+
+      // Step 5: Fetch live stock prices
+      const tickers = [...new Set(staged.map((t) => t.ticker))];
+      let prices = new Map<string, StockQuote>();
+      try {
+        prices = await fetchStockPrices(tickers);
+      } catch {
+        // Price fetch failed — mark all queue items as failed
+        await supabaseAdmin
+          .from('market_queue')
+          .update({ status: 'failed', processed_at: new Date().toISOString() })
+          .in('id', queueData.map((q) => q.id));
+        setToast('Failed to fetch stock prices — orders marked as failed');
+        await Promise.all([fetchQueue(), fetchStaged()]);
+        return;
+      }
+
+      // Step 6: Process each order — calculate shares, update queue + transactions
+      let processedCount = 0;
+      let failedCount = 0;
+      const now = new Date().toISOString();
+
+      // Aggregate shares per user+ticker for portfolio upsert
+      const portfolioAgg = new Map<string, {
+        user_id: number;
+        ticker: string;
+        addedShares: number;
+        addedCost: number;
+        price: number;
+      }>();
+
+      for (const item of queueData) {
+        const price = prices.get(item.ticker)?.price ?? 0;
+
+        if (price <= 0) {
+          await supabaseAdmin
+            .from('market_queue')
+            .update({ status: 'failed', processed_at: now })
+            .eq('id', item.id);
+          failedCount++;
+          continue;
+        }
+
+        const shares = item.amount / price;
+
+        // Mark queue item completed
+        await supabaseAdmin
+          .from('market_queue')
+          .update({ status: 'completed', processed_at: now })
+          .eq('id', item.id);
+
+        // Update transaction with shares and completed status
+        if (item.transaction_id) {
+          await supabaseAdmin
+            .from('transactions')
+            .update({ status: 'completed', shares })
+            .eq('id', item.transaction_id);
+        }
+
+        // Aggregate for portfolio
+        const key = `${item.user_id}_${item.ticker}`;
+        const agg = portfolioAgg.get(key);
+        if (agg) {
+          agg.addedShares += shares;
+          agg.addedCost += item.amount;
+        } else {
+          portfolioAgg.set(key, {
+            user_id: item.user_id,
+            ticker: item.ticker,
+            addedShares: shares,
+            addedCost: item.amount,
+            price,
+          });
+        }
+
+        processedCount++;
+      }
+
+      // Step 7: Upsert portfolios
+      for (const [, agg] of portfolioAgg) {
+        const { data: existing } = await supabaseAdmin
+          .from('portfolios')
+          .select('id, shares, average_price')
+          .eq('user_id', agg.user_id)
+          .eq('ticker', agg.ticker)
+          .maybeSingle();
+
+        if (existing) {
+          const prevShares = existing.shares ?? 0;
+          const prevAvg = existing.average_price ?? 0;
+          const newShares = prevShares + agg.addedShares;
+          const newAvgPrice = newShares > 0
+            ? ((prevShares * prevAvg) + agg.addedCost) / newShares
+            : 0;
+
+          await supabaseAdmin
+            .from('portfolios')
+            .update({
+              shares: newShares,
+              average_price: parseFloat(newAvgPrice.toFixed(2)),
+              current_price: agg.price,
+              total_value: parseFloat((newShares * agg.price).toFixed(2)),
+              updated_at: now,
+            })
+            .eq('id', existing.id);
+        } else {
+          const avgPrice = agg.addedShares > 0
+            ? agg.addedCost / agg.addedShares
+            : 0;
+
+          await supabaseAdmin.from('portfolios').insert({
+            user_id: agg.user_id,
+            ticker: agg.ticker,
+            shares: agg.addedShares,
+            average_price: parseFloat(avgPrice.toFixed(2)),
+            current_price: agg.price,
+            total_value: parseFloat((agg.addedShares * agg.price).toFixed(2)),
+          });
+        }
+      }
+
+      // Step 8: Mark ledger entries as swept
+      await supabaseAdmin
+        .from('roundup_ledger')
+        .update({ status: 'swept', swept_at: now })
+        .in('transaction_id', txnIds);
+
+      // Done
+      const msg = failedCount > 0
+        ? `${processedCount} processed, ${failedCount} failed (no price data)`
+        : `${processedCount} transaction(s) processed successfully`;
+      setToast(msg);
       await Promise.all([fetchQueue(), fetchStaged()]);
     } catch (err) {
       console.error('Unexpected error executing staged:', err);
@@ -594,9 +769,41 @@ function InvestmentProcessingTab() {
         width: '120px',
         render: (row) => formatDate(row.date),
       },
-      { key: 'user_id', header: 'User ID', sortable: true, width: '90px' },
-      { key: 'merchant', header: 'Merchant', sortable: true, width: '160px' },
-      { key: 'ticker', header: 'Ticker', sortable: true, width: '90px' },
+      {
+        key: 'account_id',
+        header: 'Account ID',
+        sortable: true,
+        width: '130px',
+        render: (row) => {
+          const prefix = row.account_id?.[0] ?? 'I';
+          const color = prefix === 'F' ? '#3B82F6' : prefix === 'B' ? '#06B6D4' : prefix === 'A' ? '#EC4899' : '#A78BFA';
+          return <span style={{ fontWeight: 500, fontSize: '13px', color }}>{row.account_id}</span>;
+        },
+      },
+      {
+        key: 'merchant',
+        header: 'Merchant',
+        sortable: true,
+        width: '160px',
+        render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {row.merchant && <CompanyLogo name={row.merchant} size={22} />}
+            <span style={{ fontWeight: 600 }}>{row.merchant ?? '--'}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'ticker',
+        header: 'Ticker',
+        sortable: true,
+        width: '110px',
+        render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <CompanyLogo name={row.ticker} size={18} />
+            <span style={{ fontWeight: 600 }}>{row.ticker}</span>
+          </div>
+        ),
+      },
       {
         key: 'amount',
         header: 'Amount',
@@ -648,7 +855,18 @@ function InvestmentProcessingTab() {
         width: '90px',
         render: (row) => (row.transaction_id != null ? row.transaction_id : '--'),
       },
-      { key: 'ticker', header: 'Ticker', sortable: true, width: '100px' },
+      {
+        key: 'ticker',
+        header: 'Ticker',
+        sortable: true,
+        width: '110px',
+        render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <CompanyLogo name={row.ticker} size={18} />
+            <span style={{ fontWeight: 600 }}>{row.ticker}</span>
+          </div>
+        ),
+      },
       {
         key: 'amount',
         header: 'Amount',
@@ -688,7 +906,18 @@ function InvestmentProcessingTab() {
   const recentCompletedColumns: Column<MarketQueueRow>[] = useMemo(
     () => [
       { key: 'id', header: 'ID', sortable: true, width: '70px' },
-      { key: 'ticker', header: 'Ticker', sortable: true, width: '100px' },
+      {
+        key: 'ticker',
+        header: 'Ticker',
+        sortable: true,
+        width: '110px',
+        render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <CompanyLogo name={row.ticker} size={18} />
+            <span style={{ fontWeight: 600 }}>{row.ticker}</span>
+          </div>
+        ),
+      },
       {
         key: 'amount',
         header: 'Amount',
@@ -811,8 +1040,12 @@ const statusFilters: { key: QueueStatusFilter; label: string }[] = [
   { key: 'failed', label: 'Failed' },
 ];
 
+interface MarketQueueDisplayRow extends MarketQueueRow {
+  account_id: string;
+}
+
 function MarketQueueTab() {
-  const [queue, setQueue] = useState<MarketQueueRow[]>([]);
+  const [queue, setQueue] = useState<MarketQueueDisplayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<QueueStatusFilter>('all');
 
@@ -820,18 +1053,44 @@ function MarketQueueTab() {
     async function fetch() {
       setLoading(true);
       try {
-        const { data, error } = await supabaseAdmin
-          .from('market_queue')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(500);
+        const [queueRes, usersRes] = await Promise.all([
+          supabaseAdmin
+            .from('market_queue')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(500),
+          supabaseAdmin
+            .from('users')
+            .select('id, account_id, account_type')
+            .limit(500),
+        ]);
 
-        if (error) {
-          console.error('Failed to fetch market queue:', error.message);
+        if (queueRes.error) {
+          console.error('Failed to fetch market queue:', queueRes.error.message);
           setQueue([]);
           return;
         }
-        setQueue(data ?? []);
+
+        // Build user_id -> account_id lookup
+        const accountMap = new Map<number, string>();
+        for (const u of (usersRes.data ?? [])) {
+          if (u.account_id) {
+            accountMap.set(u.id, u.account_id);
+          } else {
+            const prefix = u.account_type === 'admin' ? 'A'
+              : u.account_type === 'family' ? 'F'
+              : u.account_type === 'business' ? 'B'
+              : 'I';
+            accountMap.set(u.id, prefix + String(u.id).padStart(9, '0'));
+          }
+        }
+
+        setQueue(
+          (queueRes.data ?? []).map((q) => ({
+            ...q,
+            account_id: accountMap.get(q.user_id) ?? `I${String(q.user_id).padStart(9, '0')}`,
+          })),
+        );
       } catch (err) {
         console.error('Unexpected error fetching market queue:', err);
         setQueue([]);
@@ -859,7 +1118,7 @@ function MarketQueueTab() {
   const totalAmount = queue.reduce((s, q) => s + q.amount, 0);
 
   /* Full table columns */
-  const columns: Column<MarketQueueRow>[] = useMemo(
+  const columns: Column<MarketQueueDisplayRow>[] = useMemo(
     () => [
       { key: 'id', header: 'ID', sortable: true, width: '70px' },
       {
@@ -869,8 +1128,29 @@ function MarketQueueTab() {
         width: '90px',
         render: (row) => (row.transaction_id != null ? row.transaction_id : '--'),
       },
-      { key: 'user_id', header: 'User ID', sortable: true, width: '90px' },
-      { key: 'ticker', header: 'Ticker', sortable: true, width: '100px' },
+      {
+        key: 'account_id',
+        header: 'Account ID',
+        sortable: true,
+        width: '130px',
+        render: (row) => {
+          const prefix = row.account_id?.[0] ?? 'I';
+          const color = prefix === 'F' ? '#3B82F6' : prefix === 'B' ? '#06B6D4' : prefix === 'A' ? '#EC4899' : '#A78BFA';
+          return <span style={{ fontWeight: 500, fontSize: '13px', color }}>{row.account_id}</span>;
+        },
+      },
+      {
+        key: 'ticker',
+        header: 'Ticker',
+        sortable: true,
+        width: '110px',
+        render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <CompanyLogo name={row.ticker} size={18} />
+            <span style={{ fontWeight: 600 }}>{row.ticker}</span>
+          </div>
+        ),
+      },
       {
         key: 'amount',
         header: 'Amount',
@@ -955,7 +1235,7 @@ function MarketQueueTab() {
 
       {/* Full table */}
       <GlassCard padding="0">
-        <Table<MarketQueueRow>
+        <Table<MarketQueueDisplayRow>
           columns={columns}
           data={filtered}
           loading={loading}
@@ -1006,7 +1286,6 @@ function RoundUpLedgerTab() {
   /* KPIs */
   const totalRoundups = ledger.length;
   const totalAmount = ledger.reduce((s, r) => s + r.round_up_amount, 0);
-  const totalFees = ledger.reduce((s, r) => s + r.fee_amount, 0);
   const sweptCount = ledger.filter((r) => r.status === 'swept').length;
 
   /* Chart data: round-up volume grouped by month */
@@ -1057,14 +1336,6 @@ function RoundUpLedgerTab() {
         render: (row) => usd(row.round_up_amount),
       },
       {
-        key: 'fee_amount',
-        header: 'Fee Amount',
-        sortable: true,
-        align: 'right',
-        width: '120px',
-        render: (row) => usd(row.fee_amount),
-      },
-      {
         key: 'status',
         header: 'Status',
         sortable: true,
@@ -1101,7 +1372,6 @@ function RoundUpLedgerTab() {
           accent="purple"
         />
         <KpiCard label="Total Amount" value={usd(totalAmount)} accent="blue" />
-        <KpiCard label="Total Fees" value={usd(totalFees)} accent="pink" />
         <KpiCard
           label="Swept"
           value={sweptCount.toLocaleString()}
@@ -1139,6 +1409,45 @@ function RoundUpLedgerTab() {
 /* ================================================================== */
 
 export function InvestmentsTab() {
+  const [brokerStatus, setBrokerStatus] = useState<'sandbox' | 'live' | 'not_connected'>('not_connected');
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabaseAdmin
+        .from('admin_settings')
+        .select('setting_value')
+        .eq('setting_key', 'alpaca_api_key')
+        .maybeSingle();
+
+      if (data?.setting_value) {
+        const key = data.setting_value.trim();
+        if (key.startsWith('PK') || key.startsWith('CK')) {
+          setBrokerStatus('sandbox');
+        } else if (key.startsWith('AK')) {
+          setBrokerStatus('live');
+        } else {
+          // Key exists but unrecognized prefix — assume sandbox
+          setBrokerStatus('sandbox');
+        }
+      }
+    })();
+  }, []);
+
+  const brokerLabel =
+    brokerStatus === 'live' ? 'Alpaca Live' :
+    brokerStatus === 'sandbox' ? 'Alpaca Sandbox' :
+    'Not Connected';
+
+  const brokerColor =
+    brokerStatus === 'live' ? '#10B981' :
+    brokerStatus === 'sandbox' ? '#F59E0B' :
+    '#6B7280';
+
+  const brokerBg =
+    brokerStatus === 'live' ? 'rgba(16,185,129,0.1)' :
+    brokerStatus === 'sandbox' ? 'rgba(245,158,11,0.1)' :
+    'rgba(107,114,128,0.1)';
+
   const tabs: TabItem[] = [
     {
       key: 'investment-summary',
@@ -1162,7 +1471,45 @@ export function InvestmentsTab() {
     },
   ];
 
-  return <Tabs tabs={tabs} defaultTab="investment-summary" />;
+  return (
+    <div>
+      {/* Broker status indicator */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        marginBottom: '12px',
+        gap: '8px',
+      }}>
+        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Order Processor:</span>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '5px 12px',
+          borderRadius: '8px',
+          background: brokerBg,
+          border: `1px solid ${brokerColor}33`,
+        }}>
+          <span style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: brokerColor,
+            boxShadow: brokerStatus !== 'not_connected' ? `0 0 6px ${brokerColor}88` : 'none',
+          }} />
+          <span style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: brokerColor,
+          }}>
+            {brokerLabel}
+          </span>
+        </div>
+      </div>
+      <Tabs tabs={tabs} defaultTab="investment-summary" />
+    </div>
+  );
 }
 
 export default InvestmentsTab;

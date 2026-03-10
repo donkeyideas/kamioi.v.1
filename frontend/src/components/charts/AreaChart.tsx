@@ -27,6 +27,10 @@ const AXIS_STROKE = 'var(--text-muted)';
 const TICK_FILL = 'var(--text-muted)';
 const GRID_STROKE = 'var(--border-divider)';
 
+function formatYTick(value: number): string {
+  return value.toLocaleString();
+}
+
 const tooltipStyle: React.CSSProperties = {
   background: 'var(--dark-card)',
   border: '1px solid var(--border-subtle)',
@@ -144,10 +148,12 @@ export default function AreaChart<T extends Record<string, unknown>>({
               tick={{ fill: TICK_FILL, fontSize: 12 }}
               axisLine={false}
               tickLine={false}
+              tickFormatter={formatYTick}
             />
             <Tooltip
               contentStyle={tooltipStyle}
               cursor={{ stroke: 'var(--border-subtle)' }}
+              formatter={(value: number) => value.toLocaleString()}
             />
             <Area
               type="monotone"

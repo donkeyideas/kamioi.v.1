@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Kamioi",
+    "slug": "kamioi",
+    "scheme": "kamioi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F0B1A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kamioi.app"
+    },
+    "android": {
+      "package": "com.kamioi.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F0B1A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        { "cameraPermission": "Allow Kamioi to access your camera for receipt scanning." }
+      ],
+      [
+        "expo-image-picker",
+        { "photosPermission": "Allow Kamioi to access your photos for receipt uploads." }
+      ],
+      [
+        "expo-notifications",
+        { "icon": "./assets/notification-icon.png", "color": "#7C3AED" }
+      ],
+      [
+        "expo-local-authentication",
+        { "faceIDPermission": "Allow Kamioi to use Face ID for quick sign-in." }
+      ]
+    ]
+  }
+}

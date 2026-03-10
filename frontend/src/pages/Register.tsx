@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 import { SEO } from '@/components/common/SEO'
 
 export default function Register() {
@@ -10,11 +11,37 @@ export default function Register() {
   const [accountType, setAccountType] = useState('individual')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [signupEnabled, setSignupEnabled] = useState(true)
+  const [demoMode, setDemoMode] = useState(false)
+  const [allowedTypes, setAllowedTypes] = useState<string[]>(['individual', 'family', 'business'])
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    supabase.from('admin_settings').select('setting_key, setting_value')
+      .in('setting_key', ['signup_enabled', 'demo_mode', 'allowed_account_types'])
+      .then(({ data }) => {
+        data?.forEach((s) => {
+          if (s.setting_key === 'signup_enabled') setSignupEnabled(s.setting_value !== 'false')
+          if (s.setting_key === 'demo_mode') setDemoMode(s.setting_value === 'true')
+          if (s.setting_key === 'allowed_account_types') {
+            try {
+              const parsed = JSON.parse(s.setting_value ?? '[]')
+              if (Array.isArray(parsed) && parsed.length > 0) setAllowedTypes(parsed.map((t: string) => t.toLowerCase()))
+            } catch { /* keep defaults */ }
+          }
+        })
+        setSettingsLoaded(true)
+      })
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!signupEnabled) {
+      setError('Sign-up is currently disabled by the administrator.')
+      return
+    }
     setError('')
     setLoading(true)
 
@@ -32,7 +59,7 @@ export default function Register() {
     { value: 'individual', label: 'Individual' },
     { value: 'family', label: 'Family' },
     { value: 'business', label: 'Business' },
-  ]
+  ].filter((t) => allowedTypes.includes(t.value))
 
   return (
     <>
@@ -68,6 +95,8 @@ export default function Register() {
         zIndex: 10,
         width: '100%',
         maxWidth: '400px',
+        opacity: settingsLoaded ? 1 : 0,
+        transition: 'opacity 0.2s ease',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <Link to="/" style={{
@@ -81,11 +110,11 @@ export default function Register() {
             Kamioi
           </Link>
           <p style={{ marginTop: '8px', opacity: 0.6, fontSize: '14px' }}>
-            Create your account
+            {signupEnabled ? 'Create your account' : 'Welcome to Kamioi'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{
+        {signupEnabled ? <form onSubmit={handleSubmit} style={{
           background: 'var(--color-surface-card)',
           backdropFilter: 'blur(16px)',
           border: '1px solid var(--color-border-subtle)',
@@ -241,11 +270,11 @@ export default function Register() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !signupEnabled}
             style={{
               width: '100%',
               padding: '12px',
-              background: loading
+              background: (loading || !signupEnabled)
                 ? 'rgba(124,58,237,0.5)'
                 : 'linear-gradient(135deg, #7C3AED, #3B82F6)',
               color: '#fff',
@@ -253,7 +282,7 @@ export default function Register() {
               borderRadius: '10px',
               fontSize: '14px',
               fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: (loading || !signupEnabled) ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
             }}
           >
@@ -271,7 +300,53 @@ export default function Register() {
               Sign in
             </Link>
           </p>
-        </form>
+        </form> : !demoMode ? (
+          <div style={{
+            background: 'var(--color-surface-card)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid var(--color-border-subtle)',
+            borderRadius: '16px',
+            padding: '32px',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: '14px', opacity: 0.6 }}>
+              Registration is currently unavailable. Please try again later.
+            </p>
+          </div>
+        ) : null}
+
+        {/* Demo option */}
+        {demoMode && (
+          <div style={{
+            marginTop: '16px',
+            background: 'var(--color-surface-card)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid var(--color-border-subtle)',
+            borderRadius: '12px',
+            padding: '16px 24px',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: '13px', opacity: 0.7, margin: '0 0 10px' }}>
+              Want to explore first?
+            </p>
+            <Link
+              to="/demo"
+              style={{
+                display: 'inline-block',
+                padding: '10px 24px',
+                background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.2))',
+                border: '1px solid rgba(124,58,237,0.3)',
+                borderRadius: '10px',
+                color: '#A78BFA',
+                fontSize: '14px',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              Try Interactive Demo
+            </Link>
+          </div>
+        )}
       </div>
     </div>
     </>

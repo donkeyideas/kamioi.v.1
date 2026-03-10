@@ -127,20 +127,8 @@ serve(async (req: Request) => {
       return errorResponse(`Maximum ${MAX_ROWS} rows per upload. Received ${dataLines.length} rows.`)
     }
 
-    // Fetch platform fee rate from admin_settings
-    let feeRate = 0.025
-    const { data: adminSetting } = await serviceClient
-      .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'platform_fee')
-      .maybeSingle()
-
-    if (adminSetting?.setting_value !== undefined && adminSetting.setting_value !== null) {
-      const parsed = parseFloat(adminSetting.setting_value)
-      if (!isNaN(parsed)) {
-        feeRate = parsed
-      }
-    }
+    // No platform fee — full round-up goes to investment
+    const feeRate = 0
 
     // Fetch existing transactions for this user to detect duplicates
     const { data: existingTxns } = await serviceClient

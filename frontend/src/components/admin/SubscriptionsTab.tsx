@@ -93,6 +93,18 @@ interface ContactMessage {
   created_at: string;
 }
 
+interface DemoAccessLog {
+  id: number;
+  promo_code_id: number | null;
+  email: string;
+  demo_code: string;
+  demo_type: string | null;
+  access_type: string;
+  ip_address: string | null;
+  session_token: string | null;
+  created_at: string;
+}
+
 interface PlanFormData {
   name: string;
   account_type: string;
@@ -1112,10 +1124,46 @@ function AnalyticsTab() {
 /*  Sub-tab: Demo Requests                                             */
 /* ------------------------------------------------------------------ */
 
+function generateDemoCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'DEMO-';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 function DemoRequestsTab() {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [accessLogs, setAccessLogs] = useState<DemoAccessLog[]>([]);
+  const [accessLoading, setAccessLoading] = useState(true);
+
+  const fetchAccessLogs = useCallback(async () => {
+    setAccessLoading(true);
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('demo_access_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (error) {
+        console.error('Failed to fetch demo access logs:', error.message);
+        setAccessLogs([]);
+        return;
+      }
+      setAccessLogs((data ?? []) as DemoAccessLog[]);
+    } catch (err) {
+      console.error('Error fetching demo access logs:', err);
+      setAccessLogs([]);
+    } finally {
+      setAccessLoading(false);
+    }
+  }, []);
 
   const fetchMessages = useCallback(async () => {
     setLoading(true);
@@ -1141,10 +1189,90 @@ function DemoRequestsTab() {
 
   useEffect(() => {
     fetchMessages();
-  }, [fetchMessages]);
+    fetchAccessLogs();
+  }, [fetchMessages, fetchAccessLogs]);
 
   const totalRequests = messages.length;
   const newUnread = messages.filter((m) => m.status === 'new').length;
+  const demoRequests = messages.filter(
+    (m) => m.subject?.toLowerCase().includes('demo'),
+  ).length;
+
+  // Demo access KPIs
+  const demoSessions = accessLogs.filter((l) => l.access_type === 'code_entry').length;
+  const returnVisits = accessLogs.filter((l) => l.access_type === 'return_visit').length;
+  const uniqueDemoUsers = new Set(accessLogs.filter((l) => l.access_type !== 'failed_attempt').map((l) => l.email)).size;
+
+  // Build visit ordinal map (email -> count)
+  const visitCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    // Iterate oldest first to assign ordinals
+    const sorted = [...accessLogs].filter((l) => l.access_type !== 'failed_attempt').reverse();
+    const ordinals: Record<number, number> = {};
+    for (const log of sorted) {
+      counts[log.email] = (counts[log.email] || 0) + 1;
+      ordinals[log.id] = counts[log.email];
+    }
+    return ordinals;
+  }, [accessLogs]);
+
+  const accessLogColumns: Column<DemoAccessLog>[] = useMemo(
+    () => [
+      { key: 'email', header: 'Email', sortable: true, width: '200px' },
+      {
+        key: 'demo_code',
+        header: 'Demo Code',
+        sortable: true,
+        width: '140px',
+        render: (row) => (
+          <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.02em', color: row.access_type === 'code_entry' ? '#7C3AED' : 'var(--text-muted)' }}>
+            {row.demo_code === 'return' ? '--' : row.demo_code}
+          </span>
+        ),
+      },
+      {
+        key: 'access_type',
+        header: 'Type',
+        sortable: true,
+        width: '120px',
+        render: (row) => (
+          <Badge variant={row.access_type === 'code_entry' ? 'success' : row.access_type === 'return_visit' ? 'info' : 'warning'}>
+            {row.access_type === 'code_entry' ? 'New Session' : row.access_type === 'return_visit' ? 'Return Visit' : 'Failed'}
+          </Badge>
+        ),
+      },
+      {
+        key: 'demo_type',
+        header: 'Demo Type',
+        sortable: true,
+        width: '120px',
+        render: (row) => (
+          <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)' }}>
+            {row.demo_type || '--'}
+          </span>
+        ),
+      },
+      {
+        key: 'visit',
+        header: 'Visit #',
+        width: '80px',
+        align: 'center' as const,
+        render: (row) => (
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            {visitCounts[row.id] ?? '--'}
+          </span>
+        ),
+      },
+      {
+        key: 'created_at',
+        header: 'Date',
+        sortable: true,
+        width: '140px',
+        render: (row) => formatDate(row.created_at),
+      },
+    ],
+    [visitCounts],
+  );
 
   async function updateStatus(id: number, status: string) {
     try {
@@ -1159,6 +1287,65 @@ function DemoRequestsTab() {
     }
   }
 
+  async function createDemoCode(description?: string): Promise<string | null> {
+    const code = generateDemoCode();
+    // Set valid for 30 days
+    const validUntil = new Date();
+    validUntil.setDate(validUntil.getDate() + 30);
+
+    const { error } = await supabaseAdmin.from('promo_codes').insert({
+      code,
+      description: description ?? 'Demo access code',
+      discount_type: 'free_months',
+      discount_value: 1,
+      max_uses: 1,
+      current_uses: 0,
+      valid_until: validUntil.toISOString(),
+      is_active: true,
+    });
+
+    if (error) {
+      console.error('Failed to create demo code:', error.message);
+      return null;
+    }
+    return code;
+  }
+
+  async function handleGenerateCode() {
+    setGeneratingCode(true);
+    try {
+      const code = await createDemoCode();
+      if (code) {
+        setGeneratedCode(code);
+      } else {
+        setToast('Failed to generate demo code');
+      }
+    } finally {
+      setGeneratingCode(false);
+    }
+  }
+
+  async function handleApproveRequest(msg: ContactMessage) {
+    setGeneratingCode(true);
+    try {
+      const code = await createDemoCode(`Demo for ${msg.name} (${msg.email})`);
+      if (code) {
+        // Mark the request as replied
+        await supabaseAdmin
+          .from('contact_messages')
+          .update({ status: 'replied' })
+          .eq('id', msg.id);
+        setGeneratedCode(code);
+        setSelectedMessage(null);
+        await fetchMessages();
+      } else {
+        setToast('Failed to generate demo code');
+      }
+    } finally {
+      setGeneratingCode(false);
+    }
+  }
+
   const contactColumns: Column<ContactMessage>[] = useMemo(
     () => [
       { key: 'name', header: 'Name', sortable: true, width: '150px' },
@@ -1167,7 +1354,17 @@ function DemoRequestsTab() {
         key: 'subject',
         header: 'Subject',
         sortable: true,
-        render: (row) => row.subject ?? '--',
+        render: (row) => {
+          const isDemo = row.subject?.toLowerCase().includes('demo');
+          return (
+            <span style={{ fontWeight: isDemo ? 600 : 400 }}>
+              {isDemo && (
+                <Badge variant="info" style={{ marginRight: '6px', fontSize: '11px' }}>DEMO</Badge>
+              )}
+              {row.subject ?? '--'}
+            </span>
+          );
+        },
       },
       {
         key: 'message',
@@ -1205,9 +1402,47 @@ function DemoRequestsTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <KpiCard label="Total Requests" value={totalRequests} accent="purple" />
-        <KpiCard label="New / Unread" value={newUnread} accent="pink" />
+      {/* Toast */}
+      {toast && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            borderRadius: '8px',
+            background: 'rgba(239,68,68,0.12)',
+            border: '1px solid rgba(239,68,68,0.3)',
+            color: '#EF4444',
+            fontSize: '13px',
+            fontWeight: 500,
+          }}
+        >
+          <span>{toast}</span>
+          <button
+            onClick={() => setToast(null)}
+            style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '16px', fontWeight: 700, padding: '0 4px' }}
+          >
+            x
+          </button>
+        </div>
+      )}
+
+      {/* KPIs + Generate button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', flex: 1 }}>
+          <KpiCard label="Total Requests" value={totalRequests} accent="purple" />
+          <KpiCard label="New / Unread" value={newUnread} accent="pink" />
+          <KpiCard label="Demo Requests" value={demoRequests} accent="blue" />
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          loading={generatingCode}
+          onClick={handleGenerateCode}
+        >
+          Generate Demo Code
+        </Button>
       </div>
 
       <GlassCard padding="0">
@@ -1222,6 +1457,29 @@ function DemoRequestsTab() {
         />
       </GlassCard>
 
+      {/* Demo Access Log */}
+      <div style={{ marginTop: '8px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          Demo Access Log
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+          <KpiCard label="Demo Sessions" value={demoSessions} accent="purple" />
+          <KpiCard label="Return Visits" value={returnVisits} accent="blue" />
+          <KpiCard label="Unique Users" value={uniqueDemoUsers} accent="cyan" />
+        </div>
+        <GlassCard padding="0">
+          <Table<DemoAccessLog>
+            columns={accessLogColumns}
+            data={accessLogs}
+            loading={accessLoading}
+            emptyMessage="No demo access logs yet"
+            pageSize={10}
+            rowKey={(row) => row.id}
+          />
+        </GlassCard>
+      </div>
+
+      {/* Message Detail Modal */}
       <Modal
         open={selectedMessage !== null}
         onClose={() => setSelectedMessage(null)}
@@ -1257,6 +1515,60 @@ function DemoRequestsTab() {
                 Received: {formatDate(selectedMessage.created_at)}
               </span>
             </div>
+            {/* Approve button for pending demo requests */}
+            {selectedMessage.status !== 'replied' && selectedMessage.status !== 'closed' && (
+              <Button
+                variant="primary"
+                size="sm"
+                loading={generatingCode}
+                onClick={() => handleApproveRequest(selectedMessage)}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                Approve & Generate Demo Code
+              </Button>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Generated Code Modal */}
+      <Modal
+        open={generatedCode !== null}
+        onClose={() => setGeneratedCode(null)}
+        title="Demo Code Generated"
+        size="sm"
+      >
+        {generatedCode && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+              Share this code with the user. It grants demo access for 30 days and can be used once.
+            </p>
+            <div
+              style={{
+                background: 'var(--surface-input)',
+                border: '2px dashed rgba(124,58,237,0.4)',
+                borderRadius: '12px',
+                padding: '20px 32px',
+                fontSize: '24px',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                color: '#7C3AED',
+                fontFamily: 'monospace',
+              }}
+            >
+              {generatedCode}
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(generatedCode);
+                setToast(null);
+                setGeneratedCode(null);
+              }}
+            >
+              Copy & Close
+            </Button>
           </div>
         )}
       </Modal>

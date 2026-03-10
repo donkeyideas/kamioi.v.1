@@ -30,6 +30,10 @@ const AXIS_STROKE = 'var(--text-muted)';
 const TICK_FILL = 'var(--text-muted)';
 const GRID_STROKE = 'var(--border-divider)';
 
+function defaultYFormatter(value: number): string {
+  return value.toLocaleString();
+}
+
 const tooltipStyle: React.CSSProperties = {
   background: 'var(--dark-card)',
   border: '1px solid var(--border-subtle)',
@@ -159,11 +163,14 @@ export default function BarChart<T extends Record<string, unknown>>({
               tick={{ fill: TICK_FILL, fontSize: 12 }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={yTickFormatter}
+              tickFormatter={yTickFormatter ?? defaultYFormatter}
             />
             <Tooltip
               contentStyle={tooltipStyle}
+              labelStyle={{ color: 'var(--text-primary)' }}
+              itemStyle={{ color: 'var(--text-secondary)' }}
               cursor={{ fill: 'var(--surface-input)' }}
+              formatter={(value: number) => value.toLocaleString()}
             />
             <Bar
               dataKey={dataKey}

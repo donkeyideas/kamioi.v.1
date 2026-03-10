@@ -172,7 +172,7 @@ function ApiUsageContent() {
         sortable: true,
         width: '160px',
         render: (row) => (
-          <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-primary)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
             {row.endpoint ?? '--'}
           </span>
         ),
@@ -362,7 +362,7 @@ function ErrorLogContent() {
         sortable: true,
         width: '180px',
         render: (row) => (
-          <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-primary)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
             {row.endpoint ?? '--'}
           </span>
         ),
@@ -370,15 +370,21 @@ function ErrorLogContent() {
       {
         key: 'error_message',
         header: 'Error Message',
-        render: (row) => (
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            {row.error_message
-              ? row.error_message.length > 60
-                ? `${row.error_message.substring(0, 60)}...`
-                : row.error_message
-              : '--'}
-          </span>
-        ),
+        render: (row) => {
+          const msg = row.error_message
+            || (row.response_data as Record<string, unknown> | null)?.error as string | undefined
+            || (row.response_data as Record<string, unknown> | null)?.message as string | undefined
+            || null;
+          return (
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              {msg
+                ? msg.length > 60
+                  ? `${msg.substring(0, 60)}...`
+                  : msg
+                : '--'}
+            </span>
+          );
+        },
       },
       {
         key: 'model',
@@ -1110,7 +1116,7 @@ function CostAnalysisContent() {
       map.set(endpoint, (map.get(endpoint) ?? 0) + (r.cost ?? 0));
     });
     return Array.from(map.entries())
-      .map(([name, cost]) => ({ name, cost: parseFloat(cost.toFixed(4)) }))
+      .map(([name, cost]) => ({ name: name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), cost: parseFloat(cost.toFixed(4)) }))
       .sort((a, b) => b.cost - a.cost)
       .slice(0, 10);
   }, [usageData]);
@@ -1151,7 +1157,7 @@ function CostAnalysisContent() {
         <KpiCard label="Daily Average" value={usd(dailyAverage)} accent="teal" />
         <KpiCard
           label="Most Expensive Endpoint"
-          value={mostExpensiveEndpoint.length > 20 ? `${mostExpensiveEndpoint.substring(0, 20)}...` : mostExpensiveEndpoint}
+          value={(() => { const name = mostExpensiveEndpoint.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); return name.length > 20 ? `${name.substring(0, 20)}...` : name; })()}
           accent="pink"
         />
         <KpiCard

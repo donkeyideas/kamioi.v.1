@@ -77,5 +77,8 @@ verify_jwt = false
 [functions.teller-sync-transactions]
 verify_jwt = false
 
+[functions.demo-access]
+verify_jwt = false
+
 [functions.teller-disconnect]
 verify_jwt = false

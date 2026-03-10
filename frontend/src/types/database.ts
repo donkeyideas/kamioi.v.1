@@ -20,6 +20,7 @@ export interface Database {
           subscription_status: string | null
           trial_end_date: string | null
           subscription_tier: string | null
+          permissions: Record<string, boolean> | null
           created_at: string
           updated_at: string
         }

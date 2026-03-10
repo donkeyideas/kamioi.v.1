@@ -77,24 +77,9 @@ serve(async (req: Request) => {
         ? defaultRoundUp
         : parseFloat(rawRoundUp.toFixed(2))
 
-    // 5. Calculate fee
-    // Try to read platform_fee from admin_settings; fall back to 0.025 (2.5%)
-    let feeRate = 0.025
-    const { data: adminSetting } = await serviceClient
-      .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'platform_fee')
-      .maybeSingle()
-
-    if (adminSetting?.setting_value !== undefined && adminSetting.setting_value !== null) {
-      const parsed = parseFloat(adminSetting.setting_value)
-      if (!isNaN(parsed)) {
-        feeRate = parsed
-      }
-    }
-
-    const fee = parseFloat((roundUp * feeRate).toFixed(2))
-    const netInvestment = parseFloat((roundUp - fee).toFixed(2))
+    // 5. Full round-up goes to investment (no platform fee)
+    const fee = 0
+    const netInvestment = roundUp
 
     // 6. If no existing transaction_id, create a new transaction record
     if (!transaction_id) {

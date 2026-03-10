@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 import { SEO } from '@/components/common/SEO'
 
 export default function Login() {
@@ -10,11 +11,32 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [mfaCode, setMfaCode] = useState(['', '', '', '', '', ''])
   const mfaInputsRef = useRef<(HTMLInputElement | null)[]>([])
+  const [signinEnabled, setSigninEnabled] = useState(true)
+  const [signupEnabled, setSignupEnabled] = useState(true)
+  const [demoMode, setDemoMode] = useState(false)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const { signIn, verifyMfa, mfaRequired, cancelMfa } = useAuth()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    supabase.from('admin_settings').select('setting_key, setting_value')
+      .in('setting_key', ['signin_enabled', 'signup_enabled', 'demo_mode'])
+      .then(({ data }) => {
+        data?.forEach((s) => {
+          if (s.setting_key === 'signin_enabled') setSigninEnabled(s.setting_value !== 'false')
+          if (s.setting_key === 'signup_enabled') setSignupEnabled(s.setting_value !== 'false')
+          if (s.setting_key === 'demo_mode') setDemoMode(s.setting_value === 'true')
+        })
+        setSettingsLoaded(true)
+      })
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!signinEnabled) {
+      setError('Sign-in is currently disabled by the administrator.')
+      return
+    }
     setError('')
     setLoading(true)
 
@@ -122,6 +144,8 @@ export default function Login() {
       <div style={{
         position: 'relative',
         zIndex: 10,
+        opacity: settingsLoaded ? 1 : 0,
+        transition: 'opacity 0.2s ease',
         width: '100%',
         maxWidth: '400px',
       }}>
@@ -137,11 +161,26 @@ export default function Login() {
             Kamioi
           </Link>
           <p style={{ marginTop: '8px', opacity: 0.6, fontSize: '14px' }}>
-            Sign in to your account
+            {signinEnabled ? 'Sign in to your account' : 'Welcome to Kamioi'}
           </p>
         </div>
 
-        {mfaRequired ? (
+        {!signinEnabled && !demoMode && (
+          <div style={{
+            background: 'var(--color-surface-card)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid var(--color-border-subtle)',
+            borderRadius: '16px',
+            padding: '32px',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: '14px', opacity: 0.6 }}>
+              Sign-in is currently unavailable. Please try again later.
+            </p>
+          </div>
+        )}
+
+        {signinEnabled && mfaRequired ? (
           /* MFA Verification Form */
           <form onSubmit={handleMfaSubmit} style={{
             background: 'var(--color-surface-card)',
@@ -256,7 +295,7 @@ export default function Login() {
               Back to login
             </button>
           </form>
-        ) : (
+        ) : signinEnabled ? (
           /* Login Form */
           <form onSubmit={handleSubmit} style={{
             background: 'var(--color-surface-card)',
@@ -354,11 +393,11 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !signinEnabled}
               style={{
                 width: '100%',
                 padding: '12px',
-                background: loading
+                background: (loading || !signinEnabled)
                   ? 'rgba(124,58,237,0.5)'
                   : 'linear-gradient(135deg, #7C3AED, #3B82F6)',
                 color: '#fff',
@@ -366,26 +405,59 @@ export default function Login() {
                 borderRadius: '10px',
                 fontSize: '14px',
                 fontWeight: 600,
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: (loading || !signinEnabled) ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
               }}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
 
-            <p style={{
-              textAlign: 'center',
-              marginTop: '20px',
-              fontSize: '13px',
-              opacity: 0.6,
-            }}>
-              Don't have an account?{' '}
-              <Link to="/register" style={{ color: '#7C3AED', textDecoration: 'none', fontWeight: 500 }}>
-                Sign up
-              </Link>
-            </p>
+            {signupEnabled && (
+              <p style={{
+                textAlign: 'center',
+                marginTop: '20px',
+                fontSize: '13px',
+                opacity: 0.6,
+              }}>
+                Don't have an account?{' '}
+                <Link to="/register" style={{ color: '#7C3AED', textDecoration: 'none', fontWeight: 500 }}>
+                  Sign up
+                </Link>
+              </p>
+            )}
           </form>
-        )}
+        ) : null}
+
+        {/* Demo option */}
+        {demoMode && <div style={{
+          marginTop: '16px',
+          background: 'var(--color-surface-card)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid var(--color-border-subtle)',
+          borderRadius: '12px',
+          padding: '16px 24px',
+          textAlign: 'center',
+        }}>
+          <p style={{ fontSize: '13px', opacity: 0.7, margin: '0 0 10px' }}>
+            Want to explore first?
+          </p>
+          <Link
+            to="/demo"
+            style={{
+              display: 'inline-block',
+              padding: '10px 24px',
+              background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.2))',
+              border: '1px solid rgba(124,58,237,0.3)',
+              borderRadius: '10px',
+              color: '#A78BFA',
+              fontSize: '14px',
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            Try Interactive Demo
+          </Link>
+        </div>}
       </div>
     </div>
     </>

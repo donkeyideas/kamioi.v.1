@@ -383,7 +383,6 @@ export function ReceiptUploadModal({ isOpen, onClose, onComplete, dashboardType 
   const [parsedData, setParsedData] = useState<ReceiptParsedData | null>(null)
   const [allocations, setAllocations] = useState<ReceiptAllocation[]>([])
   const [totalRoundUp, setTotalRoundUp] = useState(1)
-  const [aiProvider, setAiProvider] = useState<string>('')
 
   // Manual entry
   const [manualRetailer, setManualRetailer] = useState('')
@@ -830,17 +829,18 @@ export function ReceiptUploadModal({ isOpen, onClose, onComplete, dashboardType 
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 Transaction Summary
               </div>
-              {aiProvider && (
-                <Badge variant="info">{aiProvider.toUpperCase()}</Badge>
-              )}
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', background: 'rgba(52,211,153,0.15)', color: '#34D399', letterSpacing: '0.05em' }}>
+                AI PROCESSED
+              </span>
             </div>
 
             <div style={styles.summaryRow}>
               <span style={styles.summaryLabel}>Retailer</span>
-              <span style={styles.summaryValue}>
+              <span style={{ ...styles.summaryValue, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CompanyLogo name={parsedData.retailer.stockSymbol || parsedData.retailer.name} size={22} />
                 {parsedData.retailer.name}
                 {parsedData.retailer.stockSymbol && (
-                  <span style={{ marginLeft: '6px', fontSize: '12px', color: 'var(--aurora-purple)' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--aurora-purple)' }}>
                     ({parsedData.retailer.stockSymbol})
                   </span>
                 )}
@@ -867,17 +867,26 @@ export function ReceiptUploadModal({ isOpen, onClose, onComplete, dashboardType 
                 Items Purchased
               </div>
               {parsedData.items.map((item, idx) => (
-                <div key={idx} style={styles.itemsRow}>
-                  <div>
+                <div key={idx} style={{ ...styles.itemsRow, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {item.brandSymbol ? (
+                      <CompanyLogo name={item.brandSymbol} size={20} />
+                    ) : (
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />
+                    )}
                     <span style={{ color: 'var(--text-primary)' }}>{item.name}</span>
                     {item.brand && (
-                      <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {item.brand}
-                        {item.brandSymbol && ` (${item.brandSymbol})`}
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        ({item.brand})
+                      </span>
+                    )}
+                    {item.brandSymbol && (
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--aurora-purple)' }}>
+                        {item.brandSymbol}
                       </span>
                     )}
                   </div>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 500, flexShrink: 0, marginLeft: '12px' }}>
                     ${item.amount.toFixed(2)}
                   </span>
                 </div>

@@ -360,104 +360,6 @@ function SettingsContent() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Business Info tab                                                  */
-/* ------------------------------------------------------------------ */
-
-const BUSINESS_FIELDS = [
-  { key: 'company_name', label: 'Company Name' },
-  { key: 'support_email', label: 'Support Email' },
-  { key: 'website_url', label: 'Website URL' },
-  { key: 'phone', label: 'Phone' },
-  { key: 'address', label: 'Address' },
-  { key: 'description', label: 'Description' },
-];
-
-function BusinessInfoContent() {
-  const { settings, loading, refetch } = useAdminSettings('business');
-  const [formValues, setFormValues] = useState<Record<string, { id: number | null; value: string }>>({});
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const values: Record<string, { id: number | null; value: string }> = {};
-    for (const field of BUSINESS_FIELDS) {
-      const match = settings.find((s) => s.setting_key === field.key);
-      values[field.key] = {
-        id: match?.id ?? null,
-        value: match?.setting_value ?? '',
-      };
-    }
-    setFormValues(values);
-  }, [settings]);
-
-  function updateField(key: string, value: string) {
-    setFormValues((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], value },
-    }));
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      for (const [key, entry] of Object.entries(formValues)) {
-        if (entry.id !== null) {
-          const { error } = await supabaseAdmin
-            .from('admin_settings')
-            .update({ setting_value: entry.value })
-            .eq('id', entry.id);
-
-          if (error) {
-            console.error(`Failed to update ${key}:`, error.message);
-          }
-        }
-      }
-      await refetch();
-    } catch (err) {
-      console.error('Unexpected error saving business info:', err);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) {
-    return (
-      <GlassCard padding="28px">
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-          Loading business info...
-        </p>
-      </GlassCard>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <GlassCard padding="24px">
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '20px' }}>
-          Business Information
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {BUSINESS_FIELDS.map((field) => (
-            <Input
-              key={field.key}
-              label={field.label}
-              value={formValues[field.key]?.value ?? ''}
-              onChange={(e) => updateField(field.key, e.target.value)}
-              placeholder={`Enter ${field.label.toLowerCase()}`}
-            />
-          ))}
-        </div>
-      </GlassCard>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button onClick={handleSave} loading={saving}>
-          Save
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  Access Controls tab                                                */
 /* ------------------------------------------------------------------ */
 
@@ -469,9 +371,9 @@ function AccessControlsContent() {
 
   // Derive toggle states from settings
   const getSettingValue = useCallback(
-    (key: string): string => {
+    (key: string, defaultValue = 'false'): string => {
       const match = settings.find((s) => s.setting_key === key);
-      return match?.setting_value ?? 'false';
+      return match?.setting_value ?? defaultValue;
     },
     [settings],
   );
@@ -484,8 +386,8 @@ function AccessControlsContent() {
     [settings],
   );
 
-  const signinEnabled = getSettingValue('signin_enabled').toLowerCase() === 'true';
-  const signupEnabled = getSettingValue('signup_enabled').toLowerCase() === 'true';
+  const signinEnabled = getSettingValue('signin_enabled', 'true').toLowerCase() === 'true';
+  const signupEnabled = getSettingValue('signup_enabled', 'true').toLowerCase() === 'true';
   const demoMode = getSettingValue('demo_mode').toLowerCase() === 'true';
   const allowedAccountTypesRaw = getSettingValue('allowed_account_types');
 
@@ -512,14 +414,21 @@ function AccessControlsContent() {
 
   async function toggleSetting(key: string, currentValue: boolean) {
     const id = getSettingId(key);
-    if (id === null) return;
+    const newValue = currentValue ? 'false' : 'true';
 
     setSaving(true);
     try {
-      const { error } = await supabaseAdmin
-        .from('admin_settings')
-        .update({ setting_value: currentValue ? 'false' : 'true' })
-        .eq('id', id);
+      let error;
+      if (id !== null) {
+        ({ error } = await supabaseAdmin
+          .from('admin_settings')
+          .update({ setting_value: newValue } as any)
+          .eq('id', id));
+      } else {
+        ({ error } = await supabaseAdmin
+          .from('admin_settings')
+          .insert({ setting_key: key, setting_value: newValue, setting_type: 'access_control' } as any));
+      }
 
       if (error) {
         console.error(`Failed to toggle ${key}:`, error.message);
@@ -542,14 +451,21 @@ function AccessControlsContent() {
 
   async function saveAllowedTypes() {
     const id = getSettingId('allowed_account_types');
-    if (id === null) return;
+    const value = JSON.stringify(localAllowedTypes);
 
     setSaving(true);
     try {
-      const { error } = await supabaseAdmin
-        .from('admin_settings')
-        .update({ setting_value: JSON.stringify(localAllowedTypes) })
-        .eq('id', id);
+      let error;
+      if (id !== null) {
+        ({ error } = await supabaseAdmin
+          .from('admin_settings')
+          .update({ setting_value: value } as any)
+          .eq('id', id));
+      } else {
+        ({ error } = await supabaseAdmin
+          .from('admin_settings')
+          .insert({ setting_key: 'allowed_account_types', setting_value: value, setting_type: 'access_control' } as any));
+      }
 
       if (error) {
         console.error('Failed to save allowed account types:', error.message);
@@ -1312,29 +1228,19 @@ interface ApiKeyConfig {
 
 const API_KEY_DEFINITIONS: ApiKeyConfig[] = [
   // AI
-  { key: 'deepseek_api_key', label: 'DeepSeek API Key', category: 'ai', description: 'AI merchant mapping & recommendations', isSecret: true },
+  { key: 'deepseek_api_key', label: 'DeepSeek API Key', category: 'ai', description: 'AI features (also set as Supabase secret)', isSecret: true },
   // Payments
   { key: 'stripe_secret_key', label: 'Stripe Secret Key', category: 'payments', description: 'Payment processing (live)', isSecret: true },
   { key: 'stripe_publishable_key', label: 'Stripe Publishable Key', category: 'payments', description: 'Stripe client-side key' },
   // Trading
   { key: 'alpaca_api_key', label: 'Alpaca API Key', category: 'trading', description: 'Stock trading (sandbox)' },
   { key: 'alpaca_api_secret', label: 'Alpaca API Secret', category: 'trading', description: 'Stock trading secret', isSecret: true },
-  // Analytics / Firebase
-  { key: 'firebase_api_key', label: 'Firebase API Key', category: 'analytics', description: 'Firebase client config' },
-  { key: 'firebase_auth_domain', label: 'Firebase Auth Domain', category: 'auth', description: 'Firebase authentication domain' },
-  { key: 'firebase_project_id', label: 'Firebase Project ID', category: 'analytics', description: 'Firebase project identifier' },
-  { key: 'firebase_storage_bucket', label: 'Firebase Storage Bucket', category: 'analytics', description: 'Firebase storage' },
-  { key: 'firebase_messaging_sender_id', label: 'Firebase Messaging Sender ID', category: 'analytics', description: 'Push notification sender' },
-  { key: 'firebase_app_id', label: 'Firebase App ID', category: 'analytics', description: 'Firebase app identifier' },
-  { key: 'firebase_measurement_id', label: 'Firebase Measurement ID', category: 'analytics', description: 'Google Analytics (GA4)' },
 ];
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   ai: { label: 'AI', color: '#7C3AED' },
   payments: { label: 'Payments', color: '#34D399' },
   trading: { label: 'Trading', color: '#3B82F6' },
-  analytics: { label: 'Analytics', color: '#F59E0B' },
-  auth: { label: 'Auth', color: '#EC4899' },
   other: { label: 'Other', color: 'var(--text-muted)' },
 };
 
@@ -1750,12 +1656,10 @@ export function SystemOperationsTab() {
     () => [
       { key: 'settings', label: 'Settings', content: <SettingsContent /> },
       { key: 'api-keys', label: 'API Keys', content: <ApiKeysContent /> },
-      { key: 'business', label: 'Business Info', content: <BusinessInfoContent /> },
       { key: 'access', label: 'Access Controls', content: <AccessControlsContent /> },
       { key: '2fa', label: '2FA Management', content: <TwoFAManagementContent /> },
       { key: 'events', label: 'System Events', content: <SystemEventsContent /> },
       { key: 'sops', label: 'SOPs', content: <SopsContent /> },
-      { key: 'balance', label: 'API Balance', content: <ApiBalanceContent /> },
     ],
     [],
   );
