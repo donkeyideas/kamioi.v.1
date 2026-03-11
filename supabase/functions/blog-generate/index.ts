@@ -134,6 +134,7 @@ RESPONSE FORMAT -valid JSON only, no markdown fencing:
         body: JSON.stringify({
           model: 'deepseek-chat',
           temperature: 0.7,
+          response_format: { type: 'json_object' },
           messages: [
             {
               role: 'system',
@@ -190,15 +191,27 @@ RESPONSE FORMAT -valid JSON only, no markdown fencing:
     }
 
     try {
-      // Strip markdown code fences if present
-      const cleaned = rawContent
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim()
+      // Strip markdown code fences if present (handle various formats)
+      let cleaned = rawContent.trim()
+      // Remove leading ```json or ``` (with optional whitespace/newlines)
+      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '')
+      // Remove trailing ```
+      cleaned = cleaned.replace(/\n?\s*```\s*$/i, '')
+      cleaned = cleaned.trim()
+
+      // If still not starting with {, try to extract JSON object
+      if (!cleaned.startsWith('{')) {
+        const jsonStart = cleaned.indexOf('{')
+        const jsonEnd = cleaned.lastIndexOf('}')
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          cleaned = cleaned.slice(jsonStart, jsonEnd + 1)
+        }
+      }
+
       generated = JSON.parse(cleaned)
-    } catch {
-      console.error('Failed to parse DeepSeek response:', rawContent)
+    } catch (parseErr) {
+      console.error('Failed to parse DeepSeek response:', rawContent.slice(0, 500))
+      console.error('Parse error:', parseErr)
       return errorResponse(
         'Failed to parse AI-generated content. The model returned invalid JSON.',
         502,
