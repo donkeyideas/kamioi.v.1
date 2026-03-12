@@ -63,7 +63,19 @@ export default function Register() {
 
   return (
     <>
-    <SEO title="Create Account" description="Sign up for Kamioi and start investing with every purchase. Choose from Individual, Family, or Business accounts." canonical="https://kamioi.com/register" />
+    <SEO
+      title="Create Account"
+      description="Sign up for Kamioi and start investing with every purchase. Choose from Individual, Family, or Business accounts."
+      canonical="https://kamioi.com/register"
+      jsonLd={{
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+          { '@type': 'ListItem', position: 2, name: 'Sign Up', item: 'https://kamioi.com/register' },
+        ],
+      }}
+    />
     <div style={{
       minHeight: '100vh',
       display: 'flex',

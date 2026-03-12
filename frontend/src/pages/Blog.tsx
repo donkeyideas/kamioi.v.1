@@ -348,6 +348,15 @@ export default function Blog() {
       <SEO
         title="Blog"
         description="Insights on investing, fintech, and building wealth from the Kamioi team."
+        canonical="https://kamioi.com/blog"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+            { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://kamioi.com/blog' },
+          ],
+        }}
       />
 
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 40px' }}>

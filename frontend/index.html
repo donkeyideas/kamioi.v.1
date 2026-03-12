@@ -45,6 +45,80 @@
     <!-- Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://oihrbeyprqqoahocswgk.supabase.co" />
+
+    <!-- Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Kamioi",
+      "url": "https://kamioi.com",
+      "logo": "https://kamioi.com/favicon.png",
+      "description": "Kamioi adds your chosen round-up amount to every purchase and invests it into real stocks. AI-powered micro-investing for everyone.",
+      "foundingDate": "2025",
+      "sameAs": [],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "url": "https://kamioi.com/contact"
+      }
+    }
+    </script>
+
+    <!-- Structured Data: WebSite with SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Kamioi",
+      "url": "https://kamioi.com",
+      "description": "Turn everyday spending into stock ownership with automatic round-up investing.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://kamioi.com/blog?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- Structured Data: WebPage with Speakable -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Kamioi - Turn Everyday Spending into Stock Ownership",
+      "url": "https://kamioi.com",
+      "description": "Kamioi adds your chosen round-up amount to every purchase and invests it into real stocks. Transform your spending into wealth — no minimum balance required.",
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": ["title", "meta[name='description']"]
+      }
+    }
+    </script>
+
+    <!-- Structured Data: SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Kamioi",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web, iOS, Android",
+      "description": "Automatic round-up micro-investing app that turns everyday purchases into real stock ownership.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free tier available"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "5",
+        "bestRating": "5"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

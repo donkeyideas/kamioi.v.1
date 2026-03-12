@@ -134,6 +134,26 @@ export default function Features() {
         title="Features"
         description="Discover Kamioi's powerful features: automatic round-ups, AI-powered investment insights, goal-based investing, family plans, business accounts, and real-time analytics."
         canonical="https://kamioi.com/features"
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Features', item: 'https://kamioi.com/features' },
+            ],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              { '@type': 'Question', name: 'What is automatic round-up investing?', acceptedAnswer: { '@type': 'Answer', text: 'Kamioi adds a fixed whole-dollar amount you choose — like $1, $2, or $3 — to every purchase and invests it automatically into real stocks. Over time, these consistent amounts compound, helping you build wealth without changing your spending habits.' } },
+              { '@type': 'Question', name: 'How does AI-powered stock matching work?', acceptedAnswer: { '@type': 'Answer', text: 'Our AI analyzes your spending patterns to match purchases with relevant stocks. Buy coffee at Starbucks, and your round-up goes toward Starbucks stock. The system continuously monitors your portfolio and provides personalized insights.' } },
+              { '@type': 'Question', name: 'Does Kamioi support family investing?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Kamioi Family plans let you manage investing for your entire household from one dashboard. Add family members, set individual round-up amounts, and track combined portfolio performance.' } },
+              { '@type': 'Question', name: 'Can I track my portfolio in real-time?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Kamioi provides real-time portfolio tracking with detailed analytics, spending trends, investment growth charts, and stock-level breakdowns — all accessible from your dashboard.' } },
+            ],
+          },
+        ]}
       />
       <style>{responsiveStyles}</style>
 

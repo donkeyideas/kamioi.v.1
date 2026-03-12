@@ -129,6 +129,14 @@ export default function FAQ() {
         title="FAQ — Frequently Asked Questions About Kamioi"
         description="Find answers to common questions about Kamioi micro-investing: round-ups, fees, security, withdrawals, AI stock matching, and more."
         canonical="https://kamioi.com/faq"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+            { '@type': 'ListItem', position: 2, name: 'FAQ', item: 'https://kamioi.com/faq' },
+          ],
+        }}
       />
       {/* FAQPage schema for AEO — optimizes for featured snippets */}
       <script

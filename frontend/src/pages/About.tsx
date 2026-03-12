@@ -101,6 +101,14 @@ export default function About() {
         title="About"
         description="Kamioi is a micro-investing platform that turns everyday purchases into stock ownership. Learn about our mission, values, and the team behind the product."
         canonical="https://kamioi.com/about"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+            { '@type': 'ListItem', position: 2, name: 'About', item: 'https://kamioi.com/about' },
+          ],
+        }}
       />
       <style>{responsiveStyles}</style>
 

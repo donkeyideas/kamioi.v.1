@@ -276,6 +276,25 @@ export default function Learn() {
         title="Learn"
         description="Learn about micro-investing, round-up strategies, portfolio diversification, and how Kamioi helps you build wealth automatically. FAQs and security information included."
         canonical="https://kamioi.com/learn"
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Learn', item: 'https://kamioi.com/learn' },
+            ],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQ_ITEMS.map(item => ({
+              '@type': 'Question',
+              name: item.question,
+              acceptedAnswer: { '@type': 'Answer', text: item.answer },
+            })),
+          },
+        ]}
       />
       <style>{responsiveStyles}</style>
 

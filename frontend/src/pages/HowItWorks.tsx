@@ -81,6 +81,36 @@ export default function HowItWorks() {
         title="How It Works"
         description="Learn how Kamioi works in 3 simple steps: create your account, connect your cards, and watch your wealth grow through automatic round-up investing."
         canonical="https://kamioi.com/how-it-works"
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+              { '@type': 'ListItem', position: 2, name: 'How It Works', item: 'https://kamioi.com/how-it-works' },
+            ],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'HowTo',
+            name: 'How to Start Investing with Kamioi',
+            description: 'Start building wealth in 3 simple steps with Kamioi automatic round-up investing.',
+            step: [
+              { '@type': 'HowToStep', position: 1, name: 'Create Your Account', text: 'Sign up for free in under 2 minutes. Choose your plan — Individual, Family, or Business.' },
+              { '@type': 'HowToStep', position: 2, name: 'Connect Your Cards', text: 'Securely link your bank account or debit card. Choose your round-up amount ($1, $2, $3, or more per purchase).' },
+              { '@type': 'HowToStep', position: 3, name: 'Watch Your Wealth Grow', text: 'Every purchase triggers an automatic investment. AI matches your spending to relevant stocks. Track your portfolio growth in real-time.' },
+            ],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              { '@type': 'Question', name: 'How long does it take to set up Kamioi?', acceptedAnswer: { '@type': 'Answer', text: 'You can create your account and start investing in under 2 minutes. Just sign up, connect your bank, and choose your round-up amount.' } },
+              { '@type': 'Question', name: 'Is my bank information secure?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. We use bank-level 256-bit AES encryption and tokenized connections. Your banking credentials are never stored on our servers.' } },
+              { '@type': 'Question', name: 'How much do I need to start investing?', acceptedAnswer: { '@type': 'Answer', text: 'There is no minimum balance required. Your round-up amount starts at $1 per purchase, and you can adjust it anytime.' } },
+            ],
+          },
+        ]}
       />
       <style>{responsiveStyles}</style>
 

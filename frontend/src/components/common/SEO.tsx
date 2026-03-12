@@ -8,6 +8,7 @@ interface SEOProps {
   ogImage?: string
   ogType?: string
   noindex?: boolean
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[]
 }
 
 /**
@@ -22,6 +23,7 @@ export function SEO({
   ogImage,
   ogType = 'website',
   noindex = false,
+  jsonLd,
 }: SEOProps) {
   const { seoSettings } = useSeoSettings()
 
@@ -124,6 +126,19 @@ export function SEO({
       }
     }
 
+    // JSON-LD structured data
+    if (jsonLd) {
+      const schemas = Array.isArray(jsonLd) ? jsonLd : [jsonLd]
+      for (const schema of schemas) {
+        const script = document.createElement('script')
+        script.type = 'application/ld+json'
+        script.textContent = JSON.stringify(schema)
+        script.setAttribute('data-seo-jsonld', 'true')
+        document.head.appendChild(script)
+        createdElements.push(script)
+      }
+    }
+
     return () => {
       document.title = previousTitle
 
@@ -146,7 +161,8 @@ export function SEO({
         canonicalEl.setAttribute('href', prevCanonicalHref)
       }
     }
-  }, [title, resolvedDescription, canonical, resolvedOgImage, ogType, noindex, siteName, twitterHandle, keywords])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, resolvedDescription, canonical, resolvedOgImage, ogType, noindex, siteName, twitterHandle, keywords, JSON.stringify(jsonLd)])
 
   return null
 }

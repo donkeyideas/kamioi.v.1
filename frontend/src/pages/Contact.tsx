@@ -172,6 +172,15 @@ export default function Contact() {
       <SEO
         title="Contact"
         description="Get in touch with the Kamioi team. We typically respond within 24 hours."
+        canonical="https://kamioi.com/contact"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+            { '@type': 'ListItem', position: 2, name: 'Contact', item: 'https://kamioi.com/contact' },
+          ],
+        }}
       />
 
       <section style={sectionStyle}>

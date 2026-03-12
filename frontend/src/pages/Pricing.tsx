@@ -301,6 +301,28 @@ export default function Pricing() {
       <SEO
         title="Pricing"
         description="Simple, transparent pricing for Kamioi micro-investing. Individual, Family, and Business plans."
+        canonical="https://kamioi.com/pricing"
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://kamioi.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Pricing', item: 'https://kamioi.com/pricing' },
+            ],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              { '@type': 'Question', name: 'How much does Kamioi cost?', acceptedAnswer: { '@type': 'Answer', text: 'Kamioi offers transparent, flat monthly pricing with no hidden fees. Individual plans start at an affordable monthly rate. Family and Business plans include additional features at competitive prices. All plans include zero trading commissions.' } },
+              { '@type': 'Question', name: 'Are there any hidden fees?', acceptedAnswer: { '@type': 'Answer', text: 'No. Kamioi charges a simple flat monthly fee with no hidden costs, no trading commissions, and no withdrawal penalties. What you see is what you pay.' } },
+              { '@type': 'Question', name: 'Can I cancel my plan anytime?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. You can cancel your Kamioi subscription at any time with no penalties. Your investments remain yours, and you can withdraw your funds at any time.' } },
+              { '@type': 'Question', name: 'Is there a free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Kamioi offers a free tier so you can experience the platform before committing to a paid plan. No credit card required to get started.' } },
+              { '@type': 'Question', name: 'What is the difference between Individual and Family plans?', acceptedAnswer: { '@type': 'Answer', text: 'Individual plans are for single investors. Family plans let you manage investing for your entire household — add family members, set individual round-up amounts, and track combined portfolio performance from one dashboard.' } },
+            ],
+          },
+        ]}
       />
 
       <section style={sectionStyle}>
